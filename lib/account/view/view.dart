@@ -1,0 +1,20 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:grocery_flutter_app/app/cubit/app_cubit.dart';
+import 'package:grocery_flutter_app/category/view/view.dart';
+import 'package:grocery_flutter_app/custom%20widgets/widgets.dart';
+import 'package:grocery_flutter_app/utils/constants/constants.dart';
+import 'package:grocery_flutter_app/utils/generics/generics.dart';
+import 'package:grocery_flutter_app/utils/themes/grocery_color_theme.dart';
+import 'package:grocery_flutter_app/utils/themes/grocery_icons.dart';
+import 'package:grocery_flutter_app/utils/themes/grocery_text_theme.dart';
+
+part "account_page.dart";
+part "order_history_page.dart";
+part "my_wallet_page.dart";
+part "notification_page.dart";
+part "transaction_histry_page.dart";
+part "change_password_page.dart";
+part "privacy_policy_page.dart";
+part "faq_page.dart";
+part "aboutus_page.dart";
