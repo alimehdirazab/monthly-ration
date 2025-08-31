@@ -14,6 +14,18 @@ class AuthState extends Equatable {
     this.otpResendStatus = const GeneralApiState<void>(),
     this.otpResendCountdown = 30,
     this.canResendOtp = false,
+    // update profile Api State
+    this.updateProfileApiState = const GeneralApiState<void>(),
+    // get Address Api State
+    this.getAddressApiState = const GeneralApiState<AddressesResponse>(),
+    // create Address Api State
+    this.createAddressApiState = const GeneralApiState<void>(),
+    // update Address Api State
+    this.updateAddressApiState = const GeneralApiState<void>(),
+    // set Address Api State
+    this.setAddressApiState = const GeneralApiState<void>(),
+    // delete Address Api State
+    this.deleteAddressApiState = const GeneralApiState<void>(),
   });
 
   // Mobile Number Input
@@ -30,8 +42,18 @@ class AuthState extends Equatable {
   final GeneralApiState<void> otpResendStatus;
   final int otpResendCountdown;
   final bool canResendOtp;
-
-
+  // update profile Api State
+  final GeneralApiState<void> updateProfileApiState;
+  // get Address Api State
+  final GeneralApiState<AddressesResponse> getAddressApiState;
+  // create Address Api State
+  final GeneralApiState<void> createAddressApiState;
+  // update Address Api State
+  final GeneralApiState<void> updateAddressApiState;
+  // set Address Api State
+  final GeneralApiState<void> setAddressApiState;
+  // delete Address Api State
+  final GeneralApiState<void> deleteAddressApiState;
 
   AuthState copyWith({
    // Mobile Number Input
@@ -46,6 +68,18 @@ class AuthState extends Equatable {
    GeneralApiState<void>? otpResendStatus,
    int? otpResendCountdown,
    bool? canResendOtp,
+   // update profile Api State
+   GeneralApiState<void>? updateProfileApiState,
+   // get Address Api State
+   GeneralApiState<AddressesResponse>? getAddressApiState,
+   // create Address Api State
+   GeneralApiState<void>? createAddressApiState,
+   // update Address Api State
+   GeneralApiState<void>? updateAddressApiState,
+   // set Address Api State
+   GeneralApiState<void>? setAddressApiState,
+   // delete Address Api State
+   GeneralApiState<void>? deleteAddressApiState,
   }) {
     return AuthState(
      // Mobile Number Input
@@ -60,6 +94,18 @@ class AuthState extends Equatable {
      otpResendStatus: otpResendStatus ?? this.otpResendStatus,
      otpResendCountdown: otpResendCountdown ?? this.otpResendCountdown,
      canResendOtp: canResendOtp ?? this.canResendOtp,
+     // update profile Api State
+     updateProfileApiState: updateProfileApiState ?? this.updateProfileApiState,
+     // get Address Api State
+     getAddressApiState: getAddressApiState ?? this.getAddressApiState,
+     // create Address Api State
+     createAddressApiState: createAddressApiState ?? this.createAddressApiState,
+     // update Address Api State
+     updateAddressApiState: updateAddressApiState ?? this.updateAddressApiState,
+     // set Address Api State
+     setAddressApiState: setAddressApiState ?? this.setAddressApiState,
+     // delete Address Api State
+     deleteAddressApiState: deleteAddressApiState ?? this.deleteAddressApiState,
     );
   }
 
@@ -77,5 +123,17 @@ class AuthState extends Equatable {
       otpResendStatus,
       otpResendCountdown,
       canResendOtp,
+      // update profile Api State
+      updateProfileApiState,
+      // get Address Api State
+      getAddressApiState,
+      // create Address Api State
+      createAddressApiState,
+      // update Address Api State
+      updateAddressApiState,
+      // set Address Api State
+      setAddressApiState,
+      // delete Address Api State
+      deleteAddressApiState,
     ];
 }

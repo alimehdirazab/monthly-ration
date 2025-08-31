@@ -21,6 +21,7 @@ class _HomeViewState extends State<HomeView> {
   void initState() {
     super.initState();
     context.read<HomeCubit>().clearCart();
+    context.read<AuthCubit>().getAddress();
   }
 
   @override
@@ -144,6 +145,8 @@ class _HomeViewState extends State<HomeView> {
 
   // --- Widgets for different sections of the screen ---
   PreferredSizeWidget _buildAppBar(BuildContext context) {
+    AppState appState = context.select((AppCubit cubit) => cubit.state);
+    final address = appState.user.customer?.addressLine1 ?? "";
     return AppBar(
       toolbarHeight: 150,
 
@@ -165,7 +168,7 @@ class _HomeViewState extends State<HomeView> {
                   ),
                   SizedBox(width: 4),
                   Text(
-                    'Block D, Noida Sector 3, Meerut Division',
+                    address,
                     style: GroceryTextTheme().lightText,
                   ),
                 ],

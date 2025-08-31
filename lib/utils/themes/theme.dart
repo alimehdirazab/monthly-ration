@@ -12,6 +12,8 @@ class FoxTheme {
     dividerTheme: lightDividerTheme,
     iconTheme: iconThemeData,
     elevatedButtonTheme: elevatedButtonThemeData,
+    progressIndicatorTheme: progressIndicatorThemeData
+
   );
 
   ThemeData get darkThemeData => ThemeData(
@@ -25,6 +27,7 @@ class FoxTheme {
     iconTheme: iconThemeData,
 
     elevatedButtonTheme: elevatedButtonThemeData,
+    progressIndicatorTheme: progressIndicatorThemeData
   );
 
   ElevatedButtonThemeData get elevatedButtonThemeData =>
@@ -86,4 +89,11 @@ class FoxTheme {
       side: BorderSide.none,
     ),
   );
+
+  // set CircularProgressIndicator color to primary
+
+  ProgressIndicatorThemeData get progressIndicatorThemeData => ProgressIndicatorThemeData(
+    color: GroceryColorTheme().primary,
+  );
+  
 }

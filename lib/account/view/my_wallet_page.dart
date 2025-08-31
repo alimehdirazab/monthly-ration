@@ -10,6 +10,8 @@ class MyWalletPage extends StatelessWidget {
 }
 
 class MyWalletView extends StatefulWidget {
+  const MyWalletView({super.key});
+
   @override
   _MyWalletViewState createState() => _MyWalletViewState();
 }

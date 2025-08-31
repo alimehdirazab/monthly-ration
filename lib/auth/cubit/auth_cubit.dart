@@ -106,6 +106,166 @@ class AuthCubit extends Cubit<AuthState> {
     });
   }
 
+  // Update profile
+  Future<void> updateProfile({
+    String? name,
+    String? email,
+    String? phone,
+  }) async {
+    emit(state.copyWith(updateProfileApiState: GeneralApiState(
+      apiCallState: APICallState.loading
+    )));
+
+    await authenticationRepository.updateProfile(name, email, phone).then((_) {
+      emit(state.copyWith(updateProfileApiState: GeneralApiState(
+        apiCallState: APICallState.loaded
+      )));
+    }).catchError((error) {
+      emit(state.copyWith(updateProfileApiState: GeneralApiState(
+        apiCallState: APICallState.failure,
+        errorMessage: error.toString(),
+      )));
+    });
+  }
+
+  // Get Address
+  Future<void> getAddress() async {
+    emit(state.copyWith(getAddressApiState: GeneralApiState(
+      apiCallState: APICallState.loading
+    ),
+    setAddressApiState: GeneralApiState(),
+    deleteAddressApiState: GeneralApiState(),
+    createAddressApiState: GeneralApiState(),
+    updateAddressApiState: GeneralApiState(),
+    ));
+
+    await authenticationRepository.getAddresses().then((address) {
+      emit(state.copyWith(getAddressApiState: GeneralApiState(
+        apiCallState: APICallState.loaded,
+        model: address
+      )));
+    }).catchError((error) {
+      emit(state.copyWith(getAddressApiState: GeneralApiState(
+        apiCallState: APICallState.failure,
+        errorMessage: error.toString(),
+      )));
+    });
+  }
+
+  // Create Address
+  Future<void> createAddress({
+  required String name,
+  required String phone,
+  required String addressLine1,
+  required String addressLine2,
+  required String city,
+  required String statee,
+  required String country,
+  required String pincode,
+  required bool isDefault,
+}) async {
+    emit(state.copyWith(createAddressApiState: GeneralApiState(
+      apiCallState: APICallState.loading
+    )));
+
+    await authenticationRepository.createAddress(
+      name: name,
+      phone: phone,
+      addressLine1: addressLine1,
+      addressLine2: addressLine2,
+      city: city,
+      state: statee,
+      country: country,
+      pincode: pincode,
+      isDefault: isDefault,
+    ).then((_) {
+      emit(state.copyWith(createAddressApiState: GeneralApiState(
+        apiCallState: APICallState.loaded
+      )));
+    }).catchError((error) {
+      emit(state.copyWith(createAddressApiState: GeneralApiState(
+        apiCallState: APICallState.failure,
+        errorMessage: error.toString(),
+      )));
+    });
+  }
+
+  // Update Address
+  Future<void> updateAddress({
+    required int id,
+    required String name,
+    required String phone,
+    required String addressLine1,
+    required String addressLine2,
+    required String city,
+    required String statee,
+    required String country,
+    required String pincode,
+    required bool isDefault,
+  }) async {
+    emit(state.copyWith(updateAddressApiState: GeneralApiState(
+      apiCallState: APICallState.loading
+    )));
+
+    await authenticationRepository.updateAddress(
+      id: id,
+      name: name,
+      phone: phone,
+      addressLine1: addressLine1,
+      addressLine2: addressLine2,
+      city: city,
+      state: statee,
+      country: country,
+      pincode: pincode,
+      isDefault: isDefault,
+    ).then((_) {
+      emit(state.copyWith(updateAddressApiState: GeneralApiState(
+        apiCallState: APICallState.loaded
+      )));
+    }).catchError((error) {
+      emit(state.copyWith(updateAddressApiState: GeneralApiState(
+        apiCallState: APICallState.failure,
+        errorMessage: error.toString(),
+      )));
+    });
+  }
+
+  // set Address
+  Future<void> setAddress({required int id}) async {
+    emit(state.copyWith(setAddressApiState: GeneralApiState(
+      apiCallState: APICallState.loading
+    )));
+
+    await authenticationRepository.setDefaultAddress(id).then((_) {
+      emit(state.copyWith(setAddressApiState: GeneralApiState(
+        apiCallState: APICallState.loaded
+      )));
+    }).catchError((error) {
+      emit(state.copyWith(setAddressApiState: GeneralApiState(
+        apiCallState: APICallState.failure,
+        errorMessage: error.toString(),
+      )));
+    });
+  }
+
+  // delete Address
+  Future<void> deleteAddress({required int id}) async {
+    emit(state.copyWith(deleteAddressApiState: GeneralApiState(
+      apiCallState: APICallState.loading
+    )));
+
+    await authenticationRepository.deleteAddress(id).then((_) {
+      emit(state.copyWith(deleteAddressApiState: GeneralApiState(
+        apiCallState: APICallState.loaded
+      )));
+    }).catchError((error) {
+      emit(state.copyWith(deleteAddressApiState: GeneralApiState(
+        apiCallState: APICallState.failure,
+        errorMessage: error.toString(),
+      )));
+    });
+  }
+
   // Logout
   void logout() {
     authenticationRepository.logout();

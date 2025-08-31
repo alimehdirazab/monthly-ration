@@ -65,22 +65,27 @@ class AccountView extends StatelessWidget {
                                 fontSize: 20,
                               ),
                             ),
-                            Row(
-                              children: [
-                                const Text(
-                                  'Edit',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: Color(0xFF4CAF50), // Green color
+                            GestureDetector(
+                              onTap: () {
+                                context.pushPage(EditProfilePage());
+                              },
+                              child: Row(
+                                children: [
+                                  const Text(
+                                    'Edit',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Color(0xFF4CAF50), // Green color
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(width: 4),
-                                Icon(
-                                  Icons.edit,
-                                  size: 16,
-                                  color: Color(0xFF4CAF50),
-                                ), // Green edit icon
-                              ],
+                                  const SizedBox(width: 4),
+                                  Icon(
+                                    Icons.edit,
+                                    size: 16,
+                                    color: Color(0xFF4CAF50),
+                                  ), // Green edit icon
+                                ],
+                              ),
                             ),
                           ],
                         ),
@@ -111,7 +116,7 @@ class AccountView extends StatelessWidget {
                     Icons.location_on_outlined,
                     'Address',
                     () {
-                      context.pushPage(AddAddressPage());
+                      context.pushPage(AddressPage());
                     },
                   ),
                   _buildActionButton(
