@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:authentication_repository/authentication_repository.dart';
 import 'package:cache/cache.dart';
 import 'package:flutter/foundation.dart';
@@ -113,7 +114,7 @@ class AuthenticationRepository {
     }
 
     if (fields.isNotEmpty) {
-       await generalRepository.put(
+       await generalRepository.post(
         handle: AuthenticationEndpoints.updateProfile,
         body: jsonEncode(fields),
       );
@@ -133,7 +134,23 @@ class AuthenticationRepository {
     } 
   }
 
-   // get addresses
+  // Update Profile Image
+  Future<void> updateProfileImage(File image) async {
+    // Prepare file info for multipart upload
+    List<Map<String, dynamic>> files = [
+      {
+        'fieldName': 'profile_image',
+        'filePath': image.path,
+        'fileName': image.path.split('/').last,
+      }
+    ];
+
+    await generalRepository.multipartPost(
+      handle: AuthenticationEndpoints.updateProfileImage,
+      files: files,
+      apiMethod: 'POST',
+    );
+  }
   Future<AddressesResponse> getAddresses() async {
     var responseJson = await generalRepository.get(
       handle: AuthenticationEndpoints.addresses,

@@ -24,6 +24,8 @@ class GroceryApis {
   static const String profile = "profile";
   // update profile
   static const String updateProfile = "profile/update";
+  // update profile image
+  static const String updateProfileImage = "profile-image/update";
   // addresses
   static const String addresses = "addresses";
   // create address
@@ -42,6 +44,8 @@ class GroceryApis {
   static const String products = "products";
   // product details
   static const String productDetails = "products/details";
+  // default categories
+  static const String defaultCategories = "default-categories";
 
   initBaseUrlAndAuthEndpoints() {
     ApiConfig.baseUrl = baseApiUrl;
@@ -50,6 +54,7 @@ class GroceryApis {
     AuthenticationEndpoints.loginWithOtp = loginWithOtp;
     AuthenticationEndpoints.profile = profile;
     AuthenticationEndpoints.updateProfile = updateProfile;
+    AuthenticationEndpoints.updateProfileImage = updateProfileImage;
     AuthenticationEndpoints.addresses = addresses;
     AuthenticationEndpoints.createAddress = createAddress;
     AuthenticationEndpoints.updateAddress = updateAddress;

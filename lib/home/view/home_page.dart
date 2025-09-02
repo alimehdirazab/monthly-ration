@@ -10,7 +10,7 @@ class HomePage extends StatelessWidget {
 }
 
 class HomeView extends StatefulWidget {
-  HomeView({super.key});
+  const HomeView({super.key});
 
   @override
   State<HomeView> createState() => _HomeViewState();
@@ -22,6 +22,9 @@ class _HomeViewState extends State<HomeView> {
     super.initState();
     context.read<HomeCubit>().clearCart();
     context.read<AuthCubit>().getAddress();
+    context.read<HomeCubit>().getBanners();
+    context.read<HomeCubit>().getDefaultCategories();
+    context.read<HomeCubit>().getProducts();
   }
 
   @override
@@ -43,11 +46,8 @@ class _HomeViewState extends State<HomeView> {
             const SizedBox(height: 16),
             _buildBanner(),
             const SizedBox(height: 24),
-            _buildSectionTitle('Grocery & Kitchen'),
-            _buildProductGrid(_groceryKitchenItems),
-            const SizedBox(height: 24),
-            _buildSectionTitle('Snacks & Drinks'),
-            _buildProductGrid(_snacksDrinksItems),
+            _buildSectionTitle('Products'),
+            _buildProductGrid(),
             const SizedBox(height: 24),
           ],
         ),
@@ -206,98 +206,185 @@ class _HomeViewState extends State<HomeView> {
   }
 
   Widget _buildCategoryTabs() {
-    final List<String> categories = [
-      'All',
-      'Electronic',
-      'Beauty',
-      'Decor',
-      'Kids',
-      'Fashion',
-      'Sports',
-    ]; // Example categories
+    return BlocBuilder<HomeCubit, HomeState>(
+      buildWhen: (previous, current) =>
+          previous.defaultCategoriesApiState != current.defaultCategoriesApiState ||
+          previous.selectedCategoryIndex != current.selectedCategoryIndex,
+      builder: (context, state) {
+        final apiState = state.defaultCategoriesApiState;
+        final selectedCategoryIndex = state.selectedCategoryIndex;
+        
+        // Get categories from API or use empty list
+        final apiCategories = apiState.model?.data ?? [];
+        
+        // Create final list with "All" first, then API categories
+        final List<Category?> categories = [null, ...apiCategories]; // null represents "All"
+        final List<String> categoryNames = ['All', ...apiCategories.map((cat) => cat.name)];
 
-    final List<IconData> categoryIcons = [
-      Icons.apps,
-      Icons.electrical_services,
-      Icons.brush,
-      Icons.palette,
-      Icons.child_care,
-      Icons.shopping_bag,
-      Icons.sports_baseball,
-    ]; // Example icons
-
-    return SizedBox(
-      height: 70, // Height for category row
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: categories.length,
-        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-        itemBuilder: (context, index) {
-          final bool isSelected = index == 0; // 'All' is selected in screenshot
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: Column(
-              children: [
-                InkWell(
-                  onTap: () {},
-                  child: Icon(
-                    categoryIcons[index],
-                    color:
-                        isSelected
-                            ? GroceryColorTheme().black
-                            : GroceryColorTheme().black.withValues(alpha: 0.2),
-                    size: 30,
-                  ),
-                ),
-
-                const SizedBox(height: 4),
-                Text(
-                  categories[index],
-                  style: TextStyle(
-                    fontSize: 12,
-                    color:
-                        isSelected
-                            ? GroceryColorTheme().black
-                            : GroceryColorTheme().black.withValues(alpha: 0.2),
-                    fontWeight:
-                        isSelected ? FontWeight.bold : FontWeight.normal,
-                  ),
-                ),
-              ],
-            ),
+        if (apiState.apiCallState == APICallState.loading) {
+          return SizedBox(
+            height: 70,
+            child: Center(child: CircularProgressIndicator()),
           );
-        },
-      ),
+        }
+        if (apiState.apiCallState == APICallState.failure) {
+          log(apiState.errorMessage ?? 'Failed to load categories');
+          return SizedBox(
+            height: 70,
+            child: Center(child: Text(apiState.errorMessage ?? 'Failed to load categories', style: TextStyle(color: Colors.red))),
+          );
+        }
+
+        return SizedBox(
+          height: 70, // Height for category row
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: categories.length,
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            itemBuilder: (context, index) {
+              final bool isSelected = selectedCategoryIndex == index;
+              final category = categories[index];
+              
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: InkWell(
+                   onTap: () {
+                        context.read<HomeCubit>().setSelectedCategoryIndex(index);
+                        // Handle category selection logic here
+                        // You can call API or filter products based on selected category
+                        if (category != null) {
+                          context.read<HomeCubit>().getProducts(categoryId: category.id);
+                        } else {
+                          context.read<HomeCubit>().getProducts();
+                        }
+                      },
+                  child: Column(
+                    children: [
+                      category?.image != null && category!.image!.isNotEmpty
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                category.image!,
+                                width: 40,
+                                height: 40,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  // If image fails to load, show default icon
+                                  return Icon(
+                                    index == 0 ? Icons.apps : Icons.category,
+                                    color: isSelected
+                                        ? GroceryColorTheme().black
+                                        : GroceryColorTheme().black.withValues(alpha: 0.2),
+                                    size: 30,
+                                  );
+                                },
+                              ),
+                            )
+                          : Icon(
+                              index == 0 ? Icons.apps : Icons.category,
+                              color: isSelected
+                                  ? GroceryColorTheme().black
+                                  : GroceryColorTheme().black.withValues(alpha: 0.2),
+                              size: 30,
+                            ),
+                      const SizedBox(height: 4),
+                      Text(
+                        categoryNames[index],
+                        style: TextStyle(
+                          fontSize: 12,
+                          color:
+                              isSelected
+                                  ? GroceryColorTheme().black
+                                  : GroceryColorTheme().black.withValues(alpha: 0.2),
+                          fontWeight:
+                              isSelected ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 
   Widget _buildBanner() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: Container(
-        height: 150,
-        width: double.infinity, // Adjust banner height
-        padding: EdgeInsets.all(0),
-        decoration: BoxDecoration(
-          // color: Colors.blue[700], // Placeholder background
-          // image: DecorationImage(
-          //   image: AssetImage(
-          //     GroceryImages.banner,
-          //   ), // Replace with your banner image
-          //   fit: BoxFit.fill,
-
-          // ),
-        ),
-
-        child: Image.asset(
-          GroceryImages.banner,
-          height: double.infinity,
-          width: double.infinity,
-          // Replace with your banner image
-          fit: BoxFit.cover,
-        ),
-        // You can add Text/Icons over the image if they are separate elements
-      ),
+    return BlocBuilder<HomeCubit, HomeState>(
+      buildWhen: (previous, current) =>
+          previous.bannersApiState != current.bannersApiState,
+      builder: (context, state) {
+        final apiState = state.bannersApiState;
+        if (apiState.apiCallState == APICallState.loading) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Container(
+              height: 150,
+              alignment: Alignment.center,
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+        if (apiState.apiCallState == APICallState.failure) {
+          log(apiState.errorMessage ?? 'Failed to load banners');
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Container(
+              height: 150,
+              alignment: Alignment.center,
+              child: Text(apiState.errorMessage ?? 'Failed to load banners', style: TextStyle(color: Colors.red)),
+            ),
+          );
+        }
+        final banners = apiState.model?.data ?? [];
+        if (banners.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Container(
+              height: 150,
+              alignment: Alignment.center,
+              child: Text('No banners available'),
+            ),
+          );
+        }
+        // Carousel slider for banners
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4.0),
+          child: SizedBox(
+            height: 150,
+            width: double.infinity,
+            child: PageView.builder(
+              itemCount: banners.length,
+              controller: PageController(viewportFraction: 0.92),
+              itemBuilder: (context, index) {
+                final banner = banners[index];
+                return Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 8.0),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.08),
+                        blurRadius: 8,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Image.network(
+                    banner.image,
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    height: double.infinity,
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -315,56 +402,139 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
-  final List<Map<String, String>> _groceryKitchenItems = [
-    {'image': GroceryImages.grocery1, 'name': 'Vegetables & Fruits'},
-    {'image': GroceryImages.grocery2, 'name': 'Atta Rice & Dal'},
-    {'image': GroceryImages.grocery3, 'name': 'Oil Ghee & Masala'},
-    {'image': GroceryImages.grocery4, 'name': 'Dairy Eggs & Bread'},
-    {'image': GroceryImages.grocery5, 'name': 'Bakery & Biscuits'},
-    {'image': GroceryImages.grocery6, 'name': 'Dry Fruits & Cereals'},
-    {'image': GroceryImages.grocery7, 'name': 'Chicken Meat & Fish'},
-    {'image': GroceryImages.grocery8, 'name': 'Kitchenware & Appliances'},
-  ];
-
-  final List<Map<String, String>> _snacksDrinksItems = [
-    {'image': GroceryImages.grocery1, 'name': 'Chips & Namkoon'},
-    {'image': GroceryImages.grocery2, 'name': 'Sweets & Chocolates'},
-    {'image': GroceryImages.grocery3, 'name': 'Drinks & Juices'},
-    {'image': GroceryImages.grocery4, 'name': 'Tea Coffee & Milkshakes'},
-    {'image': GroceryImages.grocery5, 'name': 'Instant Food & Maggi'},
-    {'image': GroceryImages.grocery6, 'name': 'Sauces & Nutella'},
-    {'image': GroceryImages.grocery7, 'name': 'Pan Corner & Vape'},
-    {'image': GroceryImages.grocery8, 'name': 'Ice creams & Falooda'},
-  ];
-
-  Widget _buildProductGrid(List<Map<String, String>> items) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-      child: GridView.builder(
-        shrinkWrap: true, // Important for nested scrolling
-        physics:
-            const NeverScrollableScrollPhysics(), // Disable GridView's own scrolling
-        itemCount: items.length,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 4, // 4 items per row as per screenshot
-          crossAxisSpacing: 0, // No horizontal spacing between items
-          mainAxisSpacing: 0, // No vertical spacing between items
-          childAspectRatio: 0.56, // Adjust as needed to fit content
-        ),
-        itemBuilder: (context, index) {
-          return InkWell(
-            onTap: () {
-              context.pushPage(
-                ProductDetailPage(homeCubit: context.read<HomeCubit>()),
-              );
-            },
-            child: ItemContainer(
-              imageUrl: items[index]['image']!,
-              itemName: items[index]['name']!,
+  Widget _buildProductGrid() {
+    return BlocBuilder<HomeCubit, HomeState>(
+      buildWhen: (previous, current) =>
+          previous.productsApiState != current.productsApiState,
+      builder: (context, state) {
+        final apiState = state.productsApiState;
+        
+        if (apiState.apiCallState == APICallState.loading) {
+          return Container(
+            height: 200,
+            alignment: Alignment.center,
+            child: CircularProgressIndicator(),
+          );
+        }
+        
+        if (apiState.apiCallState == APICallState.failure) {
+          return Container(
+            height: 200,
+            alignment: Alignment.center,
+            child: Text(
+              apiState.errorMessage ?? 'Failed to load products',
+              style: TextStyle(color: Colors.red),
             ),
           );
-        },
-      ),
+        }
+        
+        final products = apiState.model?.data ?? [];
+        
+        if (products.isEmpty) {
+          return Container(
+            height: 200,
+            alignment: Alignment.center,
+            child: Text('No products available'),
+          );
+        }
+        
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          child: GridView.builder(
+            shrinkWrap: true, // Important for nested scrolling
+            physics: const NeverScrollableScrollPhysics(), // Disable GridView's own scrolling
+            itemCount: products.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 4, // 4 items per row as per screenshot
+              crossAxisSpacing: 0, // No horizontal spacing between items
+              mainAxisSpacing: 0, // No vertical spacing between items
+              childAspectRatio: 0.56, // Adjust as needed to fit content
+            ),
+            itemBuilder: (context, index) {
+              final product = products[index];
+              return InkWell(
+                onTap: () {
+                  context.pushPage(
+                    ProductDetailPage(homeCubit: context.read<HomeCubit>()),
+                  );
+                },
+                child: ProductItemContainer(
+                  product: product,
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+}
+
+class ProductItemContainer extends StatelessWidget {
+  final Product product;
+
+  const ProductItemContainer({
+    super.key,
+    required this.product,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          width: 130,
+          // Fixed width based on the screenshot
+          margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 8),
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: GroceryColorTheme().primary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(15), // Rounded corners
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withValues(alpha: 0.1),
+                spreadRadius: 1,
+                blurRadius: 5,
+                offset: const Offset(0, 3), // changes position of shadow
+              ),
+            ],
+          ),
+          child: product.imagesUrls.isNotEmpty
+              ? ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    '${GroceryApis.baseUrl}/${product.imagesUrls.first}',
+                    width: 70,
+                    height: 80,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Icon(
+                        Icons.shopping_bag,
+                        size: 50,
+                        color: GroceryColorTheme().primary,
+                      );
+                    },
+                  ),
+                )
+              : Icon(
+                  Icons.shopping_bag,
+                  size: 50,
+                  color: GroceryColorTheme().primary,
+                ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          product.name,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontSize: 12,
+            color: Colors.black87,
+            fontWeight: FontWeight.w500,
+          ),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
     );
   }
 }

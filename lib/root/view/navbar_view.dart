@@ -9,7 +9,9 @@ class RootPage extends StatelessWidget {
       providers: [
         BlocProvider<NavBarCubit>(create: (context) => NavBarCubit()),
         BlocProvider<HomeCubit>(
-          create: (context) => HomeCubit(),
+          create: (context) => HomeCubit(
+            HomeRepository(context.read<GeneralRepository>()),
+          ),
         ),
         // BlocProvider<OperatorHomeCubit>(
         //   create: (context) => OperatorHomeCubit(

@@ -6,6 +6,7 @@ class AuthenticationEndpoints {
   static String loginWithOtp = '';
   static String profile = '';
   static String updateProfile = '';
+  static String updateProfileImage = '';
   static String addresses = '';
   static String createAddress = '';
   static String updateAddress = '';

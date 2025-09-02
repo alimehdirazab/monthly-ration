@@ -1,5 +1,6 @@
 // ignore_for_file: always_specify_types
 import "dart:async";
+import "dart:io";
 
 import "package:authentication_repository/authentication_repository.dart";
 import "package:equatable/equatable.dart";
@@ -122,6 +123,24 @@ class AuthCubit extends Cubit<AuthState> {
       )));
     }).catchError((error) {
       emit(state.copyWith(updateProfileApiState: GeneralApiState(
+        apiCallState: APICallState.failure,
+        errorMessage: error.toString(),
+      )));
+    });
+  }
+
+  // Update Profile Image
+  Future<void> updateProfileImage(File image) async {
+    emit(state.copyWith(updateProfileImageApiState: GeneralApiState(
+      apiCallState: APICallState.loading
+    )));
+
+    await authenticationRepository.updateProfileImage(image).then((_) {
+      emit(state.copyWith(updateProfileImageApiState: GeneralApiState(
+        apiCallState: APICallState.loaded
+      )));
+    }).catchError((error) {
+      emit(state.copyWith(updateProfileImageApiState: GeneralApiState(
         apiCallState: APICallState.failure,
         errorMessage: error.toString(),
       )));

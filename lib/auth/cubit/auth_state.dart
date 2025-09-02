@@ -16,6 +16,8 @@ class AuthState extends Equatable {
     this.canResendOtp = false,
     // update profile Api State
     this.updateProfileApiState = const GeneralApiState<void>(),
+    // update profile image Api State
+    this.updateProfileImageApiState = const GeneralApiState<void>(),
     // get Address Api State
     this.getAddressApiState = const GeneralApiState<AddressesResponse>(),
     // create Address Api State
@@ -44,6 +46,8 @@ class AuthState extends Equatable {
   final bool canResendOtp;
   // update profile Api State
   final GeneralApiState<void> updateProfileApiState;
+  // update profile image Api State
+  final GeneralApiState<void> updateProfileImageApiState;
   // get Address Api State
   final GeneralApiState<AddressesResponse> getAddressApiState;
   // create Address Api State
@@ -70,6 +74,8 @@ class AuthState extends Equatable {
    bool? canResendOtp,
    // update profile Api State
    GeneralApiState<void>? updateProfileApiState,
+   // update profile image Api State
+   GeneralApiState<void>? updateProfileImageApiState,
    // get Address Api State
    GeneralApiState<AddressesResponse>? getAddressApiState,
    // create Address Api State
@@ -96,6 +102,8 @@ class AuthState extends Equatable {
      canResendOtp: canResendOtp ?? this.canResendOtp,
      // update profile Api State
      updateProfileApiState: updateProfileApiState ?? this.updateProfileApiState,
+     // update profile image Api State
+     updateProfileImageApiState: updateProfileImageApiState ?? this.updateProfileImageApiState,
      // get Address Api State
      getAddressApiState: getAddressApiState ?? this.getAddressApiState,
      // create Address Api State
@@ -125,6 +133,8 @@ class AuthState extends Equatable {
       canResendOtp,
       // update profile Api State
       updateProfileApiState,
+      // update profile image Api State
+      updateProfileImageApiState,
       // get Address Api State
       getAddressApiState,
       // create Address Api State
