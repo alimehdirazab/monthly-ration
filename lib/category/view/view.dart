@@ -4,6 +4,7 @@ import 'package:grocery_flutter_app/custom%20widgets/widgets.dart';
 import 'package:grocery_flutter_app/home/cubit/home_cubit.dart';
 import 'package:grocery_flutter_app/home/repository/repository.dart';
 import 'package:grocery_flutter_app/home/repository/models/models.dart' as home_models;
+import 'package:grocery_flutter_app/home/view/view.dart';
 import 'package:grocery_flutter_app/root/view/view.dart';
 import 'package:grocery_flutter_app/utils/constants/constants.dart';
 import 'package:grocery_flutter_app/utils/themes/grocery_color_theme.dart';

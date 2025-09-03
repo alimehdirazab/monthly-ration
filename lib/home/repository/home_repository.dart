@@ -40,4 +40,12 @@ class HomeRepository {
     return ProductModel.fromJson(response);
   }
 
+  // get product details
+  Future<ProductDetailsModel> getProductDetails(int productId) async {
+    final response = await generalRepository.get(
+      handle: '${GroceryApis.productDetails}?product_id=$productId',
+    );
+    return ProductDetailsModel.fromJson(response);
+  }
+
 }

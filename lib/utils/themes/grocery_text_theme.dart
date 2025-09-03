@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:grocery_flutter_app/utils/generics/generics.dart';
+import 'package:grocery_flutter_app/utils/themes/grocery_color_theme.dart';
 
 
 class GroceryTextTheme {
@@ -11,6 +12,7 @@ class GroceryTextTheme {
         fontWeight: FoxFontWeight.regular,
         letterSpacing: -0.8,
         height: 1.2,
+        color: GroceryColorTheme().black
       );
 
   static final GroceryTextTheme _instance = GroceryTextTheme._internal();

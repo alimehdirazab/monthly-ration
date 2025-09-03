@@ -44,12 +44,17 @@ class AccountView extends StatelessWidget {
               child: Row(
                 children: [
                   // Profile Picture
-                   CircleAvatar(
+                    CircleAvatar(
                     radius: 40,
-                    backgroundImage: NetworkImage(
-                     appState.user.customer?.profileImage??''
+                    backgroundImage: (appState.user.customer?.profileImage ?? '').startsWith('http')
+                      ? NetworkImage(appState.user.customer?.profileImage ?? '')
+                      : (appState.user.customer?.profileImage != null && appState.user.customer!.profileImage!.isNotEmpty)
+                        ? FileImage(File(appState.user.customer!.profileImage!))
+                        : null,
+                    child: (appState.user.customer?.profileImage == null || appState.user.customer!.profileImage!.isEmpty)
+                      ? const Icon(Icons.person, size: 40)
+                      : null,
                     ),
-                  ),
                   const SizedBox(width: 15),
                   // User Info
                   Expanded(
@@ -148,7 +153,9 @@ class AccountView extends StatelessWidget {
                   const SizedBox(height: 15),
                   InkWell(
                     onTap: () {
-                      context.pushPage(MyWalletPage());
+                      context.pushPage(MyWalletPage(
+                        accountCubit: context.read<AccountCubit>(),
+                      ));
                     },
                     child: _buildPersonalDataItem(
                       context,
@@ -241,6 +248,52 @@ class AccountView extends StatelessWidget {
                       Icons.help_outline,
                       'About Us',
                       'Read App\'s Mission',
+                      '',
+                    ),
+                  ),
+                  // logout
+                  InkWell(
+                    onTap: () {
+                      // show logout confirmation dialog
+                      showDialog(
+                        context: context,
+                        builder: (context) {
+                          return AlertDialog(
+                            title: const Text('Logout'),
+                            content: const Text('Are you sure you want to logout?'),
+                            actions: [
+                              TextButton(
+                                onPressed: () {
+                                  context.read<AuthCubit>().logout();
+                                  context.popPage();
+                                },
+                                child:  Text('Yes',
+                                style: GroceryTextTheme().bodyText.copyWith(
+                                  fontSize: 16,
+                                  color: GroceryColorTheme().black
+
+                                )),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  context.popPage();
+                                },
+                                child:  Text('No',
+                                style: GroceryTextTheme().bodyText.copyWith(
+                                  fontSize: 16,
+                                  color: GroceryColorTheme().black
+                                )),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    },
+                    child: _buildPersonalDataItem(
+                      context,
+                      Icons.logout,
+                      'Logout',
+                      'Logout from your account',
                       '',
                     ),
                   ),

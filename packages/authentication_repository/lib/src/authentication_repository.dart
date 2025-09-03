@@ -150,7 +150,16 @@ class AuthenticationRepository {
       files: files,
       apiMethod: 'POST',
     );
+
+    // update in cache
+    var updatedUserAuth = currentUser.copyWith(
+      customer: currentUser.customer?.copyWith(
+        profileImage: image.path,
+      ),
+    );
+    userAuth.add(updatedUserAuth);
   }
+
   Future<AddressesResponse> getAddresses() async {
     var responseJson = await generalRepository.get(
       handle: AuthenticationEndpoints.addresses,
@@ -301,7 +310,41 @@ class AuthenticationRepository {
    await generalRepository.delete(
       handle: '${AuthenticationEndpoints.deleteAddress}?address_id=$id',
     );
+  }
 
+  // Wallet Recharge - Step 1
+  Future<Map<String, dynamic>> walletRecharge(String amount) async {
+    String encodedBody = jsonEncode({
+      "amount": amount,
+    });
+
+    var responseJson = await generalRepository.post(
+      handle: AuthenticationEndpoints.walletRecharge,
+      body: encodedBody,
+    );
+
+    return responseJson;
+  }
+
+  // Wallet Recharge Verify - Step 2
+  Future<void> walletVerify({
+    required String razorpayPaymentId,
+    required String razorpayOrderId,
+    required String razorpaySignature,
+  }) async {
+    String encodedBody = jsonEncode({
+      "razorpay_payment_id": razorpayPaymentId,
+      "razorpay_order_id": razorpayOrderId,
+      "razorpay_signature": razorpaySignature,
+    });
+
+    await generalRepository.put(
+      handle: AuthenticationEndpoints.walletVerify,
+      body: encodedBody,
+    );
+
+    // Note: You might want to update the user's wallet balance here
+    // depending on your API response structure
   }
 
 
@@ -573,7 +616,7 @@ class AuthenticationRepository {
   /// [User.empty] from the [user] Stream.
   Future<void> logout() async {
     await generalRepository
-        .put(
+        .post(
       handle: AuthenticationEndpoints.logout,
     )
         .then((_) {

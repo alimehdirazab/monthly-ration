@@ -28,6 +28,10 @@ class AuthState extends Equatable {
     this.setAddressApiState = const GeneralApiState<void>(),
     // delete Address Api State
     this.deleteAddressApiState = const GeneralApiState<void>(),
+    // wallet recharge Api State
+    this.walletRechargeApiState = const GeneralApiState<Map<String, dynamic>>(),
+    // wallet verify Api State
+    this.walletVerifyApiState = const GeneralApiState<void>(),
   });
 
   // Mobile Number Input
@@ -58,6 +62,10 @@ class AuthState extends Equatable {
   final GeneralApiState<void> setAddressApiState;
   // delete Address Api State
   final GeneralApiState<void> deleteAddressApiState;
+  // wallet recharge Api State
+  final GeneralApiState<Map<String, dynamic>> walletRechargeApiState;
+  // wallet verify Api State
+  final GeneralApiState<void> walletVerifyApiState;
 
   AuthState copyWith({
    // Mobile Number Input
@@ -86,6 +94,10 @@ class AuthState extends Equatable {
    GeneralApiState<void>? setAddressApiState,
    // delete Address Api State
    GeneralApiState<void>? deleteAddressApiState,
+   // wallet recharge Api State
+   GeneralApiState<Map<String, dynamic>>? walletRechargeApiState,
+   // wallet verify Api State
+   GeneralApiState<void>? walletVerifyApiState,
   }) {
     return AuthState(
      // Mobile Number Input
@@ -114,6 +126,10 @@ class AuthState extends Equatable {
      setAddressApiState: setAddressApiState ?? this.setAddressApiState,
      // delete Address Api State
      deleteAddressApiState: deleteAddressApiState ?? this.deleteAddressApiState,
+     // wallet recharge Api State
+     walletRechargeApiState: walletRechargeApiState ?? this.walletRechargeApiState,
+     // wallet verify Api State
+     walletVerifyApiState: walletVerifyApiState ?? this.walletVerifyApiState,
     );
   }
 
@@ -145,5 +161,9 @@ class AuthState extends Equatable {
       setAddressApiState,
       // delete Address Api State
       deleteAddressApiState,
+      // wallet recharge Api State
+      walletRechargeApiState,
+      // wallet verify Api State
+      walletVerifyApiState,
     ];
 }

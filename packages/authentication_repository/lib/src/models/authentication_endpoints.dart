@@ -13,4 +13,8 @@ class AuthenticationEndpoints {
   static String setDefaultAddress = '';
   static String deleteAddress = '';
   static String logout = '';
+  
+  // Wallet endpoints
+  static String walletRecharge = 'wallet/recharge';
+  static String walletVerify = 'wallet/verify';
 }

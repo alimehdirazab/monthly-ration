@@ -17,6 +17,9 @@ class HomeView extends StatefulWidget {
 }
 
 class _HomeViewState extends State<HomeView> {
+  PageController? _bannerPageController;
+  Timer? _bannerTimer;
+
   @override
   void initState() {
     super.initState();
@@ -24,32 +27,51 @@ class _HomeViewState extends State<HomeView> {
     context.read<AuthCubit>().getAddress();
     context.read<HomeCubit>().getBanners();
     context.read<HomeCubit>().getDefaultCategories();
+    context.read<HomeCubit>().getCategories();
     context.read<HomeCubit>().getProducts();
+  }
+
+  @override
+  void dispose() {
+    _bannerTimer?.cancel();
+    _bannerPageController?.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: _buildAppBar(context),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // _buildSearchBar(),
-            const SizedBox(height: 16),
-            _buildCategoryTabs(),
-            Divider(
-              color: GroceryColorTheme().black.withValues(alpha: 0.2),
-              endIndent: 10,
-              indent: 10,
-            ),
-            const SizedBox(height: 16),
-            _buildBanner(),
-            const SizedBox(height: 24),
-            _buildSectionTitle('Products'),
-            _buildProductGrid(),
-            const SizedBox(height: 24),
-          ],
+      body: RefreshIndicator(
+        onRefresh: () async {
+          context.read<HomeCubit>().getBanners();
+          context.read<HomeCubit>().getDefaultCategories();
+          context.read<HomeCubit>().getProducts();
+          
+          // Reset banner controller and timer on refresh
+          _bannerTimer?.cancel();
+          _bannerPageController?.dispose();
+          _bannerPageController = null;
+        },
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // _buildSearchBar(),
+              const SizedBox(height: 16),
+              _buildCategoryTabs(),
+              Divider(
+                color: GroceryColorTheme().black.withValues(alpha: 0.2),
+                endIndent: 10,
+                indent: 10,
+              ),
+              const SizedBox(height: 16),
+              _buildBanner(),
+              const SizedBox(height: 24),
+              _buildCategoriesWithSubcategories(),
+              const SizedBox(height: 24),
+            ],
+          ),
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
@@ -218,8 +240,10 @@ class _HomeViewState extends State<HomeView> {
         final apiCategories = apiState.model?.data ?? [];
         
         // Create final list with "All" first, then API categories
-        final List<Category?> categories = [null, ...apiCategories]; // null represents "All"
-        final List<String> categoryNames = ['All', ...apiCategories.map((cat) => cat.name)];
+        // final List<Category?> categories = [null, ...apiCategories]; // null represents "All"
+        // final List<String> categoryNames = ['All', ...apiCategories.map((cat) => cat.name)];
+          final List<Category?> categories = [...apiCategories]; 
+        final List<String> categoryNames = [...apiCategories.map((cat) => cat.name)];
 
         if (apiState.apiCallState == APICallState.loading) {
           return SizedBox(
@@ -252,10 +276,21 @@ class _HomeViewState extends State<HomeView> {
                         context.read<HomeCubit>().setSelectedCategoryIndex(index);
                         // Handle category selection logic here
                         // You can call API or filter products based on selected category
+                        // if (category != null) {
+                        //   context.read<HomeCubit>().getProducts(categoryId: category.id);
+                        // } else {
+                        //   context.read<HomeCubit>().getProducts();
+                        // }
                         if (category != null) {
-                          context.read<HomeCubit>().getProducts(categoryId: category.id);
+                          context.pushPage(
+                          ProductsByCategoryPage(
+                            homeCubit: context.read<HomeCubit>(),
+                            categoryName: category.name,
+                            subCategory: category.subCategories,
+                          ),
+                        );
                         } else {
-                          context.read<HomeCubit>().getProducts();
+                         
                         }
                       },
                   child: Column(
@@ -271,7 +306,7 @@ class _HomeViewState extends State<HomeView> {
                                 errorBuilder: (context, error, stackTrace) {
                                   // If image fails to load, show default icon
                                   return Icon(
-                                    index == 0 ? Icons.apps : Icons.category,
+                                    Icons.category,
                                     color: isSelected
                                         ? GroceryColorTheme().black
                                         : GroceryColorTheme().black.withValues(alpha: 0.2),
@@ -281,7 +316,8 @@ class _HomeViewState extends State<HomeView> {
                               ),
                             )
                           : Icon(
-                              index == 0 ? Icons.apps : Icons.category,
+                            //  index == 0 ? Icons.apps : GroceryIcons().category,
+                            GroceryIcons().category,
                               color: isSelected
                                   ? GroceryColorTheme().black
                                   : GroceryColorTheme().black.withValues(alpha: 0.2),
@@ -349,17 +385,39 @@ class _HomeViewState extends State<HomeView> {
             ),
           );
         }
-        // Carousel slider for banners
+        
+        // Initialize page controller if not already done
+        if (_bannerPageController == null) {
+          int initialPage = banners.length > 1 ? banners.length * 500 : 0; // Start from middle for infinite scroll
+          _bannerPageController = PageController(
+            viewportFraction: 0.92,
+            initialPage: initialPage,
+          );
+          
+          // Start auto-scroll timer only if there are multiple banners
+          if (banners.length > 1) {
+            _startBannerAutoScroll(banners.length);
+          }
+        }
+        
+        // Carousel slider for banners with infinite scroll capability
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4.0),
           child: SizedBox(
-            height: 150,
+            height: 160,
             width: double.infinity,
             child: PageView.builder(
-              itemCount: banners.length,
-              controller: PageController(viewportFraction: 0.92),
+              itemCount: banners.length > 1 ? banners.length * 1000 : banners.length, // Infinite scroll for multiple banners
+              controller: _bannerPageController,
+              onPageChanged: (index) {
+                // When user manually scrolls, restart the auto-scroll timer
+                if (banners.length > 1) {
+                  _startBannerAutoScroll(banners.length);
+                }
+              },
               itemBuilder: (context, index) {
-                final banner = banners[index];
+                final bannerIndex = index % banners.length; // Get actual banner index
+                final banner = banners[bannerIndex];
                 return Container(
                   margin: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 8.0),
                   decoration: BoxDecoration(
@@ -388,6 +446,25 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
+  void _startBannerAutoScroll(int bannerCount) {
+    _bannerTimer?.cancel(); // Cancel any existing timer
+    
+    if (bannerCount <= 1) return; // No need to auto-scroll for single banner
+    
+    _bannerTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (_bannerPageController != null && _bannerPageController!.hasClients) {
+        int currentPage = _bannerPageController!.page?.round() ?? 0;
+        int nextPage = currentPage + 1;
+        
+        _bannerPageController!.animateToPage(
+          nextPage,
+          duration: const Duration(milliseconds: 800),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
+  }
+
   Widget _buildSectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -402,12 +479,12 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
-  Widget _buildProductGrid() {
+  Widget _buildCategoriesWithSubcategories() {
     return BlocBuilder<HomeCubit, HomeState>(
       buildWhen: (previous, current) =>
-          previous.productsApiState != current.productsApiState,
+          previous.categoriesApiState != current.categoriesApiState,
       builder: (context, state) {
-        final apiState = state.productsApiState;
+        final apiState = state.categoriesApiState;
         
         if (apiState.apiCallState == APICallState.loading) {
           return Container(
@@ -422,60 +499,93 @@ class _HomeViewState extends State<HomeView> {
             height: 200,
             alignment: Alignment.center,
             child: Text(
-              apiState.errorMessage ?? 'Failed to load products',
+              apiState.errorMessage ?? 'Failed to load categories',
               style: TextStyle(color: Colors.red),
             ),
           );
         }
         
-        final products = apiState.model?.data ?? [];
+        final categories = apiState.model?.data ?? [];
         
-        if (products.isEmpty) {
+        if (categories.isEmpty) {
           return Container(
             height: 200,
             alignment: Alignment.center,
-            child: Text('No products available'),
+            child: Text('No categories available'),
           );
         }
         
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-          child: GridView.builder(
-            shrinkWrap: true, // Important for nested scrolling
-            physics: const NeverScrollableScrollPhysics(), // Disable GridView's own scrolling
-            itemCount: products.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 4, // 4 items per row as per screenshot
-              crossAxisSpacing: 0, // No horizontal spacing between items
-              mainAxisSpacing: 0, // No vertical spacing between items
-              childAspectRatio: 0.56, // Adjust as needed to fit content
-            ),
-            itemBuilder: (context, index) {
-              final product = products[index];
-              return InkWell(
-                onTap: () {
-                  context.pushPage(
-                    ProductDetailPage(homeCubit: context.read<HomeCubit>()),
-                  );
-                },
-                child: ProductItemContainer(
-                  product: product,
-                ),
-              );
-            },
-          ),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: categories.map((category) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildSectionTitle(category.name),
+                _buildSubcategoryGrid(category.subCategories),
+                const SizedBox(height: 16),
+              ],
+            );
+          }).toList(),
         );
       },
     );
   }
+
+  Widget _buildSubcategoryGrid(List<Category> subcategories) {
+    if (subcategories.isEmpty) {
+      return Container(
+        height: 100,
+        alignment: Alignment.center,
+        child: Text(
+          'No subcategories available',
+          style: TextStyle(color: Colors.grey),
+        ),
+      );
+    }
+    
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: subcategories.length,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 4, // 4 items per row
+          crossAxisSpacing: 0,
+          mainAxisSpacing: 0,
+          childAspectRatio: 0.56,
+        ),
+        itemBuilder: (context, index) {
+          final subcategory = subcategories[index];
+          return InkWell(
+            onTap: () {
+              // Navigate to products by subcategory
+              context.pushPage(
+                ProductsByCategoryPage(
+                  homeCubit: context.read<HomeCubit>(),
+                  categoryName: subcategory.name,
+                  subCategory: [subcategory], // Pass single subcategory
+                ),
+              );
+            },
+            child: SubcategoryItemContainer(
+              subcategory: subcategory,
+            ),
+          );
+        },
+      ),
+    );
+  }
 }
 
-class ProductItemContainer extends StatelessWidget {
-  final Product product;
 
-  const ProductItemContainer({
+class SubcategoryItemContainer extends StatelessWidget {
+  final Category subcategory;
+
+  const SubcategoryItemContainer({
     super.key,
-    required this.product,
+    required this.subcategory,
   });
 
   @override
@@ -484,32 +594,31 @@ class ProductItemContainer extends StatelessWidget {
       children: [
         Container(
           width: 130,
-          // Fixed width based on the screenshot
-          margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 8),
-          padding: const EdgeInsets.all(8),
+          margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          padding: const EdgeInsets.all(2),
           decoration: BoxDecoration(
             color: GroceryColorTheme().primary.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(15), // Rounded corners
+            borderRadius: BorderRadius.circular(15),
             boxShadow: [
               BoxShadow(
                 color: Colors.grey.withValues(alpha: 0.1),
                 spreadRadius: 1,
                 blurRadius: 5,
-                offset: const Offset(0, 3), // changes position of shadow
+                offset: const Offset(0, 3),
               ),
             ],
           ),
-          child: product.imagesUrls.isNotEmpty
+          child: subcategory.image != null && subcategory.image!.isNotEmpty
               ? ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: Image.network(
-                    '${GroceryApis.baseUrl}/${product.imagesUrls.first}',
+                    subcategory.image!,
                     width: 70,
                     height: 80,
                     fit: BoxFit.contain,
                     errorBuilder: (context, error, stackTrace) {
                       return Icon(
-                        Icons.shopping_bag,
+                        Icons.category,
                         size: 50,
                         color: GroceryColorTheme().primary,
                       );
@@ -517,70 +626,14 @@ class ProductItemContainer extends StatelessWidget {
                   ),
                 )
               : Icon(
-                  Icons.shopping_bag,
-                  size: 50,
+                  Icons.category,
+                  size: 80,
                   color: GroceryColorTheme().primary,
                 ),
         ),
         const SizedBox(height: 4),
         Text(
-          product.name,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Colors.black87,
-            fontWeight: FontWeight.w500,
-          ),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ],
-    );
-  }
-}
-
-class ItemContainer extends StatelessWidget {
-  final String imageUrl;
-  final String itemName;
-
-  const ItemContainer({
-    super.key,
-    required this.imageUrl,
-    required this.itemName,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          width: 130,
-
-          // Fixed width based on the screenshot
-          margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 8),
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: GroceryColorTheme().primary.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(15), // Rounded corners
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withOpacity(0.1),
-                spreadRadius: 1,
-                blurRadius: 5,
-                offset: const Offset(0, 3), // changes position of shadow
-              ),
-            ],
-          ),
-          child: Image.asset(
-            imageUrl,
-            width: 70, // Adjust image size as needed
-            height: 80,
-            fit: BoxFit.contain,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          itemName,
+          subcategory.name,
           textAlign: TextAlign.center,
           style: const TextStyle(
             fontSize: 12,

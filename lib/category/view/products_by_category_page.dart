@@ -210,7 +210,7 @@ class _CategoryViewState extends State<CategoryView> {
                           final product = products[index];
                           return InkWell(
                             onTap: () {
-                              context.pushPage(CheckoutPage());
+                              context.pushPage(ProductDetailPage(homeCubit: context.read<HomeCubit>(), productId: product.id));
                             },
                             child: ProductCardFromApi(
                               product: product,
@@ -302,7 +302,7 @@ class _ProductCardFromApiState extends State<ProductCardFromApi> {
                 ),
                 child: widget.product.imagesUrls.isNotEmpty
                     ? Image.network(
-                        widget.product.imagesUrls.first,
+                       '${GroceryApis.baseUrl}/${widget.product.imagesUrls.first}',
                         height: 130,
                         width: double.infinity,
                         fit: BoxFit.cover,
@@ -462,7 +462,10 @@ class _ProductCardFromApiState extends State<ProductCardFromApi> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Text(
+
+                  ],
+                ),
+                Text(
                       'MRP ₹${widget.product.mrpPrice}',
                       style: TextStyle(
                         color: Colors.grey[600],
@@ -470,8 +473,6 @@ class _ProductCardFromApiState extends State<ProductCardFromApi> {
                         fontSize: 12,
                       ),
                     ),
-                  ],
-                ),
               ],
             ),
           ),

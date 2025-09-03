@@ -14,6 +14,8 @@ class HomeState extends Equatable {
     this.productsApiState = const GeneralApiState<ProductModel>(),
     // productsBySubCategory api State
     this.productsBySubCategoryApiState = const GeneralApiState<ProductModel>(),
+    // product details api State
+    this.productDetailsApiState = const GeneralApiState<ProductDetailsModel>(),
   });
    final List<String> cartItems;
    // banners api State
@@ -28,6 +30,8 @@ class HomeState extends Equatable {
    final GeneralApiState<ProductModel> productsApiState;
    // productsBySubCategory api State
    final GeneralApiState<ProductModel> productsBySubCategoryApiState;
+   // product details api State
+   final GeneralApiState<ProductDetailsModel> productDetailsApiState;
 
 
   // CopyWith
@@ -39,6 +43,7 @@ class HomeState extends Equatable {
     int? selectedCategoryIndex,
     GeneralApiState<ProductModel>? productsApiState,
     GeneralApiState<ProductModel>? productsBySubCategoryApiState,
+    GeneralApiState<ProductDetailsModel>? productDetailsApiState,
   }) {
     return HomeState(
       cartItems: cartItems ?? this.cartItems,
@@ -48,6 +53,7 @@ class HomeState extends Equatable {
       selectedCategoryIndex: selectedCategoryIndex ?? this.selectedCategoryIndex,
       productsApiState: productsApiState ?? this.productsApiState,
       productsBySubCategoryApiState: productsBySubCategoryApiState ?? this.productsBySubCategoryApiState,
+      productDetailsApiState: productDetailsApiState ?? this.productDetailsApiState,
     );
   }
   
@@ -60,5 +66,6 @@ class HomeState extends Equatable {
     selectedCategoryIndex,
     productsApiState,
     productsBySubCategoryApiState,
+    productDetailsApiState,
     ];
 }

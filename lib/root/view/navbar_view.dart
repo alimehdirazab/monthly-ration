@@ -13,11 +13,11 @@ class RootPage extends StatelessWidget {
             HomeRepository(context.read<GeneralRepository>()),
           ),
         ),
-        // BlocProvider<OperatorHomeCubit>(
-        //   create: (context) => OperatorHomeCubit(
-        //     OperatorsHomeRepository(context.read<GeneralRepository>()),
-        //   ),
-        // ),
+        BlocProvider<AccountCubit>(
+          create: (context) => AccountCubit(
+            AccountRepository(context.read<GeneralRepository>()),
+          ),
+        ),
         // BlocProvider<ProductCubit>(
         //   create: (context) => ProductCubit(
         //     ProductRepository(context.read<GeneralRepository>()),

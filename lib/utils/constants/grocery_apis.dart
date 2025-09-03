@@ -36,6 +36,8 @@ class GroceryApis {
   static const String setDefaultAddress = "addresses/setdefault";
   // delete address
   static const String deleteAddress = "addresses/delete";
+  // logout
+  static const String logout = "customer/logout";
   // banners
   static const String banners = "banners";
   // categories
@@ -46,6 +48,10 @@ class GroceryApis {
   static const String productDetails = "products/details";
   // default categories
   static const String defaultCategories = "default-categories";
+  // wallet recharge
+  static const String walletRecharge = "wallet/recharge";
+  //  wallet verify
+  static const String walletVerify = "wallet/verify";
 
   initBaseUrlAndAuthEndpoints() {
     ApiConfig.baseUrl = baseApiUrl;
@@ -60,6 +66,6 @@ class GroceryApis {
     AuthenticationEndpoints.updateAddress = updateAddress;
     AuthenticationEndpoints.setDefaultAddress = setDefaultAddress;
     AuthenticationEndpoints.deleteAddress = deleteAddress;
-    
+    AuthenticationEndpoints.logout = logout;
   }
 }

@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 part of 'view.dart';
 
 class EditProfilePage extends StatelessWidget {
@@ -65,7 +67,6 @@ class _EditProfileViewState extends State<EditProfileView> {
           ),
         ),
         centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.black),
       ),
       body: BlocConsumer<AuthCubit, AuthState>(
         listener: (context, state) {
@@ -112,26 +113,39 @@ class _EditProfileViewState extends State<EditProfileView> {
                               width: 3,
                             ),
                           ),
-                          child: ClipOval(
+                            child: ClipOval(
                             child: context.read<AppCubit>().state.user.customer?.profileImage != null
-                                ? Image.network(
-                                    context.read<AppCubit>().state.user.customer!.profileImage!,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Icon(
-                                        Icons.person,
-                                        size: 60,
-                                        color: GroceryColorTheme().primary,
-                                      );
-                                    },
-                                  )
-                                : Icon(
+                              ? (context.read<AppCubit>().state.user.customer!.profileImage!.startsWith('/')
+                                ? Image.file(
+                                  File(context.read<AppCubit>().state.user.customer!.profileImage!),
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Icon(
                                     Icons.person,
                                     size: 60,
                                     color: GroceryColorTheme().primary,
-                                  ),
+                                    );
+                                  },
+                                  )
+                                : Image.network(
+                                  context.read<AppCubit>().state.user.customer!.profileImage!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Icon(
+                                    Icons.person,
+                                    size: 60,
+                                    color: GroceryColorTheme().primary,
+                                    );
+                                  },
+                                  )
+                                )
+                              : Icon(
+                                Icons.person,
+                                size: 60,
+                                color: GroceryColorTheme().primary,
+                                ),
+                            ),
                           ),
-                        ),
                         Positioned(
                           bottom: 0,
                           right: 0,
@@ -272,9 +286,9 @@ class _EditProfileViewState extends State<EditProfileView> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.05),
+                      color: Colors.blue.withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.blue.withOpacity(0.2)),
+                      border: Border.all(color: Colors.blue.withValues(alpha: 0.2))
                     ),
                     child: Row(
                       children: [
@@ -422,13 +436,7 @@ class _EditProfileViewState extends State<EditProfileView> {
                 title: const Text('Gallery'),
                 onTap: () {
                   Navigator.of(context).pop();
-                
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Image picker not yet implemented. Add image_picker package to pubspec.yaml'),
-                      backgroundColor: Colors.orange,
-                    ),
-                  );
+                  _pickImageFromGallery();
                 },
               ),
               ListTile(
@@ -436,14 +444,7 @@ class _EditProfileViewState extends State<EditProfileView> {
                 title: const Text('Camera'),
                 onTap: () {
                   Navigator.of(context).pop();
-                  // TODO: Uncomment when image_picker package is installed and imports are added
-                  // _pickImageFromCamera();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Image picker not yet implemented. Add image_picker package to pubspec.yaml'),
-                      backgroundColor: Colors.orange,
-                    ),
-                  );
+                  _pickImageFromCamera();
                 },
               ),
             ],
@@ -453,8 +454,8 @@ class _EditProfileViewState extends State<EditProfileView> {
     );
   }
 
-  /*
-  // TODO: Uncomment these methods when image_picker package is properly installed
+  
+
   Future<void> _pickImageFromGallery() async {
     try {
       final picker = ImagePicker();
@@ -479,6 +480,7 @@ class _EditProfileViewState extends State<EditProfileView> {
         await _uploadImage(File(pickedFile.path));
       }
     } catch (e) {
+      log('Error taking photo: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error taking photo: $e')),
       );
@@ -520,6 +522,5 @@ class _EditProfileViewState extends State<EditProfileView> {
       );
     }
   }
-  */
 }
 

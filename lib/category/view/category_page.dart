@@ -35,14 +35,19 @@ class _CategoryPageViewState extends State<_CategoryView> {
         automaticallyImplyLeading: false,
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-             const SizedBox(height: 24),
-              _buildSectionTitle('Categories'),
-              _buildCategoryGrid(),
-          ],
+      body: RefreshIndicator(
+        onRefresh: () async {
+          context.read<HomeCubit>().getCategories();
+        },
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+               const SizedBox(height: 24),
+                _buildSectionTitle('Categories'),
+                _buildCategoryGrid(),
+            ],
+          ),
         ),
       )
     );

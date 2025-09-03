@@ -40,7 +40,7 @@ class _AddressViewState extends State<_AddressView> {
           ),
         ),
         centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.black),
+      
       ),
       body: BlocConsumer<AuthCubit, AuthState>(
         listener: (context, state) {

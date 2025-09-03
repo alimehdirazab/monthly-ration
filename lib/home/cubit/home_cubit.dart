@@ -123,4 +123,23 @@ class HomeCubit extends Cubit<HomeState> {
     });
   }
 
+  // get product details Method
+  Future<void> getProductDetails(int productId) async {
+    emit(state.copyWith(productDetailsApiState: GeneralApiState<ProductDetailsModel>(
+      apiCallState: APICallState.loading,
+    )));
+
+    await homeRepository.getProductDetails(productId).then((productDetailsModel) {
+      emit(state.copyWith(productDetailsApiState: GeneralApiState<ProductDetailsModel>(
+        apiCallState: APICallState.loaded,
+        model: productDetailsModel,
+      )));
+    }).catchError((error) {
+      emit(state.copyWith(productDetailsApiState: GeneralApiState<ProductDetailsModel>(
+        apiCallState: APICallState.failure,
+        errorMessage: error.toString(),
+      )));
+    });
+  }
+
 }

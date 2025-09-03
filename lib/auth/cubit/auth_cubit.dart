@@ -285,9 +285,55 @@ class AuthCubit extends Cubit<AuthState> {
     });
   }
 
+  // Wallet Recharge - Step 1
+  Future<void> walletRecharge(String amount) async {
+    emit(state.copyWith(walletRechargeApiState: GeneralApiState(
+      apiCallState: APICallState.loading
+    )));
+
+    await authenticationRepository.walletRecharge(amount).then((response) {
+      emit(state.copyWith(walletRechargeApiState: GeneralApiState(
+        apiCallState: APICallState.loaded,
+        model: response
+      )));
+    }).catchError((error) {
+      emit(state.copyWith(walletRechargeApiState: GeneralApiState(
+        apiCallState: APICallState.failure,
+        errorMessage: error.toString(),
+      )));
+    });
+  }
+
+  // Wallet Verify - Step 2
+  Future<void> walletVerify({
+    required String razorpayPaymentId,
+    required String razorpayOrderId,
+    required String razorpaySignature,
+  }) async {
+    emit(state.copyWith(walletVerifyApiState: GeneralApiState(
+      apiCallState: APICallState.loading
+    )));
+
+    await authenticationRepository.walletVerify(
+      razorpayPaymentId: razorpayPaymentId,
+      razorpayOrderId: razorpayOrderId,
+      razorpaySignature: razorpaySignature,
+    ).then((_) {
+      emit(state.copyWith(walletVerifyApiState: GeneralApiState(
+        apiCallState: APICallState.loaded
+      )));
+    }).catchError((error) {
+      emit(state.copyWith(walletVerifyApiState: GeneralApiState(
+        apiCallState: APICallState.failure,
+        errorMessage: error.toString(),
+      )));
+    });
+  }
+
   // Logout
   void logout() {
-    authenticationRepository.logout();
+   // authenticationRepository.logout();
+   authenticationRepository.clearUser();
   }
 
   @override
