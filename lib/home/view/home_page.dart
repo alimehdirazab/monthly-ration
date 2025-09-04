@@ -19,6 +19,9 @@ class HomeView extends StatefulWidget {
 class _HomeViewState extends State<HomeView> {
   PageController? _bannerPageController;
   Timer? _bannerTimer;
+  // banner 2
+  PageController? _banner2PageController;
+  Timer? _banner2Timer;
 
   @override
   void initState() {
@@ -35,6 +38,9 @@ class _HomeViewState extends State<HomeView> {
   void dispose() {
     _bannerTimer?.cancel();
     _bannerPageController?.dispose();
+    // banner 2
+    _banner2PageController?.dispose();
+    _banner2Timer?.cancel();
     super.dispose();
   }
 
@@ -45,12 +51,17 @@ class _HomeViewState extends State<HomeView> {
         onRefresh: () async {
           context.read<HomeCubit>().getBanners();
           context.read<HomeCubit>().getDefaultCategories();
+          context.read<HomeCubit>().getCategories();
           context.read<HomeCubit>().getProducts();
           
           // Reset banner controller and timer on refresh
           _bannerTimer?.cancel();
           _bannerPageController?.dispose();
           _bannerPageController = null;
+          // banner 2
+          _banner2Timer?.cancel();
+          _banner2PageController?.dispose();
+          _banner2PageController = null;
         },
         child: CustomScrollView(
           slivers: [
@@ -61,9 +72,11 @@ class _HomeViewState extends State<HomeView> {
                 children: [
                   const SizedBox(height: 8),
                   _buildBanner(),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 8),
                   _buildBestsellersSection(),
                   _buildCategoriesWithSubcategories(),
+                  _buildBanner2(),
+                  _buildTrendingSection(),
                 ],
               ),
             ),
@@ -167,14 +180,25 @@ class _HomeViewState extends State<HomeView> {
     final address = appState.user.customer?.addressLine1 ?? "";
     
     return SliverAppBar(
-      backgroundColor: GroceryColorTheme().primary,
+      backgroundColor: GroceryColorTheme().primary, // Make transparent to show gradient
       expandedHeight: 200.0,
       floating: false,
       pinned: true,
       automaticallyImplyLeading: false,
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
-          color: GroceryColorTheme().primary,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                GroceryColorTheme().primary, // Top color
+                GroceryColorTheme().primary.withValues(alpha: 0.8), // Middle
+                GroceryColorTheme().white.withValues(alpha: 0.1), // Bottom fade to white
+              ],
+              stops: const [0.0, 0.7, 1.0],
+            ),
+          ),
           padding: const EdgeInsets.only(left: 16, right: 16, top: 40),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -238,8 +262,18 @@ class _HomeViewState extends State<HomeView> {
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(92),
         child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                GroceryColorTheme().primary.withValues(alpha: 0.3), // Fade from top
+                GroceryColorTheme().white, // White at bottom
+              ],
+              stops: const [0.0, 1.0],
+            ),
+          ),
           padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
-          color: GroceryColorTheme().primary,
           child: Column(
             children: [
               // Search Field
@@ -470,6 +504,308 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
+    void _startBannerAutoScroll(int bannerCount) {
+    _bannerTimer?.cancel(); // Cancel any existing timer
+    
+    if (bannerCount <= 1) return; // No need to auto-scroll for single banner
+    
+    _bannerTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (_bannerPageController != null && _bannerPageController!.hasClients) {
+        int currentPage = _bannerPageController!.page?.round() ?? 0;
+        int nextPage = currentPage + 1;
+        
+        _bannerPageController!.animateToPage(
+          nextPage,
+          duration: const Duration(milliseconds: 800),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
+  }
+
+  Widget _buildTrendingSection() {
+    // Dummy data for ProductCard (6 items for 3x2 grid)
+    final List<Map<String, dynamic>> trendingProducts = [
+      {
+        'imageUrl': GroceryImages.grocery1,
+        'title': 'Davidoff Rich Aroma Coffee',
+        'description': 'Premium instant coffee blend',
+        'rating': 4.5,
+        'reviews': 5715,
+        'deliveryTime': '15 mins',
+        'price': '₹618',
+        'mrp': '₹749',
+      },
+      {
+        'imageUrl': GroceryImages.grocery2,
+        'title': 'Fastrack Bags PU Structured',
+        'description': 'Quilted tote bag collection',
+        'rating': 4.0,
+        'reviews': 92,
+        'deliveryTime': '20 mins',
+        'price': '₹1,099',
+        'mrp': '₹1,699',
+      },
+      {
+        'imageUrl': GroceryImages.grocery3,
+        'title': "M&M's Chocolate Candy",
+        'description': 'Delicious milk chocolate treats',
+        'rating': 4.0,
+        'reviews': 1081,
+        'deliveryTime': '10 mins',
+        'price': '₹159',
+        'mrp': '₹179',
+      },
+      {
+        'imageUrl': GroceryImages.grocery4,
+        'title': 'Cuticolor Hair Colour',
+        'description': 'No ammonia dark brown shade',
+        'rating': 4.5,
+        'reviews': 25,
+        'deliveryTime': '25 mins',
+        'price': '₹1,799',
+        'mrp': '₹2,199',
+      },
+      {
+        'imageUrl': GroceryImages.grocery5,
+        'title': 'Philips Induction Cooktop',
+        'description': '1300W home cooking solution',
+        'rating': 4.0,
+        'reviews': 238,
+        'deliveryTime': '30 mins',
+        'price': '₹2,269',
+        'mrp': '₹3,995',
+      },
+      {
+        'imageUrl': GroceryImages.grocery6,
+        'title': 'Outlook English Magazine',
+        'description': 'Current affairs weekly edition',
+        'rating': 4.2,
+        'reviews': 156,
+        'deliveryTime': '45 mins',
+        'price': '₹100',
+        'mrp': '₹120',
+      },
+    ];
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(vertical: 16),
+      decoration:  BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            // Color(0xFFE0F7FA), // Light cyan/teal background
+            // Color(0xFFB2EBF2), // Slightly darker cyan
+            GroceryColorTheme().gradient1,
+            GroceryColorTheme().gradient2,
+          ],
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 20),
+          // Title and subtitle
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      'Trending Items',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF00695C), // Dark teal color
+                      ),
+                    ),
+
+                    // see more
+                    Spacer(),
+                    Text(
+                      'See All',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF004D40), // Darker teal for "See More"
+                        decoration: TextDecoration.underline,
+                      ),
+                     
+                    ),
+                  ],
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Discover the top products trending today',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Color(0xFF004D40), // Darker teal for subtitle
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Horizontal scrollable product list
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: SizedBox(
+              height: 300, // Fixed height for the horizontal scroll
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: trendingProducts.length,
+                itemBuilder: (context, index) {
+                  final product = trendingProducts[index];
+                  return SizedBox(
+                    width: 200, // Fixed width for each ProductCard
+                    
+                    child: ProductCard(
+                      imageUrl: product['imageUrl'],
+                      title: product['title'],
+                      description: product['description'],
+                      rating: product['rating'],
+                      reviews: product['reviews'],
+                      deliveryTime: product['deliveryTime'],
+                      price: product['price'],
+                      mrp: product['mrp'],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+
+  // build banner 2
+   Widget _buildBanner2() {
+    return BlocBuilder<HomeCubit, HomeState>(
+      buildWhen: (previous, current) =>
+          previous.bannersApiState != current.bannersApiState,
+      builder: (context, state) {
+        final apiState = state.bannersApiState;
+        if (apiState.apiCallState == APICallState.loading) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Container(
+              height: 150,
+              alignment: Alignment.center,
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+        if (apiState.apiCallState == APICallState.failure) {
+          log(apiState.errorMessage ?? 'Failed to load banners');
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Container(
+              height: 150,
+              alignment: Alignment.center,
+              child: Text(apiState.errorMessage ?? 'Failed to load banners', style: TextStyle(color: Colors.red)),
+            ),
+          );
+        }
+        final banners = apiState.model?.data ?? [];
+        if (banners.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Container(
+              height: 150,
+              alignment: Alignment.center,
+              child: Text('No banners available'),
+            ),
+          );
+        }
+        
+        // Initialize page controller if not already done
+        if (_banner2PageController == null) {
+          int initialPage = banners.length > 1 ? banners.length * 500 : 0; // Start from middle for infinite scroll
+          _banner2PageController = PageController(
+            viewportFraction: 0.92,
+            initialPage: initialPage,
+          );
+          
+          // Start auto-scroll timer only if there are multiple banners
+          if (banners.length > 1) {
+            _startBanner2AutoScroll(banners.length);
+          }
+        }
+        
+        // Carousel slider for banners with infinite scroll capability
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4.0),
+          child: SizedBox(
+            height: 190,
+            width: double.infinity,
+            child: PageView.builder(
+              itemCount: banners.length > 1 ? banners.length * 1000 : banners.length, // Infinite scroll for multiple banners
+              controller: _banner2PageController,
+              onPageChanged: (index) {
+                // When user manually scrolls, restart the auto-scroll timer
+                if (banners.length > 1) {
+                  _startBanner2AutoScroll(banners.length);
+                }
+              },
+              itemBuilder: (context, index) {
+                final bannerIndex = index % banners.length; // Get actual banner index
+                final banner = banners[bannerIndex];
+                return Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 8.0),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.08),
+                        blurRadius: 8,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Image.network(
+                    banner.image,
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    height: double.infinity,
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+    void _startBanner2AutoScroll(int bannerCount) {
+    _banner2Timer?.cancel(); // Cancel any existing timer
+    
+    if (bannerCount <= 1) return; // No need to auto-scroll for single banner
+
+    _banner2Timer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (_banner2PageController != null && _banner2PageController!.hasClients) {
+        int currentPage = _banner2PageController!.page?.round() ?? 0;
+        int nextPage = currentPage + 1;
+        
+        _banner2PageController!.animateToPage(
+          nextPage,
+          duration: const Duration(milliseconds: 800),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
+  }
+
+
   Widget _buildBestsellersSection() {
     // Category data matching the reference image design
     // Static bestseller categories generated from provided API response
@@ -532,11 +868,11 @@ class _HomeViewState extends State<HomeView> {
             ),
           ),
         ),
-          const SizedBox(height: 8),
+          // const SizedBox(height: 8),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8.0),
           child: GridView.builder(
-            padding: const EdgeInsets.symmetric(vertical: 0),
+           // padding: const EdgeInsets.symmetric(vertical: 0),
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: bestsellerCategories.length,
@@ -557,24 +893,7 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
-  void _startBannerAutoScroll(int bannerCount) {
-    _bannerTimer?.cancel(); // Cancel any existing timer
-    
-    if (bannerCount <= 1) return; // No need to auto-scroll for single banner
-    
-    _bannerTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      if (_bannerPageController != null && _bannerPageController!.hasClients) {
-        int currentPage = _bannerPageController!.page?.round() ?? 0;
-        int nextPage = currentPage + 1;
-        
-        _bannerPageController!.animateToPage(
-          nextPage,
-          duration: const Duration(milliseconds: 800),
-          curve: Curves.easeInOut,
-        );
-      }
-    });
-  }
+
 
   Widget _buildSectionTitle(String title) {
     return Padding(

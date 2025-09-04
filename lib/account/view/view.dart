@@ -15,6 +15,8 @@ import 'package:grocery_flutter_app/utils/themes/grocery_text_theme.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'dart:io';
+import 'package:flutter_html/flutter_html.dart';
+
 
 part "account_page.dart";
 part "order_history_page.dart";
@@ -27,3 +29,4 @@ part "faq_page.dart";
 part "aboutus_page.dart";
 part "address_page.dart";
 part "edit_profile_page.dart";
+part "terms_and_condition_page.dart";

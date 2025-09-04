@@ -1,30 +1,30 @@
 part of 'view.dart';
 
-class AboutusPage extends StatelessWidget {
+class TermsAndConditionPage extends StatelessWidget {
   final AccountCubit accountCubit;
-  const AboutusPage({super.key, required this.accountCubit});
+  const TermsAndConditionPage({super.key, required this.accountCubit});
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider.value(
       value: accountCubit,
-      child: const _AboutUsView(),
+      child: const _TermsAndConditionView(),
     );
   }
 }
 
-class _AboutUsView extends StatefulWidget {
-  const _AboutUsView();
+class _TermsAndConditionView extends StatefulWidget {
+  const _TermsAndConditionView();
 
   @override
-  State<_AboutUsView> createState() => _AboutUsViewState();
+  State<_TermsAndConditionView> createState() => _TermsAndConditionViewState();
 }
 
-class _AboutUsViewState extends State<_AboutUsView> {
+class _TermsAndConditionViewState extends State<_TermsAndConditionView> {
   @override
   void initState() {
     super.initState();
-    context.read<AccountCubit>().getAboutUs();
+    context.read<AccountCubit>().getTermsAndConditions();
   }
 
   @override
@@ -34,26 +34,26 @@ class _AboutUsViewState extends State<_AboutUsView> {
         backgroundColor: GroceryColorTheme().primary,
         elevation: 0,
         title: Text(
-          'About Us',
+          'Terms and Conditions',
           style: GroceryTextTheme().bodyText.copyWith(fontSize: 20),
         ),
         centerTitle: true,
       ),
       body: BlocBuilder<AccountCubit, AccountState>(
         builder: (context, state) {
-          final aboutUsModel = state.aboutUsApiState.model;
-          if (aboutUsModel == null) {
+          final termsAndConditionsModel = state.termsAndConditionsApiState.model;
+          if (termsAndConditionsModel == null) {
             return const Center(child: CircularProgressIndicator());
           }
-          final aboutUs = aboutUsModel.data;
+          final termsAndConditions = termsAndConditionsModel.data;
           return SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Top image (no padding)
-                if (aboutUs.image.isNotEmpty)
+                if (termsAndConditions.image.isNotEmpty)
                   Image.network(
-                    aboutUs.image,
+                    termsAndConditions.image,
                     width: double.infinity,
                     fit: BoxFit.cover,
                   ),
@@ -62,7 +62,7 @@ class _AboutUsViewState extends State<_AboutUsView> {
                   padding:
                       const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
                   child: Text(
-                    aboutUs.title,
+                    termsAndConditions.title,
                     style: const TextStyle(
                         fontSize: 22, fontWeight: FontWeight.bold),
                   ),
@@ -71,7 +71,7 @@ class _AboutUsViewState extends State<_AboutUsView> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: Html(
-                    data: aboutUs.content,
+                    data: termsAndConditions.content,
                   ),
                 ),
               ],

@@ -45,8 +45,8 @@ class GroceryColorTheme {
   Color get chipBackgroundColor => Color(0xFFF8F8F8);
 
   // Color get goldenColor => Color(0xFFEFB906);
-  Color get gradient1 => Color(0xFF72CCFF);
-  Color get gradient2 => Color(0xFF3A9AD0);
+  Color get gradient1 => Color(0xFFE0F7FA);
+  Color get gradient2 => Color(0xFFB2EBF2);
   Color get gradient3 => Color(0xFFB9B9B9);
   Color get gradient4 => Color(0xFF363636);
   Color get greyColor54 => Color(0xFF545454);

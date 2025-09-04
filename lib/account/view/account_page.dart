@@ -26,14 +26,6 @@ class AccountView extends StatelessWidget {
           style: GroceryTextTheme().bodyText.copyWith(fontSize: 20),
         ),
         centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search, color: Colors.black),
-            onPressed: () {
-              // Handle search button press
-            },
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -210,19 +202,7 @@ class AccountView extends StatelessWidget {
                   ),
                   const SizedBox(height: 15),
                   InkWell(
-                    onTap: () {
-                      context.pushPage(ChangePasswordPage());
-                    },
-                    child: _buildPersonalDataItem(
-                      context,
-                      Icons.settings_outlined,
-                      'Change Password',
-                      'Change your password',
-                      '',
-                    ),
-                  ),
-                  InkWell(
-                    onTap: () => context.pushPage(PrivacyPolicyPage()),
+                    onTap: () => context.pushPage(PrivacyPolicyPage(accountCubit: context.read<AccountCubit>())),
                     child: _buildPersonalDataItem(
                       context,
                       Icons.privacy_tip_outlined,
@@ -232,7 +212,17 @@ class AccountView extends StatelessWidget {
                     ),
                   ),
                   InkWell(
-                    onTap: () => context.pushPage(FaqPage()),
+                    onTap: () => context.pushPage(TermsAndConditionPage(accountCubit: context.read<AccountCubit>())),
+                    child: _buildPersonalDataItem(
+                      context,
+                      Icons.gavel_outlined,
+                      'Terms and Conditions',
+                      'Check out our terms and conditions',
+                      '',
+                    ),
+                  ),
+                  InkWell(
+                    onTap: () => context.pushPage(FaqPage(accountCubit: context.read<AccountCubit>())),
                     child: _buildPersonalDataItem(
                       context,
                       Icons.info_outline,
@@ -242,7 +232,7 @@ class AccountView extends StatelessWidget {
                     ),
                   ),
                   InkWell(
-                    onTap: () => context.pushPage(AboutUsView()),
+                    onTap: () => context.pushPage(AboutusPage(accountCubit: context.read<AccountCubit>())),
                     child: _buildPersonalDataItem(
                       context,
                       Icons.help_outline,

@@ -52,6 +52,14 @@ class GroceryApis {
   static const String walletRecharge = "wallet/recharge";
   //  wallet verify
   static const String walletVerify = "wallet/verify";
+  // about us
+  static const String aboutUs = "about-us";
+  // privacy policy
+  static const String privacyPolicy = "privacy-policy";
+  // terms and conditions
+  static const String termsAndConditions = "terms-and-conditions";
+  // faqs
+  static const String faqs = "faqs";
 
   initBaseUrlAndAuthEndpoints() {
     ApiConfig.baseUrl = baseApiUrl;
