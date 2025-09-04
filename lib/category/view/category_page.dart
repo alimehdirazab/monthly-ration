@@ -129,7 +129,7 @@ class _CategoryPageViewState extends State<_CategoryView> {
 
    Widget _buildSectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
       child: Text(
         title,
         style: const TextStyle(

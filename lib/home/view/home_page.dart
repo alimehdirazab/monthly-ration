@@ -41,7 +41,6 @@ class _HomeViewState extends State<HomeView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _buildAppBar(context),
       body: RefreshIndicator(
         onRefresh: () async {
           context.read<HomeCubit>().getBanners();
@@ -53,25 +52,22 @@ class _HomeViewState extends State<HomeView> {
           _bannerPageController?.dispose();
           _bannerPageController = null;
         },
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // _buildSearchBar(),
-              const SizedBox(height: 16),
-              _buildCategoryTabs(),
-              Divider(
-                color: GroceryColorTheme().black.withValues(alpha: 0.2),
-                endIndent: 10,
-                indent: 10,
+        child: CustomScrollView(
+          slivers: [
+            _buildSliverAppBar(context),
+            SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 8),
+                  _buildBanner(),
+                  const SizedBox(height: 16),
+                  _buildBestsellersSection(),
+                  _buildCategoriesWithSubcategories(),
+                ],
               ),
-              const SizedBox(height: 16),
-              _buildBanner(),
-              const SizedBox(height: 24),
-              _buildCategoriesWithSubcategories(),
-              const SizedBox(height: 24),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
@@ -166,63 +162,93 @@ class _HomeViewState extends State<HomeView> {
   }
 
   // --- Widgets for different sections of the screen ---
-  PreferredSizeWidget _buildAppBar(BuildContext context) {
+  Widget _buildSliverAppBar(BuildContext context) {
     AppState appState = context.select((AppCubit cubit) => cubit.state);
     final address = appState.user.customer?.addressLine1 ?? "";
-    return AppBar(
-      toolbarHeight: 150,
-
+    
+    return SliverAppBar(
       backgroundColor: GroceryColorTheme().primary,
-      automaticallyImplyLeading: false, // Adjust height as needed
-      title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
+      expandedHeight: 200.0,
+      floating: false,
+      pinned: true,
+      automaticallyImplyLeading: false,
+      flexibleSpace: FlexibleSpaceBar(
+        background: Container(
+          color: GroceryColorTheme().primary,
+          padding: const EdgeInsets.only(left: 16, right: 16, top: 40),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.start,
+              // Top section with delivery info and icons
+              Row(
                 children: [
-                  Text(
-                    '15 minutes',
-                    style: GroceryTextTheme().bodyText.copyWith(fontSize: 20),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '15 minutes',
+                        style: GroceryTextTheme().bodyText.copyWith(fontSize: 20),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        address,
+                        style: GroceryTextTheme().lightText,
+                      ),
+                    ],
                   ),
-                  SizedBox(width: 4),
-                  Text(
-                    address,
-                    style: GroceryTextTheme().lightText,
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () {
+                     context.pushPage(MyWalletPage(accountCubit: context.read<AccountCubit>()));
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: GroceryColorTheme().white,
+                      ),
+                      child: Icon(
+                        Icons.account_balance_wallet_outlined,
+                        color: GroceryColorTheme().black,
+                        size: 20,
+                      ),
+                    ),
                   ),
+                  const SizedBox(width: 6),
+                  GestureDetector(
+                    onTap: () {
+                      context.read<NavBarCubit>().getNavBarItem(NavBarItem.account);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: GroceryColorTheme().white,
+                      ),
+                      child: Icon(Icons.account_circle_outlined, color: GroceryColorTheme().black, size: 20),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
                 ],
               ),
-              Spacer(),
-              Container(
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: GroceryColorTheme().white,
-                ),
-                child: Icon(
-                  Icons.account_balance_wallet_outlined,
-                  color: Colors.black,
-                ),
-              ),
-              SizedBox(width: 6),
-              Container(
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: GroceryColorTheme().white,
-                ),
-                child: Icon(Icons.account_circle_outlined, color: Colors.black),
-              ),
-              const SizedBox(width: 8),
             ],
           ),
-
-          SizedBox(height: 25), // _buildSearchBar(),
-          SearchField(),
-        ],
+        ),
+      ),
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(92),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+          color: GroceryColorTheme().primary,
+          child: Column(
+            children: [
+              // Search Field
+              const SearchField(),
+              SizedBox(height: 8),
+              _buildCategoryTabs(),
+              ],
+          ),
+        ),
       ),
     );
   }
@@ -230,11 +256,13 @@ class _HomeViewState extends State<HomeView> {
   Widget _buildCategoryTabs() {
     return BlocBuilder<HomeCubit, HomeState>(
       buildWhen: (previous, current) =>
-          previous.defaultCategoriesApiState != current.defaultCategoriesApiState ||
+         // previous.defaultCategoriesApiState != current.defaultCategoriesApiState ||
+          previous.categoriesApiState != current.categoriesApiState ||
           previous.selectedCategoryIndex != current.selectedCategoryIndex,
       builder: (context, state) {
-        final apiState = state.defaultCategoriesApiState;
-        final selectedCategoryIndex = state.selectedCategoryIndex;
+        //final apiState = state.defaultCategoriesApiState;
+        final apiState = state.categoriesApiState;
+       // final selectedCategoryIndex = state.selectedCategoryIndex;
         
         // Get categories from API or use empty list
         final apiCategories = apiState.model?.data ?? [];
@@ -260,13 +288,13 @@ class _HomeViewState extends State<HomeView> {
         }
 
         return SizedBox(
-          height: 70, // Height for category row
+          height: 75, // Height for category row
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             itemCount: categories.length,
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
             itemBuilder: (context, index) {
-              final bool isSelected = selectedCategoryIndex == index;
+             // final bool isSelected = selectedCategoryIndex == index;
               final category = categories[index];
               
               return Padding(
@@ -300,40 +328,36 @@ class _HomeViewState extends State<HomeView> {
                               borderRadius: BorderRadius.circular(8),
                               child: Image.network(
                                 category.image!,
-                                width: 40,
-                                height: 40,
+                                width: 36,
+                                height: 36,
                                 fit: BoxFit.cover,
                                 errorBuilder: (context, error, stackTrace) {
                                   // If image fails to load, show default icon
                                   return Icon(
                                     Icons.category,
-                                    color: isSelected
-                                        ? GroceryColorTheme().black
-                                        : GroceryColorTheme().black.withValues(alpha: 0.2),
-                                    size: 30,
+                                    color: GroceryColorTheme().black,
+                                    size: 36,
                                   );
                                 },
                               ),
                             )
                           : Icon(
-                            //  index == 0 ? Icons.apps : GroceryIcons().category,
-                            GroceryIcons().category,
-                              color: isSelected
-                                  ? GroceryColorTheme().black
-                                  : GroceryColorTheme().black.withValues(alpha: 0.2),
+                              GroceryIcons().category,
+                              color: GroceryColorTheme().black,
                               size: 30,
                             ),
                       const SizedBox(height: 4),
-                      Text(
-                        categoryNames[index],
-                        style: TextStyle(
-                          fontSize: 12,
-                          color:
-                              isSelected
-                                  ? GroceryColorTheme().black
-                                  : GroceryColorTheme().black.withValues(alpha: 0.2),
-                          fontWeight:
-                              isSelected ? FontWeight.bold : FontWeight.normal,
+                      SizedBox(
+                        width: 70,
+                        child: Text(
+                          categoryNames[index],
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: GroceryColorTheme().black,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 2,
+                          textAlign: TextAlign.center
                         ),
                       ),
                     ],
@@ -404,7 +428,7 @@ class _HomeViewState extends State<HomeView> {
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4.0),
           child: SizedBox(
-            height: 160,
+            height: 190,
             width: double.infinity,
             child: PageView.builder(
               itemCount: banners.length > 1 ? banners.length * 1000 : banners.length, // Infinite scroll for multiple banners
@@ -443,6 +467,93 @@ class _HomeViewState extends State<HomeView> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildBestsellersSection() {
+    // Category data matching the reference image design
+    // Static bestseller categories generated from provided API response
+    final List<Map<String, dynamic>> bestsellerCategories = [
+      {
+      'title': 'Gcocery & Kitchen',
+      'moreCount': '+7 more',
+      'images': [
+        // Take 4 images from sub_categories, repeat last if missing
+        'https://monthlyration.in/uploads/categories/images/1756711680_aata-removebg-preview.png',
+        'https://monthlyration.in/uploads/categories/images/1756711117_cooking_oils-removebg-preview.png',
+        'https://monthlyration.in/uploads/categories/images/1756711211_biscuits__bakery-removebg-preview.png',
+        'https://monthlyration.in/uploads/categories/images/1756711286_dry-removebg-preview.png',
+      ],
+      },
+      {
+      'title': 'Drinks & Snacks',
+      'moreCount': '+5 more',
+      'images': [
+        'https://monthlyration.in/uploads/categories/images/1756713226_0xvfhoAqcQ.png',
+        'https://monthlyration.in/uploads/categories/images/1756713317_eaCzSsCPMF.png',
+        'https://monthlyration.in/uploads/categories/images/1756713499_cWhBuHsRGW.png',
+        'https://monthlyration.in/uploads/categories/images/1756713716_gPQhk15Rf5.png',
+      ],
+      },
+      {
+      'title': 'Beauty & Personal Care',
+      'moreCount': '+3 more',
+      'images': [
+        'https://monthlyration.in/uploads/categories/images/1756714399_3ZnbkxFKZc.png',
+        'https://monthlyration.in/uploads/categories/images/1756714536_5tsAL8lOMi.png',
+        'https://monthlyration.in/uploads/categories/images/1756714613_rUrFEIsvXa.png',
+        'https://monthlyration.in/uploads/categories/images/1756714720_Egj0VJHZoh.png',
+      ],
+      },
+      {
+      'title': 'Household Needs',
+      'moreCount': '+12 more',
+      'images': [
+        // No images in sub_categories, so repeat main category image
+        'https://monthlyration.in/uploads/categories/images/1756713499_cWhBuHsRGW.png',
+        'https://monthlyration.in/uploads/categories/images/1756711211_biscuits__bakery-removebg-preview.png',
+        'https://monthlyration.in/uploads/categories/images/1756711286_dry-removebg-preview.png',
+        'https://monthlyration.in/uploads/categories/images/1756714536_5tsAL8lOMi.png',
+        ],
+      },
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: Text(
+            'Bestsellers',
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+          ),
+        ),
+          const SizedBox(height: 8),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          child: GridView.builder(
+            padding: const EdgeInsets.symmetric(vertical: 0),
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: bestsellerCategories.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2, // 2 items per row as requested
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+              childAspectRatio: 0.84, // Increased to fix overflow
+            ),
+            itemBuilder: (context, index) {
+              final category = bestsellerCategories[index];
+              return BestsellerCategoryCard(category: category);
+            },
+          ),
+        ),
+        const SizedBox(height: 16),
+      ],
     );
   }
 
@@ -523,7 +634,6 @@ class _HomeViewState extends State<HomeView> {
               children: [
                 _buildSectionTitle(category.name),
                 _buildSubcategoryGrid(category.subCategories),
-                const SizedBox(height: 16),
               ],
             );
           }).toList(),
@@ -545,16 +655,17 @@ class _HomeViewState extends State<HomeView> {
     }
     
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+      padding: const EdgeInsets.symmetric(horizontal: 4.0),
       child: GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: subcategories.length,
+        padding: const EdgeInsets.symmetric(vertical: 0),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 4, // 4 items per row
           crossAxisSpacing: 0,
           mainAxisSpacing: 0,
-          childAspectRatio: 0.56,
+          childAspectRatio: 0.62,
         ),
         itemBuilder: (context, index) {
           final subcategory = subcategories[index];
@@ -565,7 +676,8 @@ class _HomeViewState extends State<HomeView> {
                 ProductsByCategoryPage(
                   homeCubit: context.read<HomeCubit>(),
                   categoryName: subcategory.name,
-                  subCategory: [subcategory], // Pass single subcategory
+                  subCategory: subcategories,
+                  selectedSubCategoryIndex: index,
                 ),
               );
             },
@@ -575,6 +687,128 @@ class _HomeViewState extends State<HomeView> {
           );
         },
       ),
+    );
+  }
+}
+
+
+class BestsellerCategoryCard extends StatelessWidget {
+  final Map<String, dynamic> category;
+
+  const BestsellerCategoryCard({
+    super.key,
+    required this.category,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final List<String> images = category['images'] ?? [];
+    
+    return Stack(
+      children: [
+        Container(
+         
+          decoration: BoxDecoration(
+            color: GroceryColorTheme().weatherBlueColor,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withValues(alpha: 0.15),
+                spreadRadius: 1,
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Image Grid (2x2)
+              Container(
+               height: context.mHeight * 0.22,
+                padding: const EdgeInsets.all(6), // Reduced padding
+                child: GridView.builder(
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: images.length > 4 ? 4 : images.length,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 3, // Reduced spacing
+                    mainAxisSpacing: 3, // Reduced spacing
+                  ),
+                  itemBuilder: (context, index) {
+                    return Container(
+                       
+                      padding: const EdgeInsets.all(4), // Reduced padding
+                      decoration: BoxDecoration(
+              
+                        borderRadius: BorderRadius.circular(20), // Smaller radius
+                        color: GroceryColorTheme().white,
+                      ),
+                      child: Image.network(
+                        images[index],
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: GroceryColorTheme().white,
+                            child: const Icon(
+                              Icons.image_not_supported,
+                              color: Colors.grey,
+                              size: 16, // Smaller icon
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
+             
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(height: 2),
+                    // Category title
+                    Text(
+                      category['title'] ?? '',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+          Positioned(
+                  top: context.mHeight * 0.195,
+                  right: context.mWidth * 0.15,
+                  child: Container(
+                    height: 20,
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    decoration: BoxDecoration(
+                      color: GroceryColorTheme().weatherBlueColor.withValues(alpha: 1),
+                      borderRadius:  BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.withValues(alpha: 0.4)),
+                    ),
+                    child: Text(
+                    category['moreCount'] ?? '',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                                  ),
+                )
+      ],
     );
   }
 }
@@ -593,7 +827,7 @@ class SubcategoryItemContainer extends StatelessWidget {
     return Column(
       children: [
         Container(
-          width: 130,
+          width: context.mWidth * 0.24,
           margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
           padding: const EdgeInsets.all(2),
           decoration: BoxDecoration(
@@ -619,7 +853,7 @@ class SubcategoryItemContainer extends StatelessWidget {
                     errorBuilder: (context, error, stackTrace) {
                       return Icon(
                         Icons.category,
-                        size: 50,
+                        size: 80,
                         color: GroceryColorTheme().primary,
                       );
                     },
@@ -638,7 +872,7 @@ class SubcategoryItemContainer extends StatelessWidget {
           style: const TextStyle(
             fontSize: 12,
             color: Colors.black87,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w400,
           ),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,

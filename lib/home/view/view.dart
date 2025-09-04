@@ -4,12 +4,16 @@ import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:grocery_flutter_app/account/cubit/account_cubit.dart';
+import 'package:grocery_flutter_app/account/view/view.dart';
 import 'package:grocery_flutter_app/app/cubit/app_cubit.dart';
 import 'package:grocery_flutter_app/auth/cubit/auth_cubit.dart';
 import 'package:grocery_flutter_app/category/view/view.dart'hide Product;
 import 'package:grocery_flutter_app/custom%20widgets/widgets.dart';
 import 'package:grocery_flutter_app/home/cubit/home_cubit.dart';
 import 'package:grocery_flutter_app/home/repository/models/models.dart';
+import 'package:grocery_flutter_app/root/cubit/navbar_cubit.dart';
+import 'package:grocery_flutter_app/root/cubit/navbar_states.dart';
 import 'package:grocery_flutter_app/utils/constants/constants.dart';
 import 'package:grocery_flutter_app/utils/generics/generics.dart';
 import 'package:grocery_flutter_app/utils/themes/grocery_color_theme.dart';

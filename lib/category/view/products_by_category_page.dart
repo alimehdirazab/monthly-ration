@@ -4,13 +4,14 @@ class ProductsByCategoryPage extends StatelessWidget {
   final HomeCubit homeCubit;
   final String categoryName;
   final List<Category>? subCategory;
-  const ProductsByCategoryPage({super.key, required this.homeCubit, required this.categoryName, this.subCategory});
+  final int selectedSubCategoryIndex;
+  const ProductsByCategoryPage({super.key, required this.homeCubit, required this.categoryName, this.subCategory, this.selectedSubCategoryIndex = 0});
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider.value(
       value: homeCubit,
-      child: CategoryView(categoryName: categoryName, subCategory: subCategory),
+      child: CategoryView(categoryName: categoryName, subCategory: subCategory, selectedSubCategoryIndex: selectedSubCategoryIndex),
     );
   }
 }
@@ -18,8 +19,9 @@ class ProductsByCategoryPage extends StatelessWidget {
 class CategoryView extends StatefulWidget {
   final String categoryName;
   final List<Category>? subCategory;
+  final int selectedSubCategoryIndex;
 
-  const CategoryView({super.key, required this.categoryName, this.subCategory});
+  const CategoryView({super.key, required this.categoryName, this.subCategory, this.selectedSubCategoryIndex = 0});
 
   @override
   State<CategoryView> createState() => _CategoryViewState();
@@ -31,7 +33,8 @@ class _CategoryViewState extends State<CategoryView> {
   @override
   void initState() {
     super.initState();
-    context.read<HomeCubit>().getProductsBySubCategory(subCategoryId: widget.subCategory?.first.id);
+    _selectedIndex = widget.selectedSubCategoryIndex;
+    context.read<HomeCubit>().getProductsBySubCategory(subCategoryId: widget.subCategory?[_selectedIndex].id);
   }
 
   @override
