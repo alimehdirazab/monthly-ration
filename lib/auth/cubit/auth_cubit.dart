@@ -31,6 +31,7 @@ class AuthCubit extends Cubit<AuthState> {
     if (!state.isMobileNumberValid) return;
     emit(state.copyWith(mobileNumberStatus: GeneralApiState(
       apiCallState: APICallState.loading
+      
     )));
 
     await authenticationRepository.sendOtp(state.mobileNumber.value).then((_) {
@@ -85,6 +86,7 @@ class AuthCubit extends Cubit<AuthState> {
       emit(state.copyWith(otpStatus: GeneralApiState(
         apiCallState: APICallState.loaded
       )));
+
     }).catchError((error) {
       emit(state.copyWith(otpStatus: GeneralApiState(
         apiCallState: APICallState.failure,
@@ -106,6 +108,7 @@ class AuthCubit extends Cubit<AuthState> {
       }
     });
   }
+
 
   // Update profile
   Future<void> updateProfile({
@@ -334,6 +337,12 @@ class AuthCubit extends Cubit<AuthState> {
   void logout() {
    // authenticationRepository.logout();
    authenticationRepository.clearUser();
+  }
+
+   // reset auth state
+  void resetAuthState() {
+    emit(AuthState());
+    _timer?.cancel();
   }
 
   @override

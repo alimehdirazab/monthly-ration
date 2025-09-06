@@ -134,11 +134,6 @@ class HomeCubit extends Cubit<HomeState> {
         apiCallState: APICallState.loaded,
         model: productDetailsModel,
       )));
-    }).catchError((error) {
-      emit(state.copyWith(productDetailsApiState: GeneralApiState<ProductDetailsModel>(
-        apiCallState: APICallState.failure,
-        errorMessage: error.toString(),
-      )));
     });
   }
 

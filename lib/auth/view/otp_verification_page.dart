@@ -110,6 +110,8 @@ class _OtpVerificationViewState extends State<OtpVerificationView> {
               listener: (context,state) {
                 if(state.otpStatus.apiCallState == APICallState.loaded){
                   context.pushPage(RootPage());
+                  // reset auth state
+                  context.read<AuthCubit>().resetAuthState();
                 }
                 else if(state.otpStatus.apiCallState == APICallState.failure){
                   context.showSnacbar(state.otpStatus.errorMessage ?? "Something went wrong",backgroundColor: GroceryColorTheme().redColor);

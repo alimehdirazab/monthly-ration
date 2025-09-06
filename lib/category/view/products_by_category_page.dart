@@ -305,7 +305,7 @@ class _ProductCardFromApiState extends State<ProductCardFromApi> {
                 ),
                 child: widget.product.imagesUrls.isNotEmpty
                     ? Image.network(
-                       '${GroceryApis.baseUrl}/${widget.product.imagesUrls.first}',
+                       widget.product.imagesUrls.first,
                         height: 130,
                         width: double.infinity,
                         fit: BoxFit.cover,
@@ -425,7 +425,7 @@ class _ProductCardFromApiState extends State<ProductCardFromApi> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
-                  widget.product.brand,
+                  widget.product.brand??'',
                   style: TextStyle(color: Colors.grey[600], fontSize: 12),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,

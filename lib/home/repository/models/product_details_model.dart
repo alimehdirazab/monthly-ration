@@ -19,20 +19,20 @@ class ProductDetailsModel {
 class ProductDetails {
     final int id;
     final String name;
-    final dynamic category;
+    final String? category;
     final dynamic price;
-    final ExtraFields extraFields;
-    final String brand;
+    final List<dynamic> extraFields;
+    final String? brand;
     final List<AttributeValue> attributeValues;
     final List<dynamic> relatedProducts;
 
     ProductDetails({
         required this.id,
         required this.name,
-        required this.category,
+        this.category,
         required this.price,
         required this.extraFields,
-        required this.brand,
+        this.brand,
         required this.attributeValues,
         required this.relatedProducts,
     });
@@ -42,10 +42,10 @@ class ProductDetails {
         name: json["name"],
         category: json["category"],
         price: json["price"],
-        extraFields: ExtraFields.fromJson(json["extra_fields"]),
+        extraFields: List<dynamic>.from(json["extra_fields"] ?? []),
         brand: json["brand"],
-        attributeValues: List<AttributeValue>.from(json["attribute_values"].map((x) => AttributeValue.fromJson(x))),
-        relatedProducts: List<dynamic>.from(json["related_products"].map((x) => x)),
+        attributeValues: List<AttributeValue>.from((json["attribute_values"] ?? []).map((x) => AttributeValue.fromJson(x))),
+        relatedProducts: List<dynamic>.from(json["related_products"] ?? []),
     );
 
     Map<String, dynamic> toJson() => {
@@ -53,7 +53,7 @@ class ProductDetails {
         "name": name,
         "category": category,
         "price": price,
-        "extra_fields": extraFields.toJson(),
+        "extra_fields": extraFields,
         "brand": brand,
         "attribute_values": List<dynamic>.from(attributeValues.map((x) => x.toJson())),
         "related_products": List<dynamic>.from(relatedProducts.map((x) => x)),

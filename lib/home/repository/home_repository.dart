@@ -33,7 +33,7 @@ class HomeRepository {
   Future<ProductModel> getProducts({int? categoryId}) async {
     final handle = categoryId == null
         ? GroceryApis.products
-        : '${GroceryApis.products}?category_id=$categoryId';
+        : '${GroceryApis.products}?subcategory_id=$categoryId';
     final response = await generalRepository.get(
       handle: handle,
     );

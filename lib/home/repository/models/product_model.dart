@@ -20,7 +20,8 @@ class Product {
     final int id;
     final String name;
     final dynamic category;
-    final String brand;
+    final String? subcategory;  // Added subcategory field
+    final String? brand;  // Made nullable
     final String mrpPrice;
     final String salePrice;
     final List<String> images;
@@ -30,7 +31,8 @@ class Product {
         required this.id,
         required this.name,
         required this.category,
-        required this.brand,
+        this.subcategory,  // Made optional
+        this.brand,  // Made optional
         required this.mrpPrice,
         required this.salePrice,
         required this.images,
@@ -41,6 +43,7 @@ class Product {
         id: json["id"],
         name: json["name"],
         category: json["category"],
+        subcategory: json["subcategory"],
         brand: json["brand"],
         mrpPrice: json["mrp_price"],
         salePrice: json["sale_price"],
@@ -52,6 +55,7 @@ class Product {
         "id": id,
         "name": name,
         "category": category,
+        "subcategory": subcategory,
         "brand": brand,
         "mrp_price": mrpPrice,
         "sale_price": salePrice,

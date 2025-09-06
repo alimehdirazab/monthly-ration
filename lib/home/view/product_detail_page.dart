@@ -302,8 +302,8 @@ class _ProductDetailViewState extends State<ProductDetailView> {
     }
     
     // If no attributes, add brand as tag
-    if (attributeTags.isEmpty && productDetails.brand.isNotEmpty) {
-      attributeTags.add(_buildTag(productDetails.brand));
+    if (attributeTags.isEmpty && productDetails.brand != null) {
+      attributeTags.add(_buildTag(productDetails.brand!));
     }
 
     return Padding(
@@ -422,27 +422,24 @@ class _ProductDetailViewState extends State<ProductDetailView> {
                 ),
               ),
               
-              // Extra fields if available
-              if (productDetails.extraFields.color.isNotEmpty || productDetails.extraFields.updates.isNotEmpty)
+              // Extra fields if available (now handling List<dynamic>)
+              if (productDetails.extraFields.isNotEmpty)
                 const SizedBox(height: 10),
-              if (productDetails.extraFields.color.isNotEmpty)
-                Text(
-                  'Color: ${productDetails.extraFields.color}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.black54,
-                  ),
-                ),
-              if (productDetails.extraFields.updates.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Text(
-                    'Updates: ${productDetails.extraFields.updates}',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.black54,
-                    ),
-                  ),
+              if (productDetails.extraFields.isNotEmpty)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: productDetails.extraFields.map<Widget>((field) {
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        'Extra: ${field.toString()}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.black54,
+                        ),
+                      ),
+                    );
+                  }).toList(),
                 ),
             ],
           ),
