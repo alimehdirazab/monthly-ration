@@ -201,12 +201,12 @@ class _CategoryViewState extends State<CategoryView> {
                       }
                       
                       return GridView.builder(
-                        padding: const EdgeInsets.all(8.0),
+                        padding: const EdgeInsets.all(4.0),
                         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 2, // Two columns as per screenshot
                           crossAxisSpacing: 0.0,
                           mainAxisSpacing: 0.0,
-                          childAspectRatio: 0.44, // Adjust to fit content well
+                          childAspectRatio: 0.55, // Adjust to fit content well
                         ),
                         itemCount: products.length,
                         itemBuilder: (context, index) {
@@ -289,10 +289,12 @@ class _ProductCardFromApiState extends State<ProductCardFromApi> {
   @override
   Widget build(BuildContext context) {
     return Card(
+
       color: GroceryColorTheme().white,
-      margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 7),
+      
+      // margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 7),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
-      elevation: 2,
+      elevation: 1,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -304,24 +306,27 @@ class _ProductCardFromApiState extends State<ProductCardFromApi> {
                   top: Radius.circular(15.0),
                 ),
                 child: widget.product.imagesUrls.isNotEmpty
-                    ? Image.network(
-                       widget.product.imagesUrls.first,
-                        height: 130,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            height: 130,
-                            width: double.infinity,
-                            color: Colors.grey[200],
-                            child: Icon(
-                              Icons.shopping_bag,
-                              size: 50,
-                              color: Colors.grey,
-                            ),
-                          );
-                        },
-                      )
+                    ? Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Image.network(
+                         widget.product.imagesUrls.first,
+                          height: 130,
+                          width: double.infinity,
+                          fit: BoxFit.fill,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              height: 130,
+                              width: double.infinity,
+                              color: Colors.grey[200],
+                              child: Icon(
+                                Icons.shopping_bag,
+                                size: 50,
+                                color: Colors.grey,
+                              ),
+                            );
+                          },
+                        ),
+                    )
                     : Container(
                         height: 130,
                         width: double.infinity,
@@ -350,15 +355,15 @@ class _ProductCardFromApiState extends State<ProductCardFromApi> {
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                              color: GroceryColorTheme().black,
+                              color: GroceryColorTheme().greenColor,
                             ),
                           ),
                           child: Text(
                             'ADD',
                             style: TextStyle(
-                              color: GroceryColorTheme().black,
+                              color: GroceryColorTheme().greenColor,
                               fontWeight: FontWeight.bold,
-                              fontSize: 12,
+                              fontSize: 11,
                             ),
                           ),
                         ),
@@ -419,49 +424,45 @@ class _ProductCardFromApiState extends State<ProductCardFromApi> {
                   widget.product.name,
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 14,
+                    fontSize: 11,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                Text(
-                  widget.product.brand??'',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
+                // Text(
+                //   widget.product.brand??'',
+                //   style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                //   maxLines: 2,
+                //   overflow: TextOverflow.ellipsis,
+                // ),
+                // const SizedBox(height: 4),
                 Row(
                   children: [
-                    Icon(Icons.star, color: Colors.amber, size: 16),
+                   ...List.generate(
+                      5,
+                      (index) => Icon(
+                        index < 4 // Assuming a static rating of 4.5 for demo
+                            ? Icons.star
+                            : Icons.star_half,
+                        color: Colors.amber,
+                        size: 12,
+                      ),
+
+                   ),
                     Text(
-                      '4.5', // You might want to add rating to the Product model
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                    Text(
-                      ' (25 Reviews)', // You might want to add reviews to the Product model
-                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                      ' (25)', // You might want to add reviews to the Product model
+                      style: TextStyle(color: Colors.grey[600], fontSize: 11),
                     ),
                   ],
                 ),
                 const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Icon(Icons.delivery_dining, color: Colors.green, size: 16),
-                    Text(
-                      '15 Mins', // You might want to add delivery time to the Product model
-                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
                 Row(
                   children: [
                     Text(
                       '₹${widget.product.salePrice}',
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                        fontSize: 11,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -473,7 +474,7 @@ class _ProductCardFromApiState extends State<ProductCardFromApi> {
                       style: TextStyle(
                         color: Colors.grey[600],
                         decoration: TextDecoration.lineThrough,
-                        fontSize: 12,
+                        fontSize: 11,
                       ),
                     ),
               ],
@@ -552,12 +553,15 @@ class _ProductCardState extends State<ProductCard> {
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(15.0),
                 ),
-                child: Image.asset(
-                  widget
-                      .imageUrl, // Use widget.imageUrl to access imageUrl from ProductCard
-                  height: 130, // Adjust height as needed
-                  width: double.infinity,
-                  fit: BoxFit.cover,
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Image.asset(
+                    widget
+                        .imageUrl, // Use widget.imageUrl to access imageUrl from ProductCard
+                    height: 130, // Adjust height as needed
+                    width: double.infinity,
+                    fit: BoxFit.fill,
+                  ),
                 ),
               ),
               Positioned(
@@ -643,34 +647,6 @@ class _ProductCardState extends State<ProductCard> {
                           ),
                         ),
               ),
-              // Placeholder for "10 kg" and "Wheat Atta" - uncomment if needed
-              // Positioned(
-              //   top: 8,
-              //   left: 8,
-              //   child: Container(
-              //     padding: const EdgeInsets.symmetric(
-              //       horizontal: 6,
-              //       vertical: 3,
-              //     ),
-              //     decoration: BoxDecoration(
-              //       color: Colors.black.withOpacity(0.6),
-              //       borderRadius: BorderRadius.circular(5),
-              //     ),
-              //     child: Column(
-              //       crossAxisAlignment: CrossAxisAlignment.start,
-              //       children: [
-              //         Text(
-              //           '10 kg', // This should ideally come from data
-              //           style: TextStyle(color: Colors.white, fontSize: 10),
-              //         ),
-              //         Text(
-              //           'Wheat Atta', // This should ideally come from data
-              //           style: TextStyle(color: Colors.white, fontSize: 10),
-              //         ),
-              //       ],
-              //     ),
-              //   ),
-              // ),
             ],
           ),
           Padding(
@@ -682,7 +658,7 @@ class _ProductCardState extends State<ProductCard> {
                   widget.title, // Use widget.title
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 14,
+                    fontSize: 11,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -694,16 +670,22 @@ class _ProductCardState extends State<ProductCard> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
-                Row(
+                  Row(
                   children: [
-                    Icon(Icons.star, color: Colors.amber, size: 16),
+                   ...List.generate(
+                      5,
+                      (index) => Icon(
+                        index < 4 // Assuming a static rating of 4.5 for demo
+                            ? Icons.star
+                            : Icons.star_half,
+                        color: Colors.amber,
+                        size: 12,
+                      ),
+
+                   ),
                     Text(
-                      '${widget.rating}',
-                      style: const TextStyle(fontSize: 12),
-                    ), // Use widget.rating
-                    Text(
-                      ' (${widget.reviews} Reviews)', // Use widget.reviews
-                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                      ' (25)', // You might want to add reviews to the Product model
+                      style: TextStyle(color: Colors.grey[600], fontSize: 11),
                     ),
                   ],
                 ),

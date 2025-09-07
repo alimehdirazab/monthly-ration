@@ -49,26 +49,32 @@ class _OtpVerificationViewState extends State<OtpVerificationView> {
               ),
             ),
             const SizedBox(height: 40),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: RichText(
-                textAlign: TextAlign.left,
-                text: TextSpan(
-                  text: 'We have send you 4 digits code to ',
-                  style: GroceryTextTheme().lightText.copyWith(
-                    color: GroceryColorTheme().darkGreyColor,
-                  ),
-                  children: <TextSpan>[
-                    TextSpan(
-                      text: '+91 123 456 801',
-                      style: GroceryTextTheme().bodyText.copyWith(
-                        color: GroceryColorTheme().black,
-                        fontSize: 14,
+            BlocBuilder<AuthCubit, AuthState>(
+              buildWhen: (previous, current) =>
+                  previous.mobileNumber != current.mobileNumber,
+              builder: (context, state) {
+                return Align(
+                  alignment: Alignment.centerLeft,
+                  child: RichText(
+                    textAlign: TextAlign.left,
+                    text: TextSpan(
+                      text: 'We have send you 4 digits code to ',
+                      style: GroceryTextTheme().lightText.copyWith(
+                        color: GroceryColorTheme().darkGreyColor,
                       ),
+                      children: <TextSpan>[
+                        TextSpan(
+                          text: '+91 ${state.mobileNumber.value}',
+                          style: GroceryTextTheme().bodyText.copyWith(
+                            color: GroceryColorTheme().black,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
+                  ),
+                );
+              }
             ),
             const SizedBox(height: 30),
             _OtpInput(),
