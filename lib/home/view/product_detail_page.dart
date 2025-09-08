@@ -106,13 +106,10 @@ class _ProductDetailViewState extends State<ProductDetailView> {
   }
 
   Widget _buildProductDetailsContent(ProductDetails productDetails) {
-    // Get product images from static assets since API doesn't provide images
-    final List<String> productImages = [
-      GroceryImages.product,
-      GroceryImages.product,
-      GroceryImages.product,
-      GroceryImages.product,
-    ];
+    // Use API images if available, otherwise use default image
+    final List<String> productImages = productDetails.images?.isNotEmpty == true 
+        ? productDetails.images! 
+        : [GroceryImages.product];
 
     return SingleChildScrollView(
       child: Column(
@@ -138,20 +135,32 @@ class _ProductDetailViewState extends State<ProductDetailView> {
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(15.0),
-                          child: Image.asset(
-                            productImages[_currentImageIndex],
-                            fit: BoxFit.contain,
-                            height: 250,
-                            width: double.infinity,
-                            errorBuilder:
-                                (context, error, stackTrace) => Container(
+                          child: productImages[_currentImageIndex].startsWith('http')
+                              ? Image.network(
+                                  productImages[_currentImageIndex],
+                                  fit: BoxFit.contain,
                                   height: 250,
-                                  color: Colors.grey[300],
-                                  child: const Center(
-                                    child: Icon(Icons.broken_image),
+                                  width: double.infinity,
+                                  errorBuilder: (context, error, stackTrace) => Image.asset(
+                                    GroceryImages.product,
+                                    fit: BoxFit.contain,
+                                    height: 250,
+                                    width: double.infinity,
+                                  ),
+                                )
+                              : Image.asset(
+                                  productImages[_currentImageIndex],
+                                  fit: BoxFit.contain,
+                                  height: 250,
+                                  width: double.infinity,
+                                  errorBuilder: (context, error, stackTrace) => Container(
+                                    height: 250,
+                                    color: Colors.grey[300],
+                                    child: const Center(
+                                      child: Icon(Icons.broken_image),
+                                    ),
                                   ),
                                 ),
-                          ),
                         ),
                         Padding(
                           padding: const EdgeInsets.symmetric(
@@ -219,10 +228,22 @@ class _ProductDetailViewState extends State<ProductDetailView> {
                           ),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(8),
-                            child: Image.asset(
-                              productImages[index],
-                              fit: BoxFit.cover,
-                            ),
+                            child: productImages[index].startsWith('http')
+                                ? Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Image.network(
+                                      productImages[index],
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) => Image.asset(
+                                        GroceryImages.product,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                )
+                                : Image.asset(
+                                    productImages[index],
+                                    fit: BoxFit.cover,
+                                  ),
                           ),
                         ),
                       );
@@ -292,18 +313,15 @@ class _ProductDetailViewState extends State<ProductDetailView> {
   }
 
   Widget _buildProductDetailsCard(ProductDetails productDetails) {
-    // Extract attribute values for tags (like weight, type)
+    // Since attributeValues is now List<dynamic>, we'll skip complex attribute parsing
+    // and use brand as tag if available
     List<Widget> attributeTags = [];
-    for (var attributeValue in productDetails.attributeValues) {
-      for (var value in attributeValue.attribute.values) {
-        attributeTags.add(_buildTag(value.value));
-        attributeTags.add(const SizedBox(width: 8));
-      }
-    }
-    
-    // If no attributes, add brand as tag
-    if (attributeTags.isEmpty && productDetails.brand != null) {
+    if (productDetails.brand != null && productDetails.brand!.isNotEmpty) {
       attributeTags.add(_buildTag(productDetails.brand!));
+    }
+    if (productDetails.category != null && productDetails.category!.isNotEmpty) {
+      attributeTags.add(const SizedBox(width: 8));
+      attributeTags.add(_buildTag(productDetails.category!));
     }
 
     return Padding(
@@ -377,7 +395,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
               
               // Product name from API
               Text(
-                productDetails.name,
+                productDetails.name?? '',
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -388,11 +406,11 @@ class _ProductDetailViewState extends State<ProductDetailView> {
 
               const SizedBox(height: 10),
               
-              // Price from API (with static MRP if needed)
+              // Price from API
               Row(
                 children: [
                   Text(
-                    '₹${productDetails.price??'0.0'}',
+                    '₹${productDetails.sellPrice ?? 0}',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -400,15 +418,16 @@ class _ProductDetailViewState extends State<ProductDetailView> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  // Static MRP (higher than actual price)
-                  Text(
-                    'MRP ₹${(double.tryParse(productDetails.price.toString()) ?? 0) * 1.3}',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.black54,
-                      decoration: TextDecoration.lineThrough,
+                  // MRP from API
+                  if (productDetails.mrpPrice != null)
+                    Text(
+                      'MRP ₹${productDetails.mrpPrice}',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.black54,
+                        decoration: TextDecoration.lineThrough,
+                      ),
                     ),
-                  ),
                 ],
               ),
               const SizedBox(height: 10),
@@ -423,12 +442,12 @@ class _ProductDetailViewState extends State<ProductDetailView> {
               ),
               
               // Extra fields if available (now handling List<dynamic>)
-              if (productDetails.extraFields.isNotEmpty)
+              if (productDetails.extraFields?.isNotEmpty == true)
                 const SizedBox(height: 10),
-              if (productDetails.extraFields.isNotEmpty)
+              if (productDetails.extraFields?.isNotEmpty == true)
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: productDetails.extraFields.map<Widget>((field) {
+                  children: productDetails.extraFields!.map<Widget>((field) {
                     return Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
@@ -450,7 +469,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
 
   Widget _buildSimilarProductsSection(ProductDetails productDetails) {
     // Use related products from API if available, otherwise use static data
-    final hasRelatedProducts = productDetails.relatedProducts.isNotEmpty;
+    final hasRelatedProducts = productDetails.relatedProducts?.isNotEmpty == true;
     final staticProducts = [
       {'image': GroceryImages.grocery2, 'name': 'Musha Atta'},
       {'image': GroceryImages.grocery3, 'name': 'Olive Oil'},
@@ -475,15 +494,15 @@ class _ProductDetailViewState extends State<ProductDetailView> {
             height: 150, // Height for similar product cards
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              itemCount: hasRelatedProducts ? productDetails.relatedProducts.length : staticProducts.length,
+              itemCount: hasRelatedProducts ? productDetails.relatedProducts!.length : staticProducts.length,
               itemBuilder: (context, index) {
                 if (hasRelatedProducts) {
                   // Use related products from API (you might need to adjust based on the actual structure)
-                  final relatedProduct = productDetails.relatedProducts[index];
+                  final relatedProduct = productDetails.relatedProducts![index];
                   return _buildSimilarProductCard(
                     context,
                     image: GroceryImages.product, // Static image since API doesn't provide
-                    name: relatedProduct.toString(), // Convert to string or extract name field
+                    name: relatedProduct.name.toString(), // Convert to string or extract name field
                   );
                 } else {
                   // Use static data

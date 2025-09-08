@@ -17,129 +17,97 @@ class ProductDetailsModel {
 }
 
 class ProductDetails {
-    final int id;
-    final String name;
+    final int? id;
+    final String? name;
     final String? category;
-    final dynamic price;
-    final List<dynamic> extraFields;
+    final String? subcategory;
+    final String? mrpPrice;
+    final int? sellPrice;
+    final String? discount;
+    final List<String>? images;
+    final List<dynamic>? extraFields;
     final String? brand;
-    final List<AttributeValue> attributeValues;
-    final List<dynamic> relatedProducts;
+    final List<dynamic>? attributeValues;
+    final List<RelatedProduct>? relatedProducts;
 
     ProductDetails({
-        required this.id,
-        required this.name,
+        this.id,
+        this.name,
         this.category,
-        required this.price,
-        required this.extraFields,
+        this.subcategory,
+        this.mrpPrice,
+        this.sellPrice,
+        this.discount,
+        this.images,
+        this.extraFields,
         this.brand,
-        required this.attributeValues,
-        required this.relatedProducts,
+        this.attributeValues,
+        this.relatedProducts,
     });
 
     factory ProductDetails.fromJson(Map<String, dynamic> json) => ProductDetails(
         id: json["id"],
         name: json["name"],
         category: json["category"],
-        price: json["price"],
-        extraFields: List<dynamic>.from(json["extra_fields"] ?? []),
+        subcategory: json["subcategory"],
+        mrpPrice: json["mrp_price"],
+        sellPrice: json["sell_price"],
+        discount: json["discount"],
+        images: json["images"] == null ? [] : List<String>.from(json["images"]!.map((x) => x)),
+        extraFields: json["extra_fields"] == null ? [] : List<dynamic>.from(json["extra_fields"]!.map((x) => x)),
         brand: json["brand"],
-        attributeValues: List<AttributeValue>.from((json["attribute_values"] ?? []).map((x) => AttributeValue.fromJson(x))),
-        relatedProducts: List<dynamic>.from(json["related_products"] ?? []),
+        attributeValues: json["attribute_values"] == null ? [] : List<dynamic>.from(json["attribute_values"]!.map((x) => x)),
+        relatedProducts: json["related_products"] == null ? [] : List<RelatedProduct>.from(json["related_products"]!.map((x) => RelatedProduct.fromJson(x))),
     );
 
     Map<String, dynamic> toJson() => {
         "id": id,
         "name": name,
         "category": category,
-        "price": price,
-        "extra_fields": extraFields,
+        "subcategory": subcategory,
+        "mrp_price": mrpPrice,
+        "sell_price": sellPrice,
+        "discount": discount,
+        "images": images == null ? [] : List<dynamic>.from(images!.map((x) => x)),
+        "extra_fields": extraFields == null ? [] : List<dynamic>.from(extraFields!.map((x) => x)),
         "brand": brand,
-        "attribute_values": List<dynamic>.from(attributeValues.map((x) => x.toJson())),
-        "related_products": List<dynamic>.from(relatedProducts.map((x) => x)),
+        "attribute_values": attributeValues == null ? [] : List<dynamic>.from(attributeValues!.map((x) => x)),
+        "related_products": relatedProducts == null ? [] : List<dynamic>.from(relatedProducts!.map((x) => x.toJson())),
     };
 }
 
-class AttributeValue {
-    final Attribute attribute;
+class RelatedProduct {
+    final int? id;
+    final String? name;
+    final String? category;
+    final String? mrpPrice;
+    final String? salePrice;
+    final String? brand;
 
-    AttributeValue({
-        required this.attribute,
+    RelatedProduct({
+        this.id,
+        this.name,
+        this.category,
+        this.mrpPrice,
+        this.salePrice,
+        this.brand,
     });
 
-    factory AttributeValue.fromJson(Map<String, dynamic> json) => AttributeValue(
-        attribute: Attribute.fromJson(json["attribute"]),
-    );
-
-    Map<String, dynamic> toJson() => {
-        "attribute": attribute.toJson(),
-    };
-}
-
-class Attribute {
-    final int id;
-    final String name;
-    final List<Value> values;
-
-    Attribute({
-        required this.id,
-        required this.name,
-        required this.values,
-    });
-
-    factory Attribute.fromJson(Map<String, dynamic> json) => Attribute(
+    factory RelatedProduct.fromJson(Map<String, dynamic> json) => RelatedProduct(
         id: json["id"],
         name: json["name"],
-        values: List<Value>.from(json["values"].map((x) => Value.fromJson(x))),
+        category: json["category"],
+        mrpPrice: json["mrp_price"],
+        salePrice: json["sale_price"],
+        brand: json["brand"],
     );
 
     Map<String, dynamic> toJson() => {
         "id": id,
         "name": name,
-        "values": List<dynamic>.from(values.map((x) => x.toJson())),
-    };
-}
-
-class Value {
-    final int id;
-    final String value;
-    final String extraPrice;
-
-    Value({
-        required this.id,
-        required this.value,
-        required this.extraPrice,
-    });
-
-    factory Value.fromJson(Map<String, dynamic> json) => Value(
-        id: json["id"],
-        value: json["value"],
-        extraPrice: json["extra_price"],
-    );
-
-    Map<String, dynamic> toJson() => {
-        "id": id,
-        "value": value,
-        "extra_price": extraPrice,
-    };
-}
-
-class ExtraFields {
-    final String color;
-    final String updates;
-
-    ExtraFields({
-        required this.color,
-        required this.updates,
-    });
-
-    factory ExtraFields.fromJson(Map<String, dynamic> json) => ExtraFields(
-        color: json["Color"],
-        updates: json["Updates"],
-    );
-
-    Map<String, dynamic> toJson() => {
-        "Color": color,
-        "Updates": updates,
+        "category": category,
+        "mrp_price": mrpPrice,
+        "sale_price": salePrice,
+        "brand": brand,
     };
 }
