@@ -57,7 +57,7 @@ class AppView extends StatelessWidget {
     AppState appState = context.select((AppCubit cubit) => cubit.state);
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: "Fox Island",
+      title: "Monthly Ration",
       navigatorKey: navigatorKey,
       theme: FoxTheme().lightThemeData,
       locale: context.locale,

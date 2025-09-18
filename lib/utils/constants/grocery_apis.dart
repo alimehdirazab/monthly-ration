@@ -60,6 +60,16 @@ class GroceryApis {
   static const String termsAndConditions = "terms-and-conditions";
   // faqs
   static const String faqs = "faqs";
+  // add to cart
+  static const String addToCart = "cart/add";
+  // get cart items
+  static const String getCartItems = "carts";
+  // update cart item
+  static const String updateCartItem = "cart/update";
+  // delete cart item
+  static const String deleteCartItem = "cart/delete";
+  // clear cart
+  static const String clearCart = "cart/clear";
 
   initBaseUrlAndAuthEndpoints() {
     ApiConfig.baseUrl = baseApiUrl;

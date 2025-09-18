@@ -16,6 +16,16 @@ class HomeState extends Equatable {
     this.productsBySubCategoryApiState = const GeneralApiState<ProductModel>(),
     // product details api State
     this.productDetailsApiState = const GeneralApiState<ProductDetailsModel>(),
+    // add to cart api State
+    this.addToCartApiState = const GeneralApiState<void>(),
+    // get cart items api State
+    this.getCartItemsApiState = const GeneralApiState<CartListModel>(),
+    // update cart item api State
+    this.updateCartItemApiState = const GeneralApiState<void>(),
+    // delete cart item api State
+    this.deleteCartItemApiState = const GeneralApiState<void>(),
+    // clear cart api State
+    this.clearCartApiState = const GeneralApiState<void>(),
   });
    final List<String> cartItems;
    // banners api State
@@ -32,7 +42,16 @@ class HomeState extends Equatable {
    final GeneralApiState<ProductModel> productsBySubCategoryApiState;
    // product details api State
    final GeneralApiState<ProductDetailsModel> productDetailsApiState;
-
+   // add to cart api State
+   final GeneralApiState<void> addToCartApiState;
+   // get cart items api State
+   final GeneralApiState<CartListModel> getCartItemsApiState;
+   // update cart item api State
+   final GeneralApiState<void> updateCartItemApiState;
+   // delete cart item api State
+   final GeneralApiState<void> deleteCartItemApiState;
+   // clear cart api State
+   final GeneralApiState<void> clearCartApiState;
 
   // CopyWith
   HomeState copyWith({
@@ -44,6 +63,11 @@ class HomeState extends Equatable {
     GeneralApiState<ProductModel>? productsApiState,
     GeneralApiState<ProductModel>? productsBySubCategoryApiState,
     GeneralApiState<ProductDetailsModel>? productDetailsApiState,
+    GeneralApiState<void>? addToCartApiState,
+    GeneralApiState<CartListModel>? getCartItemsApiState,
+    GeneralApiState<void>? updateCartItemApiState,
+    GeneralApiState<void>? deleteCartItemApiState,
+    GeneralApiState<void>? clearCartApiState,
   }) {
     return HomeState(
       cartItems: cartItems ?? this.cartItems,
@@ -54,6 +78,11 @@ class HomeState extends Equatable {
       productsApiState: productsApiState ?? this.productsApiState,
       productsBySubCategoryApiState: productsBySubCategoryApiState ?? this.productsBySubCategoryApiState,
       productDetailsApiState: productDetailsApiState ?? this.productDetailsApiState,
+      addToCartApiState: addToCartApiState ?? this.addToCartApiState,
+      getCartItemsApiState: getCartItemsApiState ?? this.getCartItemsApiState,
+      updateCartItemApiState: updateCartItemApiState ?? this.updateCartItemApiState,
+      deleteCartItemApiState: deleteCartItemApiState ?? this.deleteCartItemApiState,
+      clearCartApiState: clearCartApiState ?? this.clearCartApiState
     );
   }
   
@@ -67,5 +96,10 @@ class HomeState extends Equatable {
     productsApiState,
     productsBySubCategoryApiState,
     productDetailsApiState,
+    addToCartApiState,
+    getCartItemsApiState,
+    updateCartItemApiState,
+    deleteCartItemApiState,
+    clearCartApiState
     ];
 }

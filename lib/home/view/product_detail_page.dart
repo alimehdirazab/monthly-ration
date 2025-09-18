@@ -24,6 +24,8 @@ class ProductDetailView extends StatefulWidget {
 
 class _ProductDetailViewState extends State<ProductDetailView> {
   int _currentImageIndex = 0;
+  Timer? _autoSlideTimer;
+  List<String> _productImages = [];
 
   // // Example product images (replace with actual image URLs)
   // final List<String> _productImages = [
@@ -44,6 +46,33 @@ class _ProductDetailViewState extends State<ProductDetailView> {
   initState() {
     super.initState();
     context.read<HomeCubit>().getProductDetails(widget.productId);
+  }
+
+  void _startAutoSlide() {
+    // Cancel any existing timer
+    _autoSlideTimer?.cancel();
+    
+    // Only start auto slide if there are multiple images
+    if (_productImages.length > 1) {
+      _autoSlideTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+        if (mounted) {
+          setState(() {
+            _currentImageIndex = (_currentImageIndex + 1) % _productImages.length;
+          });
+        }
+      });
+    }
+  }
+
+  void _stopAutoSlide() {
+    _autoSlideTimer?.cancel();
+    _autoSlideTimer = null;
+  }
+
+  @override
+  void dispose() {
+    _autoSlideTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -110,6 +139,19 @@ class _ProductDetailViewState extends State<ProductDetailView> {
     final List<String> productImages = productDetails.images?.isNotEmpty == true 
         ? productDetails.images! 
         : [GroceryImages.product];
+
+    // Update product images and start auto slide if images changed
+    if (_productImages != productImages) {
+      _productImages = productImages;
+      // Reset current index if it's out of bounds
+      if (_currentImageIndex >= _productImages.length) {
+        _currentImageIndex = 0;
+      }
+      // Start auto slide timer for multiple images
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _startAutoSlide();
+      });
+    }
 
     return SingleChildScrollView(
       child: Column(
@@ -206,8 +248,16 @@ class _ProductDetailViewState extends State<ProductDetailView> {
                     itemBuilder: (context, index) {
                       return GestureDetector(
                         onTap: () {
+                          // Stop auto slide temporarily when user manually selects
+                          _stopAutoSlide();
                           setState(() {
                             _currentImageIndex = index;
+                          });
+                          // Restart auto slide after 10 seconds of user inactivity
+                          Timer(const Duration(seconds: 10), () {
+                            if (mounted) {
+                              _startAutoSlide();
+                            }
                           });
                         },
                         child: Container(
@@ -257,33 +307,33 @@ class _ProductDetailViewState extends State<ProductDetailView> {
           // Product details card with API data
           _buildProductDetailsCard(productDetails),
           
-          // Description section (static for now)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Description',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  'Masha is a famous Indian flavor to improve health. Masha is the main ingredient which makes your teeth strong.',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.black54,
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 20),
-              ],
-            ),
-          ),
+          // // Description section (static for now)
+          // Padding(
+          //   padding: const EdgeInsets.symmetric(horizontal: 20.0),
+          //   child: Column(
+          //     crossAxisAlignment: CrossAxisAlignment.start,
+          //     children: [
+          //       const Text(
+          //         'Description',
+          //         style: TextStyle(
+          //           fontSize: 18,
+          //           fontWeight: FontWeight.bold,
+          //           color: Colors.black87,
+          //         ),
+          //       ),
+          //       const SizedBox(height: 10),
+          //       const Text(
+          //         'Masha is a famous Indian flavor to improve health. Masha is the main ingredient which makes your teeth strong.',
+          //         style: TextStyle(
+          //           fontSize: 14,
+          //           color: Colors.black54,
+          //           height: 1.4,
+          //         ),
+          //       ),
+          //       const SizedBox(height: 20),
+          //     ],
+          //   ),
+          // ),
           
           // Similar products section
           _buildSimilarProductsSection(productDetails),
@@ -468,13 +518,13 @@ class _ProductDetailViewState extends State<ProductDetailView> {
   }
 
   Widget _buildSimilarProductsSection(ProductDetails productDetails) {
-    // Use related products from API if available, otherwise use static data
+    // Use related products from API if available, otherwise don't show section
     final hasRelatedProducts = productDetails.relatedProducts?.isNotEmpty == true;
-    final staticProducts = [
-      {'image': GroceryImages.grocery2, 'name': 'Musha Atta'},
-      {'image': GroceryImages.grocery3, 'name': 'Olive Oil'},
-      {'image': GroceryImages.grocery4, 'name': 'Sunflower Oil'},
-    ];
+    
+    // If no related products from API, return empty widget (hide section completely)
+    if (!hasRelatedProducts) {
+      return const SizedBox.shrink();
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -494,24 +544,14 @@ class _ProductDetailViewState extends State<ProductDetailView> {
             height: 150, // Height for similar product cards
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              itemCount: hasRelatedProducts ? productDetails.relatedProducts!.length : staticProducts.length,
+              itemCount: productDetails.relatedProducts!.length,
               itemBuilder: (context, index) {
-                if (hasRelatedProducts) {
-                  // Use related products from API (you might need to adjust based on the actual structure)
-                  final relatedProduct = productDetails.relatedProducts![index];
-                  return _buildSimilarProductCard(
-                    context,
-                    image: GroceryImages.product, // Static image since API doesn't provide
-                    name: relatedProduct.name.toString(), // Convert to string or extract name field
-                  );
-                } else {
-                  // Use static data
-                  return _buildSimilarProductCard(
-                    context,
-                    image: staticProducts[index]['image']!,
-                    name: staticProducts[index]['name']!,
-                  );
-                }
+                // Use related products from API
+                final relatedProduct = productDetails.relatedProducts![index];
+                return _buildSimilarProductCard(
+                  context,
+                  relatedProduct: relatedProduct,
+                );
               },
             ),
           ),
@@ -521,7 +561,14 @@ class _ProductDetailViewState extends State<ProductDetailView> {
     );
   }
 
-  Widget _buildSimilarProductCard(BuildContext context, {required String image, required String name}) {
+  Widget _buildSimilarProductCard(
+    BuildContext context, {
+    required RelatedProduct relatedProduct,
+  }) {
+    // Use API data
+    final productName = relatedProduct.name ?? 'Unknown Product';
+    final productId = relatedProduct.id;
+    
     return Container(
       width: 100,
       margin: const EdgeInsets.only(right: 15),
@@ -530,34 +577,60 @@ class _ProductDetailViewState extends State<ProductDetailView> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Expanded(
-                flex: 2,
-                child: Image.asset(
-                  image,
-                  fit: BoxFit.contain,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Expanded(
-                flex: 1,
-                child: Text(
-                  name,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.black87,
+        child: InkWell(
+          onTap: () {
+            if (productId != null) {
+              // Navigate to product details with push replacement to avoid stack buildup
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ProductDetailPage(
+                    homeCubit: context.read<HomeCubit>(),
+                    productId: productId,
                   ),
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-            ],
+              );
+            }
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: // For API products, show shopping bag icon since no image URL provided
+                      Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.shopping_bag,
+                          size: 40,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  flex: 1,
+                  child: Text(
+                    productName,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black87,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -650,7 +723,10 @@ class _ProductDetailViewState extends State<ProductDetailView> {
             width: 100,
             height: 40,
             onPressed: () {
-              context.read<HomeCubit>().addToCart("itemName");
+              context.read<HomeCubit>().addToCart(
+                productId: widget.productId,
+                quantity: _quantity > 0 ? _quantity : 1, // Default to 1 if 0
+              );
               context.popPage();
             },
             buttonText: Text(
@@ -667,7 +743,9 @@ class _ProductDetailViewState extends State<ProductDetailView> {
             width: 100,
             height: 40,
             onPressed: () {
-              context.pushPage(CheckoutPage());
+              context.pushPage(CheckoutPage(
+                homeCubit: context.read<HomeCubit>(),
+              ));
             },
             buttonText: Text(
               "Place Order",

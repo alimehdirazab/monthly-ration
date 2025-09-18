@@ -58,6 +58,7 @@ class NavView extends StatelessWidget {
         resizeToAvoidBottomInset: true,
         body: _HomeViewPages(),
         bottomNavigationBar: _BottomNavBar(),
+        
       ),
     );
   }

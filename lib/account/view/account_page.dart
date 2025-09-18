@@ -16,126 +16,207 @@ class AccountView extends StatelessWidget {
   Widget build(BuildContext context) {
     AppState appState = context.select((AppCubit cubit) => cubit.state);
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor:
-            GroceryColorTheme().primary, // Yellow color for app bar
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        title: Text(
-          'Profile',
-          style: GroceryTextTheme().bodyText.copyWith(fontSize: 20),
-        ),
-        centerTitle: true,
-      ),
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // Profile Header Section
+            // Gradient Header Section with Profile
             Container(
-              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-              child: Row(
-                children: [
-                  // Profile Picture
-                    CircleAvatar(
-                    radius: 40,
-                    backgroundImage: (appState.user.customer?.profileImage ?? '').startsWith('http')
-                      ? NetworkImage(appState.user.customer?.profileImage ?? '')
-                      : (appState.user.customer?.profileImage != null && appState.user.customer!.profileImage!.isNotEmpty)
-                        ? FileImage(File(appState.user.customer!.profileImage!))
-                        : null,
-                    child: (appState.user.customer?.profileImage == null || appState.user.customer!.profileImage!.isEmpty)
-                      ? const Icon(Icons.person, size: 40)
-                      : null,
-                    ),
-                  const SizedBox(width: 15),
-                  // User Info
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    GroceryColorTheme().primary,
+                    GroceryColorTheme().primary.withOpacity(0.8),
+                    GroceryColorTheme().primary.withOpacity(0.4),
+                    Colors.white,
+                  ],
+                  stops: const [0.0, 0.3, 0.6, 1.0],
+                ),
+              ),
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 10),
+                      
+                      // Profile Avatar (Clickable for edit)
+                      GestureDetector(
+                        onTap: () {
+                          context.pushPage(EditProfilePage());
+                        },
+                        child: Stack(
                           children: [
-                            Text(
-                              appState.user.customer?.name??'',
-                              style: GroceryTextTheme().boldText.copyWith(
-                                fontSize: 20,
+                            CircleAvatar(
+                              radius: 40,
+                              backgroundColor: Colors.white,
+                              child: CircleAvatar(
+                                radius: 37,
+                                backgroundImage: (appState.user.customer?.profileImage ?? '').startsWith('http')
+                                  ? NetworkImage(appState.user.customer?.profileImage ?? '')
+                                  : (appState.user.customer?.profileImage != null && appState.user.customer!.profileImage!.isNotEmpty)
+                                    ? FileImage(File(appState.user.customer!.profileImage!))
+                                    : null,
+                                child: (appState.user.customer?.profileImage == null || appState.user.customer!.profileImage!.isEmpty)
+                                  ? const Icon(Icons.person, size: 30, color: Colors.grey)
+                                  : null,
                               ),
                             ),
-                            GestureDetector(
-                              onTap: () {
-                                context.pushPage(EditProfilePage());
-                              },
-                              child: Row(
-                                children: [
-                                  const Text(
-                                    'Edit',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: Color(0xFF4CAF50), // Green color
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Icon(
-                                    Icons.edit,
-                                    size: 16,
-                                    color: Color(0xFF4CAF50),
-                                  ), // Green edit icon
-                                ],
+                            // Edit icon overlay
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: GroceryColorTheme().primary,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 2),
+                                ),
+                                child: const Icon(
+                                  Icons.edit,
+                                  size: 14,
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
                           ],
                         ),
-                        SizedBox(height: 10),
-                        Text(
-                          appState.user.customer?.email??'',
-                          style: GroceryTextTheme().bodyText,
+                      ),
+                      const SizedBox(height: 10),
+                      
+                      // "Your account" title
+                      Text(
+                        'Your account',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
                         ),
-                        Text(appState.user.customer?.phone??'', style: GroceryTextTheme().bodyText),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 3),
+                      
+                      // Phone number (also clickable for edit)
+                      GestureDetector(
+                        onTap: () {
+                          context.pushPage(EditProfilePage());
+                        },
+                        child: Text(
+                          appState.user.customer?.phone ?? '',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.black54,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      
+                      // Top 3 Action Cards (Smaller)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _buildTopActionCard(
+                            context,
+                            Icons.shopping_bag_outlined,
+                            'Your orders',
+                            () => context.pushPage(OrderHistoryPage()),
+                          ),
+                          _buildTopActionCard(
+                            context,
+                            Icons.location_on_outlined,
+                            'Addresses',
+                            () => context.pushPage(AddressPage()),
+                          ),
+                          _buildTopActionCard(
+                            context,
+                            Icons.help_outline,
+                            'Need help?',
+                            () => context.pushPage(FaqPage(accountCubit: context.read<AccountCubit>())),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 15),
+                    ],
                   ),
-                ],
+                ),
+              ),
+            ),
+
+            // Appearance (Light/Dark Theme) Section
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10),
+              child: Container(
+                padding: const EdgeInsets.all(15.0),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(15.0),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      spreadRadius: 1,
+                      blurRadius: 3,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(Icons.brightness_6_outlined, color: Colors.orange, size: 20),
+                    ),
+                    const SizedBox(width: 15),
+                    Expanded(
+                      child: Text(
+                        'Appearance',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'LIGHT',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.black54,
+                            ),
+                          ),
+                          const SizedBox(width: 5),
+                          Icon(Icons.keyboard_arrow_down, size: 16, color: Colors.black54),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 20),
-            // Quick Action Buttons
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildActionButton(context, Icons.menu, 'All Orders', () {
-                    context.pushPage(OrderHistoryPage());
-                  }),
-                  _buildActionButton(
-                    context,
-                    Icons.location_on_outlined,
-                    'Address',
-                    () {
-                      context.pushPage(AddressPage());
-                    },
-                  ),
-                  _buildActionButton(
-                    context,
-                    Icons.add_shopping_cart_outlined,
-                    'Cart',
-                    () {
-                      context.pushPage(CheckoutPage());
-                    },
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 30),
-            // Personal Data Section
+
+            // Your Information Section
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Personal Data',
+                  Text(
+                    'Your information',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -143,108 +224,108 @@ class AccountView extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 15),
+                  
+                  // // Address book
+                  // InkWell(
+                  //   onTap: () => context.pushPage(AddressPage()),
+                  //   child: _buildInfoItem(
+                  //     context,
+                  //     Icons.book_outlined,
+                  //     'Address book',
+                  //   ),
+                  // ),
+                  
+                
+                  
+                  // My wallet
                   InkWell(
-                    onTap: () {
-                      context.pushPage(MyWalletPage(
-                        accountCubit: context.read<AccountCubit>(),
-                      ));
-                    },
-                    child: _buildPersonalDataItem(
+                    onTap: () => context.pushPage(MyWalletPage(accountCubit: context.read<AccountCubit>())),
+                    child: _buildInfoItem(
                       context,
                       Icons.account_balance_wallet_outlined,
                       'My wallet',
-                      'You have successfully purchased a tour ticket...',
-                      '2 hours ago',
                     ),
                   ),
+                  
+                  // Notification
                   InkWell(
-                    onTap: () {
-                      context.pushPage(NotificationPage());
-                    },
-                    child: _buildPersonalDataItem(
+                    onTap: () => context.pushPage(NotificationPage()),
+                    child: _buildInfoItem(
                       context,
                       Icons.notifications_none_rounded,
                       'Notification',
-                      'Additional discount for all BCA debit user, lets...',
-                      '10 minutes ago',
                     ),
                   ),
+                  
+                  // Transaction History
                   InkWell(
-                    onTap: () {
-                      context.pushPage(TransactionHistryPage());
-                    },
-                    child: _buildPersonalDataItem(
+                    onTap: () => context.pushPage(TransactionHistryPage()),
+                    child: _buildInfoItem(
                       context,
                       Icons.history,
                       'Transaction History',
-                      'Get a big discount in this month!',
-                      '8 hours ago',
                     ),
                   ),
-                ],
-              ),
-            ),
 
-            const SizedBox(height: 20), // Bottom padding
-
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Settings',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                    // GST Details (New)
+                  InkWell(
+                    onTap: () {
+                      // Handle GST details navigation
+                      // You can create a GST details page
+                    },
+                    child: _buildInfoItem(
+                      context,
+                      Icons.receipt_outlined,
+                      'GST details',
                     ),
                   ),
-                  const SizedBox(height: 15),
+                  
+                  // Share the App (New)
+                  InkWell(
+                    onTap: () {
+                      // Handle share app functionality
+                      // You can implement share functionality here
+                    },
+                    child: _buildInfoItem(
+                      context,
+                      Icons.share_outlined,
+                      'Share the App',
+                    ),
+                  ),
+                  
+                  // Privacy Policy
                   InkWell(
                     onTap: () => context.pushPage(PrivacyPolicyPage(accountCubit: context.read<AccountCubit>())),
-                    child: _buildPersonalDataItem(
+                    child: _buildInfoItem(
                       context,
                       Icons.privacy_tip_outlined,
                       'Privacy Policy',
-                      'Check out our privacy policy',
-                      '',
                     ),
                   ),
+                  
+                  // Terms and Conditions
                   InkWell(
                     onTap: () => context.pushPage(TermsAndConditionPage(accountCubit: context.read<AccountCubit>())),
-                    child: _buildPersonalDataItem(
+                    child: _buildInfoItem(
                       context,
                       Icons.gavel_outlined,
                       'Terms and Conditions',
-                      'Check out our terms and conditions',
-                      '',
                     ),
                   ),
-                  InkWell(
-                    onTap: () => context.pushPage(FaqPage(accountCubit: context.read<AccountCubit>())),
-                    child: _buildPersonalDataItem(
-                      context,
-                      Icons.info_outline,
-                      'FAQs',
-                      'Read Faqs',
-                      '',
-                    ),
-                  ),
+                  
+                  // About Us
                   InkWell(
                     onTap: () => context.pushPage(AboutusPage(accountCubit: context.read<AccountCubit>())),
-                    child: _buildPersonalDataItem(
+                    child: _buildInfoItem(
                       context,
                       Icons.help_outline,
                       'About Us',
-                      'Read App\'s Mission',
-                      '',
                     ),
                   ),
-                  // logout
+                  
+                  // Logout
                   InkWell(
                     onTap: () {
-                      // show logout confirmation dialog
                       showDialog(
                         context: context,
                         builder: (context) {
@@ -257,48 +338,152 @@ class AccountView extends StatelessWidget {
                                   context.read<AuthCubit>().logout();
                                   context.popPage();
                                 },
-                                child:  Text('Yes',
-                                style: GroceryTextTheme().bodyText.copyWith(
-                                  fontSize: 16,
-                                  color: GroceryColorTheme().black
-
-                                )),
+                                child: Text('Yes',
+                                  style: GroceryTextTheme().bodyText.copyWith(
+                                    fontSize: 16,
+                                    color: GroceryColorTheme().black
+                                  )
+                                ),
                               ),
                               TextButton(
                                 onPressed: () {
                                   context.popPage();
                                 },
-                                child:  Text('No',
-                                style: GroceryTextTheme().bodyText.copyWith(
-                                  fontSize: 16,
-                                  color: GroceryColorTheme().black
-                                )),
+                                child: Text('No',
+                                  style: GroceryTextTheme().bodyText.copyWith(
+                                    fontSize: 16,
+                                    color: GroceryColorTheme().black
+                                  )
+                                ),
                               ),
                             ],
                           );
                         },
                       );
                     },
-                    child: _buildPersonalDataItem(
+                    child: _buildInfoItem(
                       context,
                       Icons.logout,
                       'Logout',
-                      'Logout from your account',
-                      '',
+                      showArrow: false,
                     ),
                   ),
                 ],
               ),
             ),
 
-            const SizedBox(height: 20), // Bottom padding
+            const SizedBox(height: 30),
           ],
         ),
       ),
     );
   }
 
-  // Helper method for quick action buttons
+  // Top action cards (Your orders, Addresses, Need help?) - Smaller size
+  Widget _buildTopActionCard(
+    BuildContext context,
+    IconData icon,
+    String label,
+    Function()? onTap,
+  ) {
+    return Expanded(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        child: Material(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12.0),
+          elevation: 1,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(12.0),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 6.0),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(icon, size: 18, color: Colors.black87),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black87,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Information items (smaller design like in the reference)
+  Widget _buildInfoItem(
+    BuildContext context,
+    IconData icon,
+    String title, {
+    bool showArrow = true,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 3,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: Colors.black87, size: 18),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+          if (showArrow)
+            Icon(
+              Icons.arrow_forward_ios,
+              size: 14,
+              color: Colors.grey[400],
+            ),
+        ],
+      ),
+    );
+  }
+
+  // Helper method for quick action buttons (kept for compatibility)
   Widget _buildActionButton(
     BuildContext context,
     IconData icon,
@@ -336,7 +521,7 @@ class AccountView extends StatelessWidget {
     );
   }
 
-  // Helper method for personal data items
+  // Helper method for personal data items (original method kept unchanged)
   Widget _buildPersonalDataItem(
     BuildContext context,
     IconData icon,

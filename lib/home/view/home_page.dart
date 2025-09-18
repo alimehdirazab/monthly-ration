@@ -31,7 +31,7 @@ class _HomeViewState extends State<HomeView> {
     context.read<HomeCubit>().getBanners();
     context.read<HomeCubit>().getDefaultCategories();
     context.read<HomeCubit>().getCategories();
-    context.read<HomeCubit>().getProducts();
+    context.read<HomeCubit>().getCartItems();
   }
 
   @override
@@ -52,8 +52,7 @@ class _HomeViewState extends State<HomeView> {
           context.read<HomeCubit>().getBanners();
           context.read<HomeCubit>().getDefaultCategories();
           context.read<HomeCubit>().getCategories();
-          context.read<HomeCubit>().getProducts();
-          
+          context.read<HomeCubit>().getCartItems();
           // Reset banner controller and timer on refresh
           _bannerTimer?.cancel();
           _bannerPageController?.dispose();
@@ -83,13 +82,51 @@ class _HomeViewState extends State<HomeView> {
           ],
         ),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: BlocBuilder<HomeCubit, HomeState>(
         builder: (context, state) {
-          if (state.cartItems.isNotEmpty) {
+          final cartItems = state.getCartItemsApiState.model?.data ?? [];
+          
+          if (cartItems.isNotEmpty) {
+            // Get first 3 product images from cart items
+            final List<String> productImages = [];
+            for (int i = 0; i < cartItems.length && i < 3; i++) {
+              final product = cartItems[i].product;
+              if (product?.images != null && product!.images!.isNotEmpty) {
+                try {
+                  // Parse images from JSON string if needed
+                  final imageData = product.images!;
+                  if (imageData.startsWith('[') && imageData.endsWith(']')) {
+                    // It's a JSON array string, extract first image
+                    final cleanedData = imageData.substring(1, imageData.length - 1);
+                    final firstImage = cleanedData.split(',')[0].replaceAll('"', '').trim();
+                    if (firstImage.isNotEmpty) {
+                      productImages.add(firstImage);
+                    }
+                  } else {
+                    // It's a single image URL
+                    productImages.add(imageData);
+                  }
+                } catch (e) {
+                  // If parsing fails, use default image
+                  productImages.add(GroceryImages.category2);
+                }
+              } else {
+                // Use default image if no product image
+                productImages.add(GroceryImages.category2);
+              }
+            }
+            
+            // Ensure we have at least one image
+            if (productImages.isEmpty) {
+              productImages.add(GroceryImages.category2);
+            }
+            
             return FloatingActionButton.extended(
               onPressed: () {
-                // Navigate to cart or perform action
+                 context.pushPage(CheckoutPage(
+                          homeCubit: context.read<HomeCubit>(),
+                        ));
               },
               backgroundColor: Colors.transparent,
               elevation: 0,
@@ -102,14 +139,44 @@ class _HomeViewState extends State<HomeView> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Product image
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(50),
-                      child: Image.asset(
-                        GroceryImages.category2, // Replace with your image
-                        height: 40,
-                        width: 40,
-                        fit: BoxFit.cover,
+                    // Product images stack (max 3)
+                    SizedBox(
+                      width: 40 + (productImages.length > 1 ? (productImages.length - 1) * 15 : 0),
+                      height: 40,
+                      child: Stack(
+                        children: List.generate(productImages.length, (index) {
+                          return Positioned(
+                            left: index * 15.0,
+                            child: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 2),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(50),
+                                child:Image.network(
+                                        productImages[index].startsWith('http') 
+                                            ? productImages[index]
+                                            : '${GroceryApis.baseUrl}/${productImages[index]}',
+                                        height: 40,
+                                        width: 40,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stackTrace) {
+                                          return Image.asset(
+                                            GroceryImages.category2,
+                                            height: 40,
+                                            width: 40,
+                                            fit: BoxFit.cover,
+                                          );
+                                        },
+                                      )
+                                    
+                              ),
+                            ),
+                          );
+                        }),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -126,7 +193,7 @@ class _HomeViewState extends State<HomeView> {
                           ),
                         ),
                         Text(
-                          '${state.cartItems.length} item${state.cartItems.length > 1 ? 's' : ''}',
+                          '${cartItems.length} item${cartItems.length > 1 ? 's' : ''}',
                           style: const TextStyle(
                             fontSize: 12,
                             color: Colors.black87,
@@ -138,7 +205,9 @@ class _HomeViewState extends State<HomeView> {
                     // Arrow Icon
                     InkWell(
                       onTap: () {
-                        context.pushPage(CheckoutPage());
+                        context.pushPage(CheckoutPage(
+                          homeCubit: context.read<HomeCubit>(),
+                        ));
                       },
                       child: Container(
                         height: 40,
@@ -348,7 +417,7 @@ class _HomeViewState extends State<HomeView> {
                           ProductsByCategoryPage(
                             homeCubit: context.read<HomeCubit>(),
                             categoryName: category.name,
-                            subCategory: category.subCategories,
+                            subCategory: category.subCategories, // Keep subSubCategories as you wanted
                           ),
                         );
                         } else {
@@ -991,14 +1060,17 @@ class _HomeViewState extends State<HomeView> {
           return InkWell(
             onTap: () {
               // Navigate to products by subcategory
+               if (subcategory.subSubCategories != null) {
               context.pushPage(
                 ProductsByCategoryPage(
                   homeCubit: context.read<HomeCubit>(),
-                  categoryName: subcategory.name,
-                  subCategory: subcategories,
+                  categoryName: subcategory.name, // Pass the clicked subcategory name
+                  subCategory: subcategory.subSubCategories, // Pass subSubCategories of the clicked subcategory
                   selectedSubCategoryIndex: index,
+                  isFromSubCategory: true, // Indicate it's from subcategory
                 ),
               );
+               }
             },
             child: SubcategoryItemContainer(
               subcategory: subcategory,

@@ -47,9 +47,53 @@ class Product {
         brand: json["brand"],
         mrpPrice: json["mrp_price"],
         salePrice: json["sale_price"],
-        images: List<String>.from(json["images"].map((x) => x)),
-        imagesUrls: List<String>.from(json["images_urls"].map((x) => x)),
+        images: _parseImages(json["images"]),
+        imagesUrls: _parseImagesUrls(json["images_urls"] ?? json["images"]),
     );
+
+    // Helper method to parse images field (can be string or array)
+    static List<String> _parseImages(dynamic imagesData) {
+      if (imagesData == null) return [];
+      
+      if (imagesData is List) {
+        return List<String>.from(imagesData.map((x) => x.toString()));
+      } else if (imagesData is String) {
+        try {
+          // Try to parse as JSON array
+          final decoded = jsonDecode(imagesData);
+          if (decoded is List) {
+            return List<String>.from(decoded.map((x) => x.toString()));
+          }
+        } catch (e) {
+          // If JSON parsing fails, treat as single image URL
+          return [imagesData];
+        }
+      }
+      
+      return [];
+    }
+
+    // Helper method to parse images_urls field
+    static List<String> _parseImagesUrls(dynamic imagesData) {
+      if (imagesData == null) return [];
+      
+      if (imagesData is List) {
+        return List<String>.from(imagesData.map((x) => x.toString()));
+      } else if (imagesData is String) {
+        try {
+          // Try to parse as JSON array
+          final decoded = jsonDecode(imagesData);
+          if (decoded is List) {
+            return List<String>.from(decoded.map((x) => x.toString()));
+          }
+        } catch (e) {
+          // If JSON parsing fails, treat as single image URL
+          return [imagesData];
+        }
+      }
+      
+      return [];
+    }
 
     Map<String, dynamic> toJson() => {
         "id": id,

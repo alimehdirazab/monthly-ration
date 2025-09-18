@@ -11,15 +11,15 @@ class HomeCubit extends Cubit<HomeState> {
   HomeCubit(this.homeRepository) : super(HomeState());
   final HomeRepository homeRepository;
 
-  void addToCart(String itemName) {
-    final updatedList = List<String>.from(state.cartItems)..add(itemName);
-    emit(state.copyWith(cartItems: updatedList));
-  }
+  // void addToCart(String itemName) {
+  //   final updatedList = List<String>.from(state.cartItems)..add(itemName);
+  //   emit(state.copyWith(cartItems: updatedList));
+  // }
 
-  void clearCart() {
-    final List<String> updatedList = [];
-    emit(state.copyWith(cartItems: updatedList));
-  }
+  // void clearCart() {
+  //   final List<String> updatedList = [];
+  //   emit(state.copyWith(cartItems: updatedList));
+  // }
 
   int get cartCount => state.cartItems.length;
 
@@ -85,32 +85,32 @@ class HomeCubit extends Cubit<HomeState> {
     });
   }
 
-  // get products Method
-  Future<void> getProducts({int? categoryId}) async {
-    emit(state.copyWith(productsApiState: GeneralApiState<ProductModel>(
-      apiCallState: APICallState.loading,
-    )));
+  // //  get All products Method
+  // Future<void> getProducts({int? categoryId}) async {
+  //   emit(state.copyWith(productsApiState: GeneralApiState<ProductModel>(
+  //     apiCallState: APICallState.loading,
+  //   )));
 
-    await homeRepository.getProducts(categoryId: categoryId).then((productsModel) {
-      emit(state.copyWith(productsApiState: GeneralApiState<ProductModel>(
-        apiCallState: APICallState.loaded,
-        model: productsModel,
-      )));
-    }).catchError((error) {
-      emit(state.copyWith(productsApiState: GeneralApiState<ProductModel>(
-        apiCallState: APICallState.failure,
-        errorMessage: error.toString(),
-      )));
-    });
-  }
+  //   await homeRepository.getProducts(categoryId: categoryId).then((productsModel) {
+  //     emit(state.copyWith(productsApiState: GeneralApiState<ProductModel>(
+  //       apiCallState: APICallState.loaded,
+  //       model: productsModel,
+  //     )));
+  //   }).catchError((error) {
+  //     emit(state.copyWith(productsApiState: GeneralApiState<ProductModel>(
+  //       apiCallState: APICallState.failure,
+  //       errorMessage: error.toString(),
+  //     )));
+  //   });
+  // }
 
   // get products by sub category Method
-  Future<void> getProductsBySubCategory({int? subCategoryId}) async {
+  Future<void> getProductsBySubCategory({int? subCategoryId, int? subSubCategoryId}) async {
     emit(state.copyWith(productsBySubCategoryApiState: GeneralApiState<ProductModel>(
       apiCallState: APICallState.loading,
     )));
 
-    await homeRepository.getProducts(categoryId: subCategoryId).then((productsModel) {
+    await homeRepository.getProducts(subCategoryId: subCategoryId, subSubCategoryId: subSubCategoryId).then((productsModel) {
       emit(state.copyWith(productsBySubCategoryApiState: GeneralApiState<ProductModel>(
         apiCallState: APICallState.loaded,
         model: productsModel,
@@ -133,6 +133,170 @@ class HomeCubit extends Cubit<HomeState> {
       emit(state.copyWith(productDetailsApiState: GeneralApiState<ProductDetailsModel>(
         apiCallState: APICallState.loaded,
         model: productDetailsModel,
+      )));
+    });
+  }
+
+  // add to cart Method
+  Future<void> addToCart({required int productId, required int quantity,String? color,String? size}) async {
+    emit(state.copyWith(addToCartApiState: GeneralApiState<void>(
+      apiCallState: APICallState.loading,
+    )));
+
+    await homeRepository.addToCart(productId: productId, quantity: quantity,color: color,size: size).then((_) {
+      // Update cart items quantity in cartItems list for particular product
+      List<CartItem> updatedCartItems = List.from(state.getCartItemsApiState.model?.data ?? []);
+      
+      // Check if product already exists in cart
+      int existingItemIndex = updatedCartItems.indexWhere((item) => item.productId == productId);
+      
+      if (existingItemIndex != -1) {
+        // Product already in cart, update its quantity
+        CartItem existingItem = updatedCartItems[existingItemIndex];
+        updatedCartItems[existingItemIndex] = CartItem(
+          id: existingItem.id,
+          customerId: existingItem.customerId,
+          productId: existingItem.productId,
+          quantity: (existingItem.quantity ?? 0) + quantity,
+          attributes: existingItem.attributes,
+          createdAt: existingItem.createdAt,
+          updatedAt: existingItem.updatedAt,
+          product: existingItem.product,
+        );
+        
+        emit(state.copyWith(
+          addToCartApiState: GeneralApiState<void>(
+            apiCallState: APICallState.loaded,
+          ),
+          getCartItemsApiState: GeneralApiState<CartListModel>(
+            apiCallState: APICallState.loaded,
+            model: CartListModel(data: updatedCartItems),
+          ),
+        ));
+      } else {
+        // Product not in cart, do not add it - just emit success state
+        emit(state.copyWith(
+          addToCartApiState: GeneralApiState<void>(
+            apiCallState: APICallState.loaded,
+          ),
+        ));
+      }
+    }).catchError((error) {
+      emit(state.copyWith(addToCartApiState: GeneralApiState<void>(
+        apiCallState: APICallState.failure,
+        errorMessage: error.toString(),
+      )));
+    });
+  }
+
+  // get cart items Method
+  Future<void> getCartItems() async {
+    emit(state.copyWith(getCartItemsApiState: GeneralApiState<CartListModel>(
+      apiCallState: APICallState.loading,
+    ),
+    clearCartApiState: GeneralApiState<void>(
+      apiCallState: APICallState.initial,
+    ),
+  ));
+
+    await homeRepository.getCartItems().then((cartListModel) {
+      emit(state.copyWith(getCartItemsApiState: GeneralApiState<CartListModel>(
+        apiCallState: APICallState.loaded,
+        model: cartListModel,
+      )));
+    }).catchError((error) {
+      emit(state.copyWith(getCartItemsApiState: GeneralApiState<CartListModel>(
+        apiCallState: APICallState.failure,
+        errorMessage: error.toString(),
+      )));
+    });
+  }
+  // update cart item Method
+  Future<void> updateCartItem({required int cartItemId, required int quantity}) async {
+    emit(state.copyWith(updateCartItemApiState: GeneralApiState<void>(
+      apiCallState: APICallState.loading,
+    )));
+
+    await homeRepository.updateCartItem(cartItemId: cartItemId, quantity: quantity).then((_) {
+      // Update cart items quantity in cartItems list for particular cart item
+      List<CartItem> updatedCartItems = List.from(state.getCartItemsApiState.model?.data ?? []);
+      
+      // Find the cart item by ID and update its quantity
+      int existingItemIndex = updatedCartItems.indexWhere((item) => item.id == cartItemId);
+      
+      if (existingItemIndex != -1) {
+        CartItem existingItem = updatedCartItems[existingItemIndex];
+        updatedCartItems[existingItemIndex] = CartItem(
+          id: existingItem.id,
+          customerId: existingItem.customerId,
+          productId: existingItem.productId,
+          quantity: quantity,
+          attributes: existingItem.attributes,
+          createdAt: existingItem.createdAt,
+          updatedAt: DateTime.now(), // Update the timestamp
+          product: existingItem.product,
+        );
+      }
+      
+      emit(state.copyWith(
+        updateCartItemApiState: GeneralApiState<void>(
+          apiCallState: APICallState.loaded,
+        ),
+        getCartItemsApiState: GeneralApiState<CartListModel>(
+          apiCallState: APICallState.loaded,
+          model: CartListModel(data: updatedCartItems),
+        ),
+      ));
+    }).catchError((error) {
+      emit(state.copyWith(updateCartItemApiState: GeneralApiState<void>(
+        apiCallState: APICallState.failure,
+        errorMessage: error.toString(),
+      )));
+    });
+  }
+
+  // delete cart item Method
+  Future<void> deleteCartItem({required int cartItemId}) async {
+    emit(state.copyWith(deleteCartItemApiState: GeneralApiState<void>(
+      apiCallState: APICallState.loading,
+    )));
+
+    await homeRepository.deleteCartItem(cartItemId: cartItemId).then((_) {
+      // Remove item from cartItems list immediately
+      List<CartItem> updatedCartItems = List.from(state.getCartItemsApiState.model?.data ?? []);
+      updatedCartItems.removeWhere((item) => item.id == cartItemId);
+      
+      emit(state.copyWith(
+        deleteCartItemApiState: GeneralApiState<void>(
+          apiCallState: APICallState.loaded,
+        ),
+        getCartItemsApiState: GeneralApiState<CartListModel>(
+          apiCallState: APICallState.loaded,
+          model: CartListModel(data: updatedCartItems),
+        ),
+      ));
+    }).catchError((error) {
+      emit(state.copyWith(deleteCartItemApiState: GeneralApiState<void>(
+        apiCallState: APICallState.failure,
+        errorMessage: error.toString(),
+      )));
+    });
+  }
+
+  // clear cart Method
+  Future<void> clearCart() async {
+    emit(state.copyWith(clearCartApiState: GeneralApiState<void>(
+      apiCallState: APICallState.loading,
+    )));
+
+    await homeRepository.clearCart().then((_) {
+      emit(state.copyWith(clearCartApiState: GeneralApiState<void>(
+        apiCallState: APICallState.loaded,
+      )));
+    }).catchError((error) {
+      emit(state.copyWith(clearCartApiState: GeneralApiState<void>(
+        apiCallState: APICallState.failure,
+        errorMessage: error.toString(),
       )));
     });
   }
