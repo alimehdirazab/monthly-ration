@@ -26,7 +26,6 @@ class _HomeViewState extends State<HomeView> {
   @override
   void initState() {
     super.initState();
-    context.read<HomeCubit>().clearCart();
     context.read<AuthCubit>().getAddress();
     context.read<HomeCubit>().getBanners();
     context.read<HomeCubit>().getDefaultCategories();

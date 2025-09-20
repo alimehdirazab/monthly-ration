@@ -4,6 +4,7 @@ import 'package:equatable/equatable.dart';
 import 'package:grocery_flutter_app/home/repository/models/models.dart';
 import 'package:grocery_flutter_app/home/repository/repository.dart';
 import 'package:grocery_flutter_app/utils/generics/generics.dart';
+import 'package:authentication_repository/authentication_repository.dart';
 
 part 'home_state.dart';
 
@@ -26,6 +27,21 @@ class HomeCubit extends Cubit<HomeState> {
   // Set selected category index
   void setSelectedCategoryIndex(int index) {
     emit(state.copyWith(selectedCategoryIndex: index));
+  }
+
+  // Set selected delivery date index
+  void setSelectedDeliveryDateIndex(int index) {
+    emit(state.copyWith(selectedDeliveryDateIndex: index));
+  }
+
+  // Set selected time slot index
+  void setSelectedTimeSlotIndex(int index) {
+    emit(state.copyWith(selectedTimeSlotIndex: index));
+  }
+
+  // Set selected address
+  void setSelectedAddress(Address? address) {
+    emit(state.copyWith(selectedAddress: address));
   }
 
   // get banners Method
@@ -299,6 +315,109 @@ class HomeCubit extends Cubit<HomeState> {
         errorMessage: error.toString(),
       )));
     });
+  }
+
+  // get coupons Method
+  Future<void> getCoupons() async {
+    emit(state.copyWith(getCouponsApiState: GeneralApiState<CouponsModel>(
+      apiCallState: APICallState.loading,
+    )));
+
+    await homeRepository.getCoupons().then((couponsModel) {
+      emit(state.copyWith(getCouponsApiState: GeneralApiState<CouponsModel>(
+        apiCallState: APICallState.loaded,
+        model: couponsModel,
+      )));
+    }).catchError((error) {
+      emit(state.copyWith(getCouponsApiState: GeneralApiState<CouponsModel>(
+        apiCallState: APICallState.failure,
+        errorMessage: error.toString(),
+      )));
+    });
+  }
+
+  // apply coupon Method
+  Future<void> applyCoupon({required String couponCode, required double orderAmount}) async {
+    emit(state.copyWith(applyCouponApiState: GeneralApiState<void>(
+      apiCallState: APICallState.loading,
+    )));
+
+    await homeRepository.applyCoupon(couponCode: couponCode, orderAmount: orderAmount).then((_) {
+      emit(state.copyWith(applyCouponApiState: GeneralApiState<void>(
+        apiCallState: APICallState.loaded,
+      )));
+    }).catchError((error) {
+      emit(state.copyWith(applyCouponApiState: GeneralApiState<void>(
+        apiCallState: APICallState.failure,
+        errorMessage: error.toString(),
+      )));
+    });
+  }
+
+  // checkout Method
+  Future<void> checkout({
+    required int addressId,
+    required String paymentMethod,
+    required List<CheckoutCartItem> cart,
+  }) async {
+    emit(state.copyWith(checkoutApiState: GeneralApiState<CheckoutResponse>(
+      apiCallState: APICallState.loading,
+    )));
+
+    await homeRepository.checkout(
+      addressId: addressId,
+      paymentMethod: paymentMethod,
+      cart: cart,
+    ).then((checkoutResponse) {
+      emit(state.copyWith(checkoutApiState: GeneralApiState<CheckoutResponse>(
+        apiCallState: APICallState.loaded,
+        model: checkoutResponse,
+      )));
+    }).catchError((error) {
+      emit(state.copyWith(checkoutApiState: GeneralApiState<CheckoutResponse>(
+        apiCallState: APICallState.failure,
+        errorMessage: error.toString(),
+      )));
+    });
+  }
+
+  // payment verify Method
+  Future<void> verifyPayment({
+    required String razorpayPaymentId,
+    required String razorpayOrderId,
+    required String razorpaySignature,
+  }) async {
+    emit(state.copyWith(paymentVerifyApiState: GeneralApiState<PaymentVerifyResponse>(
+      apiCallState: APICallState.loading,
+    )));
+
+    await homeRepository.verifyPayment(
+      razorpayPaymentId: razorpayPaymentId,
+      razorpayOrderId: razorpayOrderId,
+      razorpaySignature: razorpaySignature,
+    ).then((paymentVerifyResponse) {
+      emit(state.copyWith(paymentVerifyApiState: GeneralApiState<PaymentVerifyResponse>(
+        apiCallState: APICallState.loaded,
+        model: paymentVerifyResponse,
+      )));
+    }).catchError((error) {
+      emit(state.copyWith(paymentVerifyApiState: GeneralApiState<PaymentVerifyResponse>(
+        apiCallState: APICallState.failure,
+        errorMessage: error.toString(),
+      )));
+    });
+  }
+
+  // reset checkout state
+  void resetCheckoutState() {
+    emit(state.copyWith(
+      checkoutApiState: GeneralApiState<CheckoutResponse>(
+        apiCallState: APICallState.initial,
+      ),
+      paymentVerifyApiState: GeneralApiState<PaymentVerifyResponse>(
+        apiCallState: APICallState.initial,
+      ),
+    ));
   }
 
 }

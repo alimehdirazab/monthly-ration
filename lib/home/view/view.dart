@@ -4,6 +4,7 @@ import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_html/flutter_html.dart';
 import 'package:grocery_flutter_app/account/cubit/account_cubit.dart';
 import 'package:grocery_flutter_app/account/view/view.dart';
 import 'package:grocery_flutter_app/app/cubit/app_cubit.dart';

@@ -26,6 +26,19 @@ class HomeState extends Equatable {
     this.deleteCartItemApiState = const GeneralApiState<void>(),
     // clear cart api State
     this.clearCartApiState = const GeneralApiState<void>(),
+    // get coupons api State
+    this.getCouponsApiState = const GeneralApiState<CouponsModel>(),
+    // apply coupon api State
+    this.applyCouponApiState = const GeneralApiState<void>(),
+    // checkout api State
+    this.checkoutApiState = const GeneralApiState<CheckoutResponse>(),
+    // payment verify api State
+    this.paymentVerifyApiState = const GeneralApiState<PaymentVerifyResponse>(),
+    // delivery date and time selection
+    this.selectedDeliveryDateIndex = 0,
+    this.selectedTimeSlotIndex = 0,
+    // selected address
+    this.selectedAddress,
   });
    final List<String> cartItems;
    // banners api State
@@ -52,6 +65,19 @@ class HomeState extends Equatable {
    final GeneralApiState<void> deleteCartItemApiState;
    // clear cart api State
    final GeneralApiState<void> clearCartApiState;
+   // get coupons api State
+   final GeneralApiState<CouponsModel> getCouponsApiState;
+   // apply coupon api State
+   final GeneralApiState<void> applyCouponApiState;
+   // checkout api State
+   final GeneralApiState<CheckoutResponse> checkoutApiState;
+   // payment verify api State
+   final GeneralApiState<PaymentVerifyResponse> paymentVerifyApiState;
+   // delivery date and time selection
+   final int selectedDeliveryDateIndex;
+   final int selectedTimeSlotIndex;
+   // selected address
+   final Address? selectedAddress;
 
   // CopyWith
   HomeState copyWith({
@@ -68,6 +94,13 @@ class HomeState extends Equatable {
     GeneralApiState<void>? updateCartItemApiState,
     GeneralApiState<void>? deleteCartItemApiState,
     GeneralApiState<void>? clearCartApiState,
+    GeneralApiState<CouponsModel>? getCouponsApiState,
+    GeneralApiState<void>? applyCouponApiState,
+    GeneralApiState<CheckoutResponse>? checkoutApiState,
+    GeneralApiState<PaymentVerifyResponse>? paymentVerifyApiState,
+    int? selectedDeliveryDateIndex,
+    int? selectedTimeSlotIndex,
+    Address? selectedAddress,
   }) {
     return HomeState(
       cartItems: cartItems ?? this.cartItems,
@@ -82,7 +115,14 @@ class HomeState extends Equatable {
       getCartItemsApiState: getCartItemsApiState ?? this.getCartItemsApiState,
       updateCartItemApiState: updateCartItemApiState ?? this.updateCartItemApiState,
       deleteCartItemApiState: deleteCartItemApiState ?? this.deleteCartItemApiState,
-      clearCartApiState: clearCartApiState ?? this.clearCartApiState
+      clearCartApiState: clearCartApiState ?? this.clearCartApiState,
+      getCouponsApiState: getCouponsApiState ?? this.getCouponsApiState,
+      applyCouponApiState: applyCouponApiState ?? this.applyCouponApiState,
+      checkoutApiState: checkoutApiState ?? this.checkoutApiState,
+      paymentVerifyApiState: paymentVerifyApiState ?? this.paymentVerifyApiState,
+      selectedDeliveryDateIndex: selectedDeliveryDateIndex ?? this.selectedDeliveryDateIndex,
+      selectedTimeSlotIndex: selectedTimeSlotIndex ?? this.selectedTimeSlotIndex,
+      selectedAddress: selectedAddress ?? this.selectedAddress,
     );
   }
   
@@ -100,6 +140,13 @@ class HomeState extends Equatable {
     getCartItemsApiState,
     updateCartItemApiState,
     deleteCartItemApiState,
-    clearCartApiState
+    clearCartApiState,
+    getCouponsApiState,
+    applyCouponApiState,
+    checkoutApiState,
+    paymentVerifyApiState,
+    selectedDeliveryDateIndex,
+    selectedTimeSlotIndex,
+    selectedAddress,
     ];
 }

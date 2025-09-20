@@ -1,11 +1,12 @@
 part of 'view.dart';
 
 class AddAddressPage extends StatelessWidget {
-  const AddAddressPage({super.key});
+  final HomeCubit? homeCubit;
+  const AddAddressPage({super.key, this.homeCubit});
 
   @override
   Widget build(BuildContext context) {
-    return AddAddressView();
+    return AddAddressView(homeCubit: homeCubit);
   }
 }
 
@@ -20,7 +21,8 @@ class DeliveryDate {
 }
 
 class AddAddressView extends StatefulWidget {
-  const AddAddressView({super.key});
+  final HomeCubit? homeCubit;
+  const AddAddressView({super.key, this.homeCubit});
 
   @override
   State<AddAddressView> createState() => _AddAddressViewState();
@@ -421,7 +423,14 @@ class _AddAddressViewState extends State<AddAddressView> {
     return Center(
       child: TextButton(
         onPressed: () {
-          context.pushPage(FreeCouponPage());
+          if (widget.homeCubit != null) {
+            context.pushPage(FreeCouponPage(
+              homeCubit: widget.homeCubit!,
+            ));
+          } else {
+            // Fallback if no HomeCubit available
+            context.showSnacbar('Unable to load coupons');
+          }
         },
         child: Row(
           mainAxisSize: MainAxisSize.min,

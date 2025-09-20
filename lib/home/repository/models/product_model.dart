@@ -19,22 +19,28 @@ class ProductModel {
 class Product {
     final int id;
     final String name;
+    final String? description;  // New field
     final dynamic category;
-    final String? subcategory;  // Added subcategory field
+    final String? subcategory;
     final String? brand;  // Made nullable
     final String mrpPrice;
+    final String? discount;  // New field
     final String salePrice;
+    final String? weight;  // New field
     final List<String> images;
     final List<String> imagesUrls;
 
     Product({
         required this.id,
         required this.name,
+        this.description,  // New optional field
         required this.category,
-        this.subcategory,  // Made optional
-        this.brand,  // Made optional
+        this.subcategory,
+        this.brand,
         required this.mrpPrice,
+        this.discount,  // New optional field
         required this.salePrice,
+        this.weight,  // New optional field
         required this.images,
         required this.imagesUrls,
     });
@@ -42,11 +48,14 @@ class Product {
     factory Product.fromJson(Map<String, dynamic> json) => Product(
         id: json["id"],
         name: json["name"],
+        description: json["description"],
         category: json["category"],
         subcategory: json["subcategory"],
         brand: json["brand"],
         mrpPrice: json["mrp_price"],
+        discount: json["discount"],
         salePrice: json["sale_price"],
+        weight: json["weight"],
         images: _parseImages(json["images"]),
         imagesUrls: _parseImagesUrls(json["images_urls"] ?? json["images"]),
     );
@@ -98,11 +107,14 @@ class Product {
     Map<String, dynamic> toJson() => {
         "id": id,
         "name": name,
+        "description": description,
         "category": category,
         "subcategory": subcategory,
         "brand": brand,
         "mrp_price": mrpPrice,
+        "discount": discount,
         "sale_price": salePrice,
+        "weight": weight,
         "images": List<dynamic>.from(images.map((x) => x)),
         "images_urls": List<dynamic>.from(imagesUrls.map((x) => x)),
     };

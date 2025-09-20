@@ -70,14 +70,12 @@ class HomeRepository {
       };
     }
     
-    print('AddToCart Request Body: $body');
-    
-    final response = await generalRepository.post(
+     await generalRepository.post(
       handle: GroceryApis.addToCart,
       body:  jsonEncode(body),
     );
     
-    print('AddToCart Response: $response');
+   
   }
 
   // get cart items
@@ -93,16 +91,12 @@ class HomeRepository {
     final body = {
       'quantity': quantity,
     };
-    
-    print('UpdateCartItem Request Body: $body');
-    print('UpdateCartItem CartItemId: $cartItemId');
-    
-    final response = await generalRepository.put(
+
+   await generalRepository.put(
       handle: '${GroceryApis.updateCartItem}?id=$cartItemId',
       body:  jsonEncode(body),
     );
-    
-    print('UpdateCartItem Response: $response');
+  
   }
 
   // delete cart item
@@ -120,5 +114,67 @@ class HomeRepository {
   }
 
 
+  // get coupons
+  Future<CouponsModel> getCoupons() async { 
+    final response = await generalRepository.get(
+      handle: GroceryApis.getCoupons,
+    );
+    return CouponsModel.fromJson(response);
 
-}
+  }
+
+  // apply coupon
+  Future<void> applyCoupon({required String couponCode, required double orderAmount}) async {
+   final body = {
+      "code": couponCode,
+      "order_amount": orderAmount
+    };
+
+   await generalRepository.post(
+      handle: GroceryApis.applyCoupon,
+      body:  jsonEncode(body),
+    );
+  }
+
+  // checkout
+  Future<CheckoutResponse> checkout({
+    required int addressId,
+    required String paymentMethod,
+    required List<CheckoutCartItem> cart,
+  }) async {
+    final checkoutRequest = CheckoutRequest(
+      addressId: addressId,
+      paymentMethod: paymentMethod,
+      cart: cart,
+    );
+
+    final response = await generalRepository.post(
+      handle: GroceryApis.checkout,
+      body: jsonEncode(checkoutRequest.toJson()),
+    );
+    
+    return CheckoutResponse.fromJson(response);
+  }
+
+  // payment verify
+  Future<PaymentVerifyResponse> verifyPayment({
+    required String razorpayPaymentId,
+    required String razorpayOrderId,
+    required String razorpaySignature,
+  }) async {
+    final paymentVerifyRequest = PaymentVerifyRequest(
+      razorpayPaymentId: razorpayPaymentId,
+      razorpayOrderId: razorpayOrderId,
+      razorpaySignature: razorpaySignature,
+    );
+
+    final response = await generalRepository.post(
+      handle: GroceryApis.orderPaymentVerify,
+      body: jsonEncode(paymentVerifyRequest.toJson()),
+    );
+    
+    return PaymentVerifyResponse.fromJson(response);
+  }
+  
+  
+  }

@@ -70,6 +70,14 @@ class GroceryApis {
   static const String deleteCartItem = "cart/delete";
   // clear cart
   static const String clearCart = "cart/clear";
+  // get coupons
+  static const String getCoupons = "coupons";
+  // apply coupon
+  static const String applyCoupon = "apply-coupon";
+  // checkout
+  static const String checkout = "checkout";
+  // order-payment-varify
+  static const String orderPaymentVerify = "order-payment-varify";
 
   initBaseUrlAndAuthEndpoints() {
     ApiConfig.baseUrl = baseApiUrl;

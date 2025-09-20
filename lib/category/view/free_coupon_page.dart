@@ -1,28 +1,15 @@
 part of 'view.dart';
 
-// Data model for a coupon offer
-class Coupon {
-  final String logoText;
-  final String title;
-  final String code;
-  final List<String> terms;
-  bool isExpanded;
-
-  Coupon({
-    required this.logoText,
-    required this.title,
-    required this.code,
-    required this.terms,
-    this.isExpanded = false,
-  });
-}
-
 class FreeCouponPage extends StatelessWidget {
-  const FreeCouponPage({super.key});
+  final HomeCubit homeCubit;
+  const FreeCouponPage({super.key, required this.homeCubit});
 
   @override
   Widget build(BuildContext context) {
-    return FreeCouponView();
+    return BlocProvider.value(
+      value: homeCubit,
+      child: FreeCouponView(),
+    );
   }
 }
 
@@ -36,42 +23,14 @@ class FreeCouponView extends StatefulWidget {
 class _FreeCouponViewState extends State<FreeCouponView> {
   final _couponCodeController = TextEditingController();
   String _inputText = "";
-
-  // Dummy data for the coupon list
-  final List<Coupon> _coupons = [
-    Coupon(
-      logoText: 'DIGIsmart',
-      title: 'Get 10% off',
-      code: 'DIGISMART',
-      terms: [
-        'Applicable only on transactions using Standard Chartered Digismart card.',
-        'Maximum discount of ₹150.',
-        'Offer valid once per user during the offer period.',
-      ],
-    ),
-    Coupon(
-      logoText: 'FREEDEL',
-      title: 'Free Delivery',
-      code: 'FREEDEL',
-      terms: [
-        'Applicable on all orders above ₹500.',
-        'This is a limited period offer.',
-      ],
-    ),
-    Coupon(
-      logoText: 'SAVEBIG',
-      title: 'Get 20% off',
-      code: 'SAVEBIG',
-      terms: [
-        'Applicable only on transactions using HDFC Bank credit cards.',
-        'Not valid on grocery items.',
-      ],
-    ),
-  ];
+  String? _loadingCouponCode; // Track which coupon is currently being applied
 
   @override
   void initState() {
     super.initState();
+    // Load coupons from API
+    context.read<HomeCubit>().getCoupons();
+    
     _couponCodeController.addListener(() {
       setState(() {
         _inputText = _couponCodeController.text;
@@ -97,32 +56,93 @@ class _FreeCouponViewState extends State<FreeCouponView> {
           'Coupon',
           style: GroceryTextTheme().bodyText.copyWith(fontSize: 20),
         ),
-        // leading: const Icon(Icons.arrow_back, color: Colors.black),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            _buildApplyCouponCard(),
-            const SizedBox(height: 16),
-            // Using Column instead of ListView.builder since the list is small
-            // and we are in a SingleChildScrollView.
-            Column(
-              children:
-                  _coupons
-                      .map((coupon) => _buildCouponOfferCard(coupon))
-                      .toList(),
+      body: BlocConsumer<HomeCubit, HomeState>(
+        listenWhen: (previous, current) => 
+            previous.applyCouponApiState != current.applyCouponApiState,
+        listener: (context, state) {
+          if (state.applyCouponApiState.apiCallState == APICallState.loaded) {
+            setState(() {
+              _loadingCouponCode = null; // Reset loading state
+            });
+            _showCouponDialog(context);
+          } else if (state.applyCouponApiState.apiCallState == APICallState.failure) {
+            setState(() {
+              _loadingCouponCode = null; // Reset loading state
+            });
+            context.showSnacbar(state.applyCouponApiState.errorMessage ?? 'Failed to apply coupon');
+          }
+        },
+        buildWhen: (previous, current) => 
+            previous.getCouponsApiState != current.getCouponsApiState ||
+            previous.applyCouponApiState != current.applyCouponApiState,
+        builder: (context, state) {
+          if (state.getCouponsApiState.apiCallState == APICallState.loading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          
+          if (state.getCouponsApiState.apiCallState == APICallState.failure) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Failed to load coupons',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                  SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      context.read<HomeCubit>().getCoupons();
+                    },
+                    child: Text('Retry'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          final coupons = state.getCouponsApiState.model?.data ?? [];
+          
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                _buildApplyCouponCard(state),
+                const SizedBox(height: 16),
+                if (coupons.isEmpty)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(32.0),
+                      child: Text(
+                        'No coupons available',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  Column(
+                    children: coupons
+                        .map((coupon) => _buildCouponOfferCard(coupon, state))
+                        .toList(),
+                  ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 
   // --- WIDGET BUILDER METHODS ---
 
-  Widget _buildApplyCouponCard() {
+  Widget _buildApplyCouponCard(HomeState state) {
     bool isButtonEnabled = _inputText.isNotEmpty;
+    bool isLoading = _loadingCouponCode == _inputText && state.applyCouponApiState.apiCallState == APICallState.loading;
+    
     return Card(
       color: Colors.white,
       child: Padding(
@@ -132,7 +152,7 @@ class _FreeCouponViewState extends State<FreeCouponView> {
             Expanded(
               child: TextField(
                 controller: _couponCodeController,
-
+                enabled: !isLoading,
                 decoration: const InputDecoration(
                   hintText: 'Type coupon code here',
                   border: InputBorder.none,
@@ -147,19 +167,25 @@ class _FreeCouponViewState extends State<FreeCouponView> {
               ),
             ),
             ElevatedButton(
-              onPressed:
-                  isButtonEnabled
-                      ? () {
-                        /* Apply coupon logic */
-                      }
-                      : null,
+              onPressed: (isButtonEnabled && !isLoading)
+                  ? () {
+                      setState(() {
+                        _loadingCouponCode = _inputText; // Set loading for this specific coupon
+                      });
+                      // Apply coupon with dummy order amount - you may want to pass this as parameter
+                      context.read<HomeCubit>().applyCoupon(
+                        couponCode: _inputText,
+                        orderAmount: 500.0, // Replace with actual order amount
+                      );
+                    }
+                  : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    isButtonEnabled
-                        ? Colors.amber.shade600
-                        : Colors.grey.shade300,
-                foregroundColor:
-                    isButtonEnabled ? Colors.black : Colors.grey.shade500,
+                backgroundColor: (isButtonEnabled && !isLoading)
+                    ? Colors.amber.shade600
+                    : Colors.grey.shade300,
+                foregroundColor: (isButtonEnabled && !isLoading)
+                    ? Colors.black 
+                    : Colors.grey.shade500,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8.0),
                 ),
@@ -168,7 +194,16 @@ class _FreeCouponViewState extends State<FreeCouponView> {
                   vertical: 12,
                 ),
               ),
-              child: const Text('Apply now'),
+              child: isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Text('Apply now'),
             ),
           ],
         ),
@@ -176,7 +211,39 @@ class _FreeCouponViewState extends State<FreeCouponView> {
     );
   }
 
-  Widget _buildCouponOfferCard(Coupon coupon) {
+  Widget _buildCouponOfferCard(CouponsList coupon, HomeState state) {
+    bool isLoading = _loadingCouponCode == coupon.code && state.applyCouponApiState.apiCallState == APICallState.loading;
+    
+    // Create a display title based on coupon type and value
+    String getDisplayTitle() {
+      if (coupon.type == 'percentage') {
+        return 'Get ${coupon.value}% off';
+      } else if (coupon.type == 'fixed') {
+        return 'Get ₹${coupon.value} off';
+      } else {
+        return 'Special Offer';
+      }
+    }
+    
+    // Create terms list from coupon data
+    List<String> getTerms() {
+      List<String> terms = [];
+      if (coupon.minPurchase != null && coupon.minPurchase!.isNotEmpty) {
+        terms.add('Minimum purchase of ₹${coupon.minPurchase} required.');
+      }
+      if (coupon.maxUses != null) {
+        terms.add('Limited to ${coupon.maxUses} uses only.');
+      }
+      if (coupon.endDate != null) {
+        final dateFormat = DateFormat('dd MMM yyyy');
+        terms.add('Valid till ${dateFormat.format(coupon.endDate!)}.');
+      }
+      if (terms.isEmpty) {
+        terms.add('Terms and conditions apply.');
+      }
+      return terms;
+    }
+
     return Card(
       color: Colors.white,
       child: Padding(
@@ -197,17 +264,36 @@ class _FreeCouponViewState extends State<FreeCouponView> {
                     ),
                     borderRadius: BorderRadius.circular(8.0),
                   ),
-                  child: Center(
-                    child: Text(
-                      coupon.logoText,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.w500,
-                        fontSize: 10,
-                      ),
-                    ),
-                  ),
+                  child: coupon.image?.isNotEmpty == true
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(8.0),
+                          child: Image.network(
+                            coupon.image!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => Center(
+                              child: Text(
+                                coupon.code?.substring(0, 3).toUpperCase() ?? 'CPN',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ),
+                          ),
+                        )
+                      : Center(
+                          child: Text(
+                            coupon.code?.substring(0, 3).toUpperCase() ?? 'CPN',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ),
                 ),
                 const SizedBox(width: 16),
                 // Offer Details
@@ -236,7 +322,7 @@ class _FreeCouponViewState extends State<FreeCouponView> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        coupon.title,
+                        getDisplayTitle(),
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
@@ -244,7 +330,7 @@ class _FreeCouponViewState extends State<FreeCouponView> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Use code ${coupon.code}',
+                        'Use code ${coupon.code ?? ''}',
                         style: TextStyle(
                           color: Colors.grey.shade600,
                           fontSize: 12,
@@ -255,63 +341,130 @@ class _FreeCouponViewState extends State<FreeCouponView> {
                 ),
                 // Apply Button
                 ElevatedButton(
-                  onPressed: () {
-                    _showCouponDialog(context);
+                  onPressed: isLoading ? null : () {
+                    if (coupon.code != null) {
+                      setState(() {
+                        _loadingCouponCode = coupon.code; // Set loading for this specific coupon
+                      });
+                      context.read<HomeCubit>().applyCoupon(
+                        couponCode: coupon.code!,
+                        orderAmount: 500.0, // Replace with actual order amount
+                      );
+                    }
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: GroceryColorTheme().primary,
+                    backgroundColor: isLoading 
+                        ? Colors.grey[400] 
+                        : GroceryColorTheme().primary,
                     padding: EdgeInsets.symmetric(horizontal: 10),
                     foregroundColor: Colors.black,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8.0),
                     ),
                   ),
-                  child: const Text('Apply now'),
+                  child: isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Text('Apply now'),
                 ),
               ],
             ),
             const Divider(height: 24),
             // Terms and Conditions
-            AnimatedSize(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (coupon.isExpanded)
-                    ...coupon.terms
-                        .map((term) => _buildTermItem(term))
-                        .toList(),
-                ],
-              ),
-            ),
-            GestureDetector(
-              onTap: () {
-                setState(() {
-                  coupon.isExpanded = !coupon.isExpanded;
-                });
-              },
-              child: Row(
-                children: [
-                  Icon(
-                    coupon.isExpanded ? Icons.remove : Icons.add,
-                    size: 16,
-                    color: Colors.grey.shade700,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    coupon.isExpanded ? 'Read less' : 'Read more.....',
-                    style: TextStyle(
-                      color: Colors.grey.shade700,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            _ExpandableTermsSection(terms: getTerms()),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildTermItem(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 6.0, right: 8.0),
+            child: CircleAvatar(
+              radius: 2,
+              backgroundColor: Colors.grey.shade500,
+            ),
+          ),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Expandable Terms Section Widget
+class _ExpandableTermsSection extends StatefulWidget {
+  final List<String> terms;
+  
+  const _ExpandableTermsSection({required this.terms});
+
+  @override
+  State<_ExpandableTermsSection> createState() => _ExpandableTermsSectionState();
+}
+
+class _ExpandableTermsSectionState extends State<_ExpandableTermsSection> {
+  bool isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AnimatedSize(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (isExpanded)
+                ...widget.terms
+                    .map((term) => _buildTermItem(term))
+                    .toList(),
+            ],
+          ),
+        ),
+        GestureDetector(
+          onTap: () {
+            setState(() {
+              isExpanded = !isExpanded;
+            });
+          },
+          child: Row(
+            children: [
+              Icon(
+                isExpanded ? Icons.remove : Icons.add,
+                size: 16,
+                color: Colors.grey.shade700,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                isExpanded ? 'Read less' : 'Read more.....',
+                style: TextStyle(
+                  color: Colors.grey.shade700,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -408,7 +561,9 @@ Widget _buildDialogContent(BuildContext context) {
                 backgrondColor: GroceryColorTheme().primary,
                 width: double.infinity,
                 onPressed: () {
-                  context.popPage(); // Should work now
+                  // Pop dialog first, then pop the coupon page to go back to checkout
+                  Navigator.of(context).pop(); // Close dialog
+                  Navigator.of(context).pop(); // Go back to checkout page
                 },
                 buttonText: Text(
                   "Got it",

@@ -3,20 +3,22 @@ part of 'view.dart';
 class ProductDetailPage extends StatelessWidget {
   final HomeCubit homeCubit;
   final int productId;
-  const ProductDetailPage({super.key, required this.homeCubit, required this.productId});
+  final int initialQuantity;
+  const ProductDetailPage({super.key, required this.homeCubit, required this.productId, this.initialQuantity = 0});
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider.value(
       value: homeCubit,
-      child: ProductDetailView(productId: productId),
+      child: ProductDetailView(productId: productId, initialQuantity: initialQuantity),
     );
   }
 }
 
 class ProductDetailView extends StatefulWidget {
   final int productId;
-  const ProductDetailView({super.key, required this.productId});
+  final int initialQuantity;
+  const ProductDetailView({super.key, required this.productId, this.initialQuantity = 0});
 
   @override
   State<ProductDetailView> createState() => _ProductDetailViewState();
@@ -45,6 +47,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
   @override
   initState() {
     super.initState();
+    _quantity = widget.initialQuantity; // Initialize from constructor parameter
     context.read<HomeCubit>().getProductDetails(widget.productId);
   }
 
@@ -307,33 +310,36 @@ class _ProductDetailViewState extends State<ProductDetailView> {
           // Product details card with API data
           _buildProductDetailsCard(productDetails),
           
-          // // Description section (static for now)
-          // Padding(
-          //   padding: const EdgeInsets.symmetric(horizontal: 20.0),
-          //   child: Column(
-          //     crossAxisAlignment: CrossAxisAlignment.start,
-          //     children: [
-          //       const Text(
-          //         'Description',
-          //         style: TextStyle(
-          //           fontSize: 18,
-          //           fontWeight: FontWeight.bold,
-          //           color: Colors.black87,
-          //         ),
-          //       ),
-          //       const SizedBox(height: 10),
-          //       const Text(
-          //         'Masha is a famous Indian flavor to improve health. Masha is the main ingredient which makes your teeth strong.',
-          //         style: TextStyle(
-          //           fontSize: 14,
-          //           color: Colors.black54,
-          //           height: 1.4,
-          //         ),
-          //       ),
-          //       const SizedBox(height: 20),
-          //     ],
-          //   ),
-          // ),
+          // Description section from API
+          if (productDetails.description != null && productDetails.description!.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Description',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Html(
+                    data: productDetails.description,
+                    style: {
+                      "body": Style(
+                        fontSize: FontSize(14),
+                        color: Colors.black54,
+                      
+                      ),
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
           
           // Similar products section
           _buildSimilarProductsSection(productDetails),
@@ -363,14 +369,17 @@ class _ProductDetailViewState extends State<ProductDetailView> {
   }
 
   Widget _buildProductDetailsCard(ProductDetails productDetails) {
-    // Since attributeValues is now List<dynamic>, we'll skip complex attribute parsing
-    // and use brand as tag if available
+    // Build attribute tags with brand, category, and weight
     List<Widget> attributeTags = [];
     if (productDetails.brand != null && productDetails.brand!.isNotEmpty) {
       attributeTags.add(_buildTag(productDetails.brand!));
     }
+    if (productDetails.weight != null && productDetails.weight!.isNotEmpty) {
+      if (attributeTags.isNotEmpty) attributeTags.add(const SizedBox(width: 8));
+      attributeTags.add(_buildTag(productDetails.weight!));
+    }
     if (productDetails.category != null && productDetails.category!.isNotEmpty) {
-      attributeTags.add(const SizedBox(width: 8));
+      if (attributeTags.isNotEmpty) attributeTags.add(const SizedBox(width: 8));
       attributeTags.add(_buildTag(productDetails.category!));
     }
 
@@ -393,7 +402,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
               // Attribute tags
               if (attributeTags.isNotEmpty)
                 Wrap(
-                  children: attributeTags.take(attributeTags.length - 1).toList(), // Remove last SizedBox
+                  children: attributeTags,
                 ),
               const SizedBox(height: 10),
               
@@ -568,6 +577,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
     // Use API data
     final productName = relatedProduct.name ?? 'Unknown Product';
     final productId = relatedProduct.id;
+    final productImages = relatedProduct.images;
     
     return Container(
       width: 100,
@@ -600,19 +610,39 @@ class _ProductDetailViewState extends State<ProductDetailView> {
               children: [
                 Expanded(
                   flex: 2,
-                  child: // For API products, show shopping bag icon since no image URL provided
-                      Container(
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(
-                          Icons.shopping_bag,
-                          size: 40,
-                          color: Colors.grey[600],
-                        ),
-                      ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: productImages?.isNotEmpty == true
+                        ? Image.network(
+                            productImages!.first,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => Container(
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[200],
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                Icons.shopping_bag,
+                                size: 40,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          )
+                        : Container(
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[200],
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.shopping_bag,
+                              size: 40,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Expanded(
@@ -637,8 +667,8 @@ class _ProductDetailViewState extends State<ProductDetailView> {
     );
   }
 
-  int _quantity =
-      0; // 0 means "ADD" button is shown, >0 means quantity selector
+  int _quantity = 0; // Will be initialized from constructor
+  bool _isPlaceOrderPressed = false; // Track place order button press
 
   void _incrementQuantity() {
     setState(() {
@@ -657,105 +687,173 @@ class _ProductDetailViewState extends State<ProductDetailView> {
   }
 
   Widget _buildBottomBar() {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 10,
-        vertical: 10,
-      ).copyWith(bottom: 10),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 10,
-            offset: Offset(0, -2),
+    return BlocListener<HomeCubit, HomeState>(
+      listenWhen: (previous, current) =>
+          previous.addToCartApiState != current.addToCartApiState,
+      listener: (context, state) {
+        // Navigate to checkout after successful add to cart (for place order)
+        if (state.addToCartApiState.apiCallState == APICallState.loaded && 
+            _isPlaceOrderPressed) {
+          _isPlaceOrderPressed = false;
+          context.pushPage(CheckoutPage(
+            homeCubit: context.read<HomeCubit>(),
+          ));
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 10,
+          vertical: 10,
+        ).copyWith(bottom: 10),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
           ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Container(
-            // Quantity selector container
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-            decoration: BoxDecoration(
-              color:
-                  GroceryColorTheme()
-                      .primary, // Orange background as per image_0fc063.png
-              borderRadius: BorderRadius.circular(8),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 10,
+              offset: Offset(0, -2),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min, // Keep row compact
-              children: [
-                GestureDetector(
-                  onTap: _decrementQuantity,
-                  child: const Icon(
-                    Icons.remove,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                  child: Text(
-                    '$_quantity', // Display current quantity
-                    style: const TextStyle(
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Container(
+              // Quantity selector container
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+              decoration: BoxDecoration(
+                color:
+                    GroceryColorTheme()
+                        .primary, // Orange background as per image_0fc063.png
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min, // Keep row compact
+                children: [
+                  GestureDetector(
+                    onTap: _decrementQuantity,
+                    child: const Icon(
+                      Icons.remove,
                       color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                      size: 24,
                     ),
                   ),
-                ),
-                GestureDetector(
-                  onTap: _incrementQuantity,
-                  child: const Icon(Icons.add, color: Colors.white, size: 24),
-                ),
-              ],
-            ),
-          ),
-          Spacer(),
-          CustomElevatedButton(
-            backgrondColor: GroceryColorTheme().primary,
-            width: 100,
-            height: 40,
-            onPressed: () {
-              context.read<HomeCubit>().addToCart(
-                productId: widget.productId,
-                quantity: _quantity > 0 ? _quantity : 1, // Default to 1 if 0
-              );
-              context.popPage();
-            },
-            buttonText: Text(
-              "Add to Cart",
-              style: GroceryTextTheme().bodyText.copyWith(
-                color: GroceryColorTheme().black,
-                fontSize: 14,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Text(
+                      '$_quantity', // Display current quantity
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: _incrementQuantity,
+                    child: const Icon(Icons.add, color: Colors.white, size: 24),
+                  ),
+                ],
               ),
             ),
-          ),
-          SizedBox(width: 10),
-          CustomElevatedButton(
-            backgrondColor: GroceryColorTheme().primary,
-            width: 100,
-            height: 40,
-            onPressed: () {
-              context.pushPage(CheckoutPage(
-                homeCubit: context.read<HomeCubit>(),
-              ));
-            },
-            buttonText: Text(
-              "Place Order",
-              style: GroceryTextTheme().bodyText.copyWith(
-                color: GroceryColorTheme().black,
-                fontSize: 14,
-              ),
+            Spacer(),
+            BlocConsumer<HomeCubit, HomeState>(
+              listenWhen: (previous, current) =>
+                  previous.addToCartApiState != current.addToCartApiState,
+              listener: (context, state) {
+                if (state.addToCartApiState.apiCallState == APICallState.loaded &&
+                    ! _isPlaceOrderPressed) {
+                  context.showSnacbar('Added to cart successfully');
+                } else if (state.addToCartApiState.apiCallState == APICallState.failure) {
+                  context.showSnacbar('Failed to add to cart');
+                } 
+                
+              },
+              buildWhen: (previous, current) =>
+                  previous.addToCartApiState != current.addToCartApiState,
+              builder: (context, state) {
+                final isLoading = state.addToCartApiState.apiCallState == APICallState.loading;
+                final isQuantityZero = _quantity == 0;
+                
+                return CustomElevatedButton(
+                  backgrondColor: isQuantityZero 
+                      ? Colors.grey[400]! 
+                      : GroceryColorTheme().primary,
+                  width: 100,
+                  height: 40,
+                  onPressed: isQuantityZero || isLoading
+                      ? () {}
+                      : () {
+                          context.read<HomeCubit>().addToCart(
+                            productId: widget.productId,
+                            quantity: _quantity,
+                          );
+                          context.popPage();
+                        },
+                  buttonText:  Text(
+                          "Add to Cart",
+                          style: GroceryTextTheme().bodyText.copyWith(
+                            color: isQuantityZero 
+                                ? GroceryColorTheme().white
+                                : GroceryColorTheme().black,
+                            fontSize: 14,
+                          ),
+                        ),
+                );
+              },
             ),
-          ),
-        ],
+            SizedBox(width: 10),
+            BlocBuilder<HomeCubit, HomeState>(
+              buildWhen: (previous, current) =>
+                  previous.addToCartApiState != current.addToCartApiState,
+              builder: (context, state) {
+                final isLoading = state.addToCartApiState.apiCallState == APICallState.loading;
+                final isQuantityZero = _quantity == 0;
+                
+                return CustomElevatedButton(
+                  backgrondColor: isQuantityZero 
+                      ? Colors.grey[400]! 
+                      : GroceryColorTheme().primary,
+                  width: 100,
+                  height: 40,
+                  onPressed: isQuantityZero || isLoading
+                      ? () {
+                        
+                      }
+                      : () {
+                          _isPlaceOrderPressed = true;
+                          context.read<HomeCubit>().addToCart(
+                            productId: widget.productId,
+                            quantity: _quantity,
+                          );
+                        },
+                  buttonText: isLoading && _isPlaceOrderPressed
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : Text(
+                          "Place Order",
+                          style: GroceryTextTheme().bodyText.copyWith(
+                            color: isQuantityZero 
+                                ? GroceryColorTheme().white
+                                : GroceryColorTheme().black,
+                            fontSize: 14,
+                          ),
+                        ),
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

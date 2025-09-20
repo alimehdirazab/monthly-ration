@@ -402,7 +402,7 @@ class GeneralRepository {
       case 404:
       case 405:
       case 409:
-        throw json.decode(response.body)["message"].toString();
+        throw json.decode(response.body)["msg"].toString();
       case 422:
         throw json.decode(response.body.toString());
       case 500:

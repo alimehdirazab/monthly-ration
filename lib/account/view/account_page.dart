@@ -335,7 +335,9 @@ class AccountView extends StatelessWidget {
                             actions: [
                               TextButton(
                                 onPressed: () {
-                                  context.read<AuthCubit>().logout();
+                                  context.read<AuthCubit>().logout().then((_){
+                                    context.pushAndRemoveUntilPage(AuthLoginPage());
+                                  });
                                   context.popPage();
                                 },
                                 child: Text('Yes',

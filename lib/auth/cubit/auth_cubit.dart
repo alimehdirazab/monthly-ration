@@ -59,17 +59,17 @@ class AuthCubit extends Cubit<AuthState> {
 
   // Resend OTP
   Future<void> resendOtp() async {
-    emit(state.copyWith(otpStatus: GeneralApiState(
+    emit(state.copyWith(otpResendStatus: GeneralApiState(
       apiCallState: APICallState.loading
     )));
 
     await authenticationRepository.resendOtp(state.mobileNumber.value).then((_) {
-      emit(state.copyWith(otpStatus: GeneralApiState(
+      emit(state.copyWith(otpResendStatus: GeneralApiState(
         apiCallState: APICallState.loaded
       )));
       _startResendOtpTimer();
     }).catchError((error) {
-      emit(state.copyWith(otpStatus: GeneralApiState(
+      emit(state.copyWith(otpResendStatus: GeneralApiState(
         apiCallState: APICallState.failure,
         errorMessage: error.toString(),
       )));
@@ -334,7 +334,7 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   // Logout
-  void logout() {
+  Future<void> logout() async {
    // authenticationRepository.logout();
    authenticationRepository.clearUser();
   }

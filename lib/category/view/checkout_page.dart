@@ -21,30 +21,232 @@ class CheckoutView extends StatefulWidget {
 }
 
 class _CheckoutViewState extends State<CheckoutView> {
-  final List<Map<String, dynamic>> _checkoutItems = [
-    {
-      'imageUrl': GroceryImages.ration1,
-      'title': 'Aashirvaad 0% Maida,',
-      'description': '10 Kg',
-      'deliveryTime': '14 minutes',
-      'saveForLaterText': 'Save for later',
-      'weight': '10 kg',
-      'quantity': 2,
-      'price': '465',
-      'mrpPrice': '550',
-    },
-    {
-      'imageUrl': GroceryImages.ration2,
-      'title': 'Aashirvaad 0% Maida,',
-      'description': '10 Kg',
-      'deliveryTime': '14 minutes',
-      'saveForLaterText': 'Save for later',
-      'weight': '10 kg',
-      'quantity': 1,
-      'price': '320',
-      'mrpPrice': '400',
-    },
-  ];
+  // Remove dummy data - will use cart data from API
+  Razorpay? _razorpay;
+
+  bool _isCheckoutEnabled() {
+    final state = context.read<HomeCubit>().state;
+    final cartItems = state.getCartItemsApiState.model?.data ?? [];
+    print('Checkout validation - deliveryDate: ${state.selectedDeliveryDateIndex}, timeSlot: ${state.selectedTimeSlotIndex}, address: ${state.selectedAddress}, cartItems: ${cartItems.length}'); // Debug print
+    return state.selectedDeliveryDateIndex >= 0 &&
+           state.selectedTimeSlotIndex >= 0 &&
+           state.selectedAddress != null &&
+           cartItems.isNotEmpty;
+  }
+
+  void _handleCheckout() async {
+    final homeCubit = context.read<HomeCubit>();
+    final state = homeCubit.state;
+    
+    if (!_isCheckoutEnabled()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select delivery date, time slot, and address'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Get cart items from API state
+    final cartItems = state.getCartItemsApiState.model?.data ?? [];
+    if (cartItems.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Your cart is empty'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Prepare cart items for checkout API
+    print('Cart items from API: ${cartItems.length}'); // Debug print
+    final checkoutCartItems = cartItems.map((cartItem) {
+      final productId = cartItem.productId ?? 0;
+      final quantity = cartItem.quantity ?? 1;
+      
+      return home_models.CheckoutCartItem(
+        productId: productId,
+        quantity: quantity,
+      );
+    }).toList();
+    print('Checkout cart items prepared: ${checkoutCartItems.length}'); // Debug print
+
+    try {
+      // Call checkout API to get order ID
+      await homeCubit.checkout(
+        addressId: state.selectedAddress!.id!,
+        paymentMethod: 'rzp', // Always use online payment (Razorpay)
+        cart: checkoutCartItems,
+      );
+      
+      final checkoutState = homeCubit.state;
+      if (checkoutState.checkoutApiState.apiCallState == APICallState.loaded && 
+          checkoutState.checkoutApiState.model != null) {
+        
+        // Get order ID and amount from checkout response
+        final checkoutResponse = checkoutState.checkoutApiState.model!;
+        final orderId = checkoutResponse.razorpayOrderId;
+        final amount = checkoutResponse.amount;
+        
+        if (orderId != null && amount != null) {
+          // Open Razorpay payment sheet
+          _openRazorpayPayment(orderId, amount, checkoutResponse);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to get payment details from server'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } else if (checkoutState.checkoutApiState.apiCallState == APICallState.failure) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(checkoutState.checkoutApiState.errorMessage ?? 'Checkout failed. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _openRazorpayPayment(String orderId, double amount, home_models.CheckoutResponse checkoutResponse) {
+    // Get user details from cubit
+    final userState = context.read<AppCubit>().state.user;
+    final customerName = userState.customer?.name ?? 'Customer';
+    final customerEmail = userState.customer?.email ?? '';
+    final customerContact = userState.customer?.phone ?? '';
+    
+    // For now, use a default key since razorpayKey is null in the response
+    // You should get this from your backend or environment variables
+    const String razorpayKey = 'rzp_test_hOZCibf5Ibk62K'; // Replace with your actual key
+    
+    var options = {
+      'key': razorpayKey,
+      'amount': (amount * 100).toInt(), // amount in the smallest currency unit (paise)
+      'name': 'Monthly Ration',
+      'order_id': orderId,
+      'description': 'Order Payment',
+      'prefill': {
+        'contact': customerContact,
+        'email': customerEmail,
+        'name': customerName,
+      },
+      'theme': {
+        'color': '#FECC00' // Your app's primary color
+      }
+    };
+
+    try {
+      if (_razorpay != null) {
+        _razorpay!.open(options);
+      } else {
+        throw Exception('Razorpay not initialized');
+      }
+    } catch (e) {
+      debugPrint('Error opening Razorpay: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error opening payment gateway: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _handlePaymentSuccess(PaymentSuccessResponse response) {
+    // Verify payment with backend
+    final homeCubit = context.read<HomeCubit>();
+    
+    homeCubit.verifyPayment(
+      razorpayPaymentId: response.paymentId!,
+      razorpayOrderId: response.orderId!,
+      razorpaySignature: response.signature!,
+    );
+  }
+
+  void _handlePaymentError(PaymentFailureResponse response) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Payment failed: ${response.message ?? 'Unknown error'}'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+
+  void _handleExternalWallet(ExternalWalletResponse response) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('External wallet selected: ${response.walletName}'),
+        backgroundColor: Colors.blue,
+      ),
+    );
+  }
+
+  void _showOrderSuccessDialog(home_models.CheckoutResponse checkoutResponse) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        icon: Icon(
+          Icons.check_circle,
+          color: Colors.green,
+          size: 64,
+        ),
+        title: const Text('Order Placed Successfully!'),
+        content: Stack(
+          children: [
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Order ID: ${checkoutResponse.orderId ?? 'N/A'}'),
+                const SizedBox(height: 8),
+                Text('Total Amount: ₹${(checkoutResponse.amount ?? 0) / 100}'),
+                const SizedBox(height: 8),
+                Text('Payment Method: Razorpay'),
+              ],
+            ),
+             // 🎉 Lottie animation on top, but doesn't block taps
+      IgnorePointer(
+        child: Center(
+          child: Lottie.asset(
+            GroceryImages.partyLottie,
+            repeat: false,
+            onLoaded: (composition) {
+              Future.delayed(composition.duration, () {
+                // animation ends — do nothing or hide it if needed
+              });
+            },
+          ),
+        ),
+      ),
+          ],
+        ),
+        actions: [
+          CustomElevatedButton(
+            width: double.infinity,
+            onPressed: () {
+            context.pushAndRemoveUntilPage(const RootPage());
+            },
+            buttonText: const Text('OK'),
+            backgrondColor: GroceryColorTheme().primary,
+
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Default payment method selection and helper methods
 
   void _incrementQuantity(int id,int quantity) {
     context.read<HomeCubit>().updateCartItem(
@@ -74,17 +276,57 @@ class _CheckoutViewState extends State<CheckoutView> {
   void initState() {
     super.initState();
     context.read<HomeCubit>().getCartItems();
+    context.read<AuthCubit>().getAddress();
+    
+    // Initialize Razorpay
+    try {
+      _razorpay = Razorpay();
+      _razorpay?.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
+      _razorpay?.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
+      _razorpay?.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
+    } catch (e) {
+      debugPrint('Error initializing Razorpay: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    try {
+      _razorpay?.clear();
+    } catch (e) {
+      debugPrint('Error disposing Razorpay: $e');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return BlocListener<HomeCubit, HomeState>(
       listener: (context, state) {
+        // Handle cart operations
         if(state.clearCartApiState.apiCallState == APICallState.loaded) {
-        context.showSnacbar('Cart cleared successfully');
-        context.read<HomeCubit>().getCartItems();
+          context.showSnacbar('Cart cleared successfully');
+          context.read<HomeCubit>().getCartItems();
         } else if(state.clearCartApiState.apiCallState == APICallState.failure) {
-        context.showSnacbar(state.clearCartApiState.errorMessage ?? 'Failed to clear cart',backgroundColor: GroceryColorTheme().redColor);
+          context.showSnacbar(state.clearCartApiState.errorMessage ?? 'Failed to clear cart',backgroundColor: GroceryColorTheme().redColor);
+        }
+        
+        // Handle payment verification
+        if(state.paymentVerifyApiState.apiCallState == APICallState.loaded && state.paymentVerifyApiState.model != null) {
+          // Payment verification successful
+          final checkoutResponse = state.checkoutApiState.model;
+          if (checkoutResponse != null) {
+            _showOrderSuccessDialog(checkoutResponse);
+            // Clear checkout state after showing dialog
+            context.read<HomeCubit>().resetCheckoutState();
+          }
+        } else if(state.paymentVerifyApiState.apiCallState == APICallState.failure) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.paymentVerifyApiState.errorMessage ?? 'Payment verification failed. Please contact support.'),
+              backgroundColor: Colors.red,
+            ),
+          );
         }
       },
       child: Scaffold(
@@ -129,7 +371,10 @@ class _CheckoutViewState extends State<CheckoutView> {
                        previous.updateCartItemApiState != current.updateCartItemApiState,
                        builder: (context, state) {
                         final cartItems = state.getCartItemsApiState.model?.data ?? [];
-                        
+                        // show loading indicator while fetching cart items
+                        if (state.getCartItemsApiState.apiCallState == APICallState.loading) {
+                          return const Center(child: CircularProgressIndicator());
+                        }
                         
                          return ListView.builder(
                            shrinkWrap: true, // Takes only the space it needs
@@ -214,9 +459,15 @@ class _CheckoutViewState extends State<CheckoutView> {
                       //   ),
                       // ),
                       const SizedBox(height: 24),
+                      _buildDeliveryDateSection(),
+                      const SizedBox(height: 16),
+                      _buildTimeSlotSection(),
+                      const SizedBox(height: 16),
+                      _buildAddressSection(),
+                      const SizedBox(height: 24),
       
                       // You got Free delivery banner
-                      Container(
+                      Container( 
                         margin: const EdgeInsets.symmetric(horizontal: 16.0),
                         padding: const EdgeInsets.all(16.0),
                         decoration: BoxDecoration(
@@ -274,7 +525,9 @@ class _CheckoutViewState extends State<CheckoutView> {
                             ),
                             TextButton(
                               onPressed: () {
-                                // Handle "See all coupons" tap
+                                context.pushPage(FreeCouponPage(
+                                  homeCubit: context.read<HomeCubit>(),
+                                ));
                               },
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
@@ -300,37 +553,88 @@ class _CheckoutViewState extends State<CheckoutView> {
                       const SizedBox(height: 24),
       
                       // Bill Details
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: Text(
-                          'Bill details',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey[800],
-                          ),
-                        ),
+                      BlocBuilder<HomeCubit, HomeState>(
+                        buildWhen: (previous, current) =>
+                            previous.getCartItemsApiState != current.getCartItemsApiState ||
+                            previous.updateCartItemApiState != current.updateCartItemApiState ||
+                            previous.deleteCartItemApiState != current.deleteCartItemApiState,
+                        builder: (context, state) {
+                          final cartItems = state.getCartItemsApiState.model?.data ?? [];
+                          
+                          // Calculate totals
+                          double itemsTotal = 0;
+                          double mrpTotal = 0;
+                          
+                          for (var cartItem in cartItems) {
+                            final product = cartItem.product;
+                            if (product != null && cartItem.quantity != null) {
+                              final salePrice = double.tryParse(product.salePrice?.toString() ?? '0') ?? 0;
+                              final mrpPrice = double.tryParse(product.mrpPrice ?? '0') ?? 0;
+                              final quantity = cartItem.quantity!;
+                              
+                              itemsTotal += salePrice * quantity;
+                              mrpTotal += mrpPrice * quantity;
+                            }
+                          }
+                          
+                          final deliveryCharge = itemsTotal >= 500 ? 0.0 : 20.0; // Free delivery above ₹500
+                          final handlingCharge = itemsTotal * 0.02; // 2% handling charge
+                          final savings = mrpTotal - itemsTotal;
+                          final grandTotal = itemsTotal + deliveryCharge + handlingCharge;
+                          
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                                child: Text(
+                                  'Bill details',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.grey[800],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              _buildBillDetailRow(
+                                'Items total', 
+                                '₹${itemsTotal.toStringAsFixed(0)}', 
+                                isBold: false
+                              ),
+                              if (savings > 0)
+                                _buildBillDetailRow(
+                                  'You saved', 
+                                  '₹${savings.toStringAsFixed(0)}', 
+                                  isBold: false,
+                                  valueColor: Colors.green,
+                                ),
+                              _buildBillDetailRow(
+                                'Delivery charge',
+                                deliveryCharge == 0 ? '₹20 FREE' : '₹${deliveryCharge.toStringAsFixed(0)}',
+                                isBold: false,
+                                valueColor: deliveryCharge == 0 ? Colors.green : null,
+                              ),
+                              _buildBillDetailRow(
+                                'Handling charge',
+                                '₹${handlingCharge.toStringAsFixed(0)}',
+                                isBold: false,
+                              ),
+                              const Divider(
+                                indent: 16,
+                                endIndent: 16,
+                                height: 20,
+                                thickness: 1,
+                              ),
+                              _buildBillDetailRow(
+                                'Grand total', 
+                                '₹${grandTotal.toStringAsFixed(0)}', 
+                                isBold: true
+                              ),
+                            ],
+                          );
+                        },
                       ),
-                      const SizedBox(height: 12),
-                      _buildBillDetailRow('Items total', '₹465', isBold: false),
-                      _buildBillDetailRow(
-                        'Delivery charge',
-                        '₹20 FREE',
-                        isBold: false,
-                        valueColor: Colors.green,
-                      ),
-                      _buildBillDetailRow(
-                        'Handling charge',
-                        '₹465',
-                        isBold: false,
-                      ),
-                      const Divider(
-                        indent: 16,
-                        endIndent: 16,
-                        height: 20,
-                        thickness: 1,
-                      ),
-                      _buildBillDetailRow('Grand total', '₹477', isBold: true),
                       const SizedBox(height: 24),
       
                       // Issue GST Invoice
@@ -394,7 +698,6 @@ class _CheckoutViewState extends State<CheckoutView> {
                             Checkbox(
                               value: false, // This should be managed by state
                               onChanged: (bool? newValue) {
-                                // TODO: Handle checkbox state change
                               },
                               activeColor: Colors.orange,
                             ),
@@ -405,26 +708,46 @@ class _CheckoutViewState extends State<CheckoutView> {
                       CustomElevatedButton(
                         backgrondColor: GroceryColorTheme().primary,
                         width: double.infinity,
-                        onPressed: () {
-                          context.pushPage(AddAddressPage());
-                        },
-                        buttonText: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          spacing: 6,
-                          children: [
-                            Text(
-                              "Select address at next step",
-                              style: GroceryTextTheme().bodyText.copyWith(
-                                fontSize: 14,
-                                color: GroceryColorTheme().black, 
-                              ),
-                            ),
-                            Icon(
-                              Icons.arrow_forward_ios,
-                              size: 20,
-                              color: GroceryColorTheme().black,
-                            ),
-                          ],
+                        onPressed:  () => _handleCheckout() ,
+                        buttonText: BlocBuilder<HomeCubit, HomeState>(
+                          builder: (context, state) {
+                            if (state.checkoutApiState.apiCallState == APICallState.loading) {
+                              return Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      color: GroceryColorTheme().black,
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    "Processing...",
+                                    style: GroceryTextTheme().bodyText.copyWith(
+                                      fontSize: 14,
+                                      color: GroceryColorTheme().black, 
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }
+                            return Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              spacing: 6,
+                              children: [
+                                Text(
+                                  "Checkout",
+                                  style: GroceryTextTheme().bodyText.copyWith(
+                                    fontSize: 14,
+                                    color: GroceryColorTheme().black, 
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
                         ),
                       ),
                       // Space for the floating button
@@ -438,6 +761,607 @@ class _CheckoutViewState extends State<CheckoutView> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildDeliveryDateSection() {
+    // Generate next 10 days starting from today
+    final List<DateTime> deliveryDates = List.generate(10, (index) {
+      return DateTime.now().add(Duration(days: index));
+    });
+
+    return BlocBuilder<HomeCubit, HomeState>(
+      buildWhen: (previous, current) =>
+          previous.selectedDeliveryDateIndex != current.selectedDeliveryDateIndex,
+      builder: (context, state) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Preferred Delivery Date',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 70,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: deliveryDates.length,
+                itemBuilder: (context, index) {
+                  final date = deliveryDates[index];
+                  final isSelected = state.selectedDeliveryDateIndex == index;
+                  return GestureDetector(
+                    onTap: () {
+                      context.read<HomeCubit>().setSelectedDeliveryDateIndex(index);
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      width: 60,
+                      margin: const EdgeInsets.only(right: 12),
+                      decoration: BoxDecoration(
+                        color: isSelected ? Colors.green.shade50 : Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isSelected ? Colors.green : Colors.grey.shade300,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            _getDayName(date),
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight:
+                                  isSelected ? FontWeight.bold : FontWeight.normal,
+                              color:
+                                  isSelected
+                                      ? Colors.green.shade800
+                                      : Colors.grey.shade600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${date.day}',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color:
+                                  isSelected ? Colors.green.shade800 : Colors.black,
+                            ),
+                          ),
+                          Text(
+                            _getMonthName(date),
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight:
+                                  isSelected ? FontWeight.bold : FontWeight.normal,
+                              color:
+                                  isSelected
+                                      ? Colors.green.shade800
+                                      : Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildTimeSlotSection() {
+    final List<String> timeSlots = [
+      '8 AM',
+      '9 AM',
+      '10 AM',
+      '11 AM',
+      '12 PM',
+      '1 PM',
+      '2 PM',
+      '3 PM',
+      '4 PM',
+      '5 PM',
+      '6 PM',
+      '7 PM',
+      '8 PM',
+      '9 PM',
+      '10 PM',
+      '11 PM',
+    ];
+
+    return BlocBuilder<HomeCubit, HomeState>(
+      buildWhen: (previous, current) =>
+          previous.selectedTimeSlotIndex != current.selectedTimeSlotIndex,
+      builder: (context, state) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Preferred Time Slot',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 50,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: timeSlots.length,
+                itemBuilder: (context, index) {
+                  final timeSlot = timeSlots[index];
+                  final isSelected = state.selectedTimeSlotIndex == index;
+                  return GestureDetector(
+                    onTap: () {
+                      context.read<HomeCubit>().setSelectedTimeSlotIndex(index);
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      margin: const EdgeInsets.only(right: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: isSelected ? Colors.green.shade50 : Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isSelected ? Colors.green : Colors.grey.shade300,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          timeSlot,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight:
+                                isSelected ? FontWeight.bold : FontWeight.normal,
+                            color:
+                                isSelected
+                                    ? Colors.green.shade800
+                                    : Colors.grey.shade600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  String _getDayName(DateTime date) {
+    const List<String> dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    return dayNames[date.weekday - 1];
+  }
+
+  String _getMonthName(DateTime date) {
+    const List<String> monthNames = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    return monthNames[date.month - 1];
+  }
+
+  Widget _buildAddressSection() {
+    return BlocBuilder<AuthCubit, AuthState>(
+      buildWhen: (previous, current) =>
+          previous.getAddressApiState != current.getAddressApiState,
+      builder: (context, authState) {
+        return BlocBuilder<HomeCubit, HomeState>(
+          buildWhen: (previous, current) =>
+              previous.selectedAddress != current.selectedAddress,
+          builder: (context, homeState) {
+            final addressApiState = authState.getAddressApiState;
+            final addresses = addressApiState.model?.data ?? [];
+            final selectedAddress = homeState.selectedAddress;
+            
+            // Find default address if no address is selected
+            Address? displayAddress = selectedAddress;
+            if (displayAddress == null && addresses.isNotEmpty) {
+              displayAddress = addresses.firstWhere(
+                (address) => address.isDefault == 1,
+                orElse: () => addresses.first,
+              );
+              // Set the default/first address as selected
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                context.read<HomeCubit>().setSelectedAddress(displayAddress);
+              });
+            }
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Delivery Address',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade300, width: 1.5),
+                  ),
+                  child: addressApiState.apiCallState == APICallState.loading
+                      ? const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: CircularProgressIndicator(),
+                          ),
+                        )
+                      : addresses.isEmpty
+                          ? _buildNoAddressWidget(context)
+                          : displayAddress != null
+                              ? _buildAddressWidget(context, displayAddress, addresses)
+                              : _buildSelectAddressWidget(context, addresses),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildNoAddressWidget(BuildContext context) {
+    return Column(
+      children: [
+        Icon(
+          Icons.location_off,
+          size: 48,
+          color: Colors.grey.shade400,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'No delivery address found',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.grey.shade700,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Please add a delivery address to continue',
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey.shade600,
+          ),
+        ),
+        const SizedBox(height: 12),
+        ElevatedButton(
+          onPressed: () {
+            context.pushPage(AddressPage());
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: GroceryColorTheme().primary,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          child: Text(
+            'Add Address',
+            style: TextStyle(color: Colors.black),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSelectAddressWidget(BuildContext context, List<Address> addresses) {
+    return Column(
+      children: [
+        Icon(
+          Icons.location_on_outlined,
+          size: 48,
+          color: Colors.grey.shade400,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Select a delivery address',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.grey.shade700,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Choose from your saved addresses',
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey.shade600,
+          ),
+        ),
+        const SizedBox(height: 12),
+        ElevatedButton(
+          onPressed: () {
+            _showAddressBottomSheet(context, addresses);
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: GroceryColorTheme().primary,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          child: Text(
+            'Select Address',
+            style: TextStyle(color: Colors.black),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAddressWidget(BuildContext context, Address address, List<Address> addresses) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              Icons.location_on,
+              color: Colors.green,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                address.name ?? 'Unknown',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            if (address.isDefault == 1)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade100,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  'Default',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Colors.green.shade800,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          '${address.addressLine1 ?? ''}'
+          '${address.addressLine2 != null ? ', ${address.addressLine2}' : ''}'
+          '${address.city != null ? ', ${address.city}' : ''}'
+          '${address.state != null ? ', ${address.state}' : ''}'
+          '${address.pincode != null ? ' - ${address.pincode}' : ''}',
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey.shade600,
+          ),
+        ),
+        if (address.phone != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            'Phone: ${address.phone}',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+            ),
+          ),
+        ],
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () {
+                  _showAddressBottomSheet(context, addresses);
+                },
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: GroceryColorTheme().primary),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Text(
+                  'Change Address',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ),
+            
+         
+          ],
+        ),
+      ],
+    );
+  }
+
+  void _showAddressBottomSheet(BuildContext context, List<Address> addresses) {
+    final homeCubit = context.read<HomeCubit>(); // Capture the HomeCubit instance
+    
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          maxChildSize: 0.9,
+          minChildSize: 0.4,
+          expand: false,
+          builder: (context, scrollController) {
+            return Container(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Select Delivery Address',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey.shade800,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: BlocBuilder<HomeCubit, HomeState>(
+                      bloc: homeCubit, // Use the captured HomeCubit instance
+                      buildWhen: (previous, current) =>
+                          previous.selectedAddress != current.selectedAddress,
+                      builder: (context, state) {
+                        return ListView.builder(
+                          controller: scrollController,
+                          itemCount: addresses.length,
+                          itemBuilder: (context, index) {
+                            final address = addresses[index];
+                            final isSelected = state.selectedAddress?.id == address.id;
+                            
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: isSelected ? Colors.green : Colors.grey.shade300,
+                                  width: isSelected ? 2 : 1,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                                color: isSelected ? Colors.green.shade50 : Colors.white,
+                              ),
+                              child: ListTile(
+                                onTap: () {
+                                  homeCubit.setSelectedAddress(address);
+                                  Navigator.pop(context);
+                                },
+                                leading: Icon(
+                                  Icons.location_on,
+                                  color: isSelected ? Colors.green : Colors.grey,
+                                ),
+                                title: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        address.name ?? 'Unknown',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                          color: isSelected ? Colors.green.shade800 : Colors.black,
+                                        ),
+                                      ),
+                                    ),
+                                    if (address.isDefault == 1)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: Colors.green.shade100,
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          'Default',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: Colors.green.shade800,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '${address.addressLine1 ?? ''}'
+                                      '${address.addressLine2 != null ? ', ${address.addressLine2}' : ''}'
+                                      '${address.city != null ? ', ${address.city}' : ''}'
+                                      '${address.state != null ? ', ${address.state}' : ''}'
+                                      '${address.pincode != null ? ' - ${address.pincode}' : ''}',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: isSelected ? Colors.green.shade600 : Colors.grey.shade600,
+                                      ),
+                                    ),
+                                    if (address.phone != null) ...[
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Phone: ${address.phone}',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: isSelected ? Colors.green.shade600 : Colors.grey.shade600,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                                trailing: isSelected
+                                    ? Icon(
+                                        Icons.check_circle,
+                                        color: Colors.green,
+                                      )
+                                    : null,
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                     context.popPage();
+                     context.pushPage(AddressPage());
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: GroceryColorTheme().primary,
+                      minimumSize: const Size(double.infinity, 45),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: Text(
+                      'Add New Address',
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -591,12 +1515,12 @@ class CheckoutProductCard extends StatelessWidget {
                       softWrap: true,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    Text(
-                      description,
-                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    // Text(
+                    //   description,
+                    //   style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    //   maxLines: 2,
+                    //   overflow: TextOverflow.ellipsis,
+                    // ),
                     const SizedBox(height: 4),
                     Row(
                       children: [

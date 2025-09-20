@@ -246,13 +246,8 @@ class _CategoryViewState extends State<CategoryView> {
                         itemCount: products.length,
                         itemBuilder: (context, index) {
                           final product = products[index];
-                          return InkWell(
-                            onTap: () {
-                              context.pushPage(ProductDetailPage(homeCubit: context.read<HomeCubit>(), productId: product.id));
-                            },
-                            child: ProductCardFromApi(
-                              product: product,
-                            ),
+                          return ProductCardFromApi(
+                            product: product,
                           );
                         },
                       );
@@ -659,262 +654,271 @@ class _ProductCardFromApiState extends State<ProductCardFromApi> {
           _initializeQuantityFromCart();
         }
       },
-      child: Stack(
-        children: [
-          Card(
-            color: GroceryColorTheme().white,
-            
-            // margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 7),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
-            elevation: 1,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Product Image and Add Button/Quantity Selector
-                Stack(
-                  children: [
-                    ClipRRect(
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(15.0),
-                      ),
-                      child: widget.product.imagesUrls.isNotEmpty
-                          ? Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Image.network(
-                               widget.product.imagesUrls.first,
+      child: GestureDetector(
+          onTap: () {
+            context.pushPage(ProductDetailPage(
+              homeCubit: context.read<HomeCubit>(),
+              productId: widget.product.id,
+              initialQuantity: _quantity,
+            ));
+          },
+        child: Stack(
+          children: [
+            Card(
+              color: GroceryColorTheme().white,
+              
+              // margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 7),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
+              elevation: 1,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Product Image and Add Button/Quantity Selector
+                  Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(15.0),
+                        ),
+                        child: widget.product.imagesUrls.isNotEmpty
+                            ? Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Image.network(
+                                 widget.product.imagesUrls.first,
+                                  height: 130,
+                                  width: double.infinity,
+                                  fit: BoxFit.fill,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      height: 130,
+                                      width: double.infinity,
+                                      color: Colors.grey[200],
+                                      child: Icon(
+                                        Icons.shopping_bag,
+                                        size: 50,
+                                        color: Colors.grey,
+                                      ),
+                                    );
+                                  },
+                                ),
+                            )
+                            : Container(
                                 height: 130,
                                 width: double.infinity,
-                                fit: BoxFit.fill,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Container(
-                                    height: 130,
-                                    width: double.infinity,
-                                    color: Colors.grey[200],
-                                    child: Icon(
-                                      Icons.shopping_bag,
-                                      size: 50,
-                                      color: Colors.grey,
-                                    ),
-                                  );
+                                color: Colors.grey[200],
+                                child: Icon(
+                                  Icons.shopping_bag,
+                                  size: 50,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                      ),
+                      // Add/Quantity control at bottom right
+                      Positioned(
+                        bottom: 1,
+                        right: 8,
+                        child: _quantity == 0
+                            ? GestureDetector(
+                                onTap: _isLoading ? null : () {
+                                  _incrementQuantity();
                                 },
-                              ),
-                          )
-                          : Container(
-                              height: 130,
-                              width: double.infinity,
-                              color: Colors.grey[200],
-                              child: Icon(
-                                Icons.shopping_bag,
-                                size: 50,
-                                color: Colors.grey,
-                              ),
-                            ),
-                    ),
-                    // Add/Quantity control at bottom right
-                    Positioned(
-                      bottom: 1,
-                      right: 8,
-                      child: _quantity == 0
-                          ? GestureDetector(
-                              onTap: _isLoading ? null : () {
-                                _incrementQuantity();
-                              },
-                              child: Container(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: _isLoading ? Colors.grey : GroceryColorTheme().greenColor,
+                                    ),
+                                  ),
+                                  child: _isLoading
+                                      ? SizedBox(
+                                          width: 20,
+                                          height: 15,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor: AlwaysStoppedAnimation<Color>(
+                                              GroceryColorTheme().greenColor,
+                                            ),
+                                          ),
+                                        )
+                                      : Text(
+                                          'ADD',
+                                          style: TextStyle(
+                                            color: GroceryColorTheme().greenColor,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                ),
+                              )
+                            : Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
+                                  horizontal: 4,
+                                  vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: GroceryColorTheme().primary,
                                   borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                    color: _isLoading ? Colors.grey : GroceryColorTheme().greenColor,
-                                  ),
                                 ),
-                                child: _isLoading
-                                    ? SizedBox(
-                                        width: 20,
-                                        height: 15,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          valueColor: AlwaysStoppedAnimation<Color>(
-                                            GroceryColorTheme().greenColor,
-                                          ),
-                                        ),
-                                      )
-                                    : Text(
-                                        'ADD',
-                                        style: TextStyle(
-                                          color: GroceryColorTheme().greenColor,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 11,
-                                        ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    GestureDetector(
+                                      onTap: _isLoading ? null : _decrementQuantity,
+                                      child: Icon(
+                                        Icons.remove,
+                                        color: _isLoading ? Colors.grey[300] : Colors.white,
+                                        size: 20,
                                       ),
-                              ),
-                            )
-                          : Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: GroceryColorTheme().primary,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  GestureDetector(
-                                    onTap: _isLoading ? null : _decrementQuantity,
-                                    child: Icon(
-                                      Icons.remove,
-                                      color: _isLoading ? Colors.grey[300] : Colors.white,
-                                      size: 20,
                                     ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8.0,
-                                    ),
-                                    child: _isLoading
-                                        ? SizedBox(
-                                            width: 16,
-                                            height: 16,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8.0,
+                                      ),
+                                      child: _isLoading
+                                          ? SizedBox(
+                                              width: 16,
+                                              height: 16,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                              ),
+                                            )
+                                          : Text(
+                                              '$_quantity',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14,
+                                              ),
                                             ),
-                                          )
-                                        : Text(
-                                            '$_quantity',
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 14,
-                                            ),
-                                          ),
-                                  ),
-                                  GestureDetector(
-                                    onTap: _isLoading ? null : _incrementQuantity,
-                                    child: Icon(
-                                      Icons.add,
-                                      color: _isLoading ? Colors.grey[300] : Colors.white,
-                                      size: 20,
                                     ),
-                                  ),
-                                ],
+                                    GestureDetector(
+                                      onTap: _isLoading ? null : _incrementQuantity,
+                                      child: Icon(
+                                        Icons.add,
+                                        color: _isLoading ? Colors.grey[300] : Colors.white,
+                                        size: 20,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
+                      ),
+                    ],
+                  ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min, // Prevent overflow
+                    children: [
+                      Text(
+                        widget.product.name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      // Weight/Brand information
+                      if (widget.product.weight != null && widget.product.weight!.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2.0),
+                          child: Text(
+                            widget.product.weight!,
+                            style: TextStyle(
+                              color: Colors.grey[600], 
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500,
                             ),
-                    ),
-                  ],
-                ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min, // Prevent overflow
-                  children: [
-                    Text(
-                      widget.product.name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                         ...List.generate(
+                            5,
+                            (index) => Icon(
+                              index < 4 // Assuming a static rating of 4.5 for demo
+                                  ? Icons.star
+                                  : Icons.star_half,
+                              color: Colors.amber,
+                              size: 12,
+                            ),
+        
+                         ),
+                          Text(
+                            ' (25)', // You might want to add reviews to the Product model
+                            style: TextStyle(color: Colors.grey[600], fontSize: 11),
+                          ),
+                        ],
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    // Weight/Brand information
-                    if (widget.product.brand != null && widget.product.brand!.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 2.0),
-                        child: Text(
-                          widget.product.brand!,
-                          style: TextStyle(
-                            color: Colors.grey[600], 
-                            fontSize: 10,
-                            fontWeight: FontWeight.w500,
+                      const SizedBox(height: 2), // Reduced spacing
+                      Row(
+                        children: [
+                          Text(
+                            '₹${widget.product.salePrice}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                            ),
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                          const SizedBox(width: 8),
+        
+                        ],
                       ),
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                       ...List.generate(
-                          5,
-                          (index) => Icon(
-                            index < 4 // Assuming a static rating of 4.5 for demo
-                                ? Icons.star
-                                : Icons.star_half,
-                            color: Colors.amber,
-                            size: 12,
+                      Text(
+                            'MRP ₹${widget.product.mrpPrice}',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              decoration: TextDecoration.lineThrough,
+                              fontSize: 11,
+                            ),
                           ),
-
-                       ),
-                        Text(
-                          ' (25)', // You might want to add reviews to the Product model
-                          style: TextStyle(color: Colors.grey[600], fontSize: 11),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 2), // Reduced spacing
-                    Row(
-                      children: [
-                        Text(
-                          '₹${widget.product.salePrice}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 11,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-
-                      ],
-                    ),
-                    Text(
-                          'MRP ₹${widget.product.mrpPrice}',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            decoration: TextDecoration.lineThrough,
-                            fontSize: 11,
-                          ),
-                        ),
-                  ],
-                
-            
+                    ],
+                  
+              
+              ),
             ),
-          ),
-              ],
+                ],
+              ),
             ),
-          ),
-          // Discount chip at top right corner of entire card
-          if (discountPercentage > 0)
-            Positioned(
-              top: 4,
-              right: 4,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                decoration: BoxDecoration(
-                  color: GroceryColorTheme().greenColor,
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(8),
-                    //bottomRight: Radius.circular(8),
-                    topLeft: Radius.circular(8),
-                    topRight: Radius.circular(8),
-                  )
-                ),
-                child: Text(
-                  '$discountPercentage% OFF',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
+            // Discount chip at top right corner of entire card
+            if (discountPercentage > 0)
+              Positioned(
+                top: 4,
+                right: 4,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: GroceryColorTheme().greenColor,
+                    borderRadius: BorderRadius.only(
+                      bottomLeft: Radius.circular(8),
+                      //bottomRight: Radius.circular(8),
+                      topLeft: Radius.circular(8),
+                      topRight: Radius.circular(8),
+                    )
+                  ),
+                  child: Text(
+                    '$discountPercentage% OFF',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       )
     );
   }
