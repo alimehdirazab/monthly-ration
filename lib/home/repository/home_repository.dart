@@ -55,12 +55,17 @@ class HomeRepository {
   }
 
   // add to cart
-  Future<void> addToCart({required int productId, required int quantity,String? color,String? size}) async {
+  Future<void> addToCart({required int productId, required int quantity,String? color,String? size, int? attributeValueId}) async {
     // Try simpler body first to see if attributes are causing issues
     final Map<String, dynamic> body = {
       'product_id': productId,
       'quantity': quantity,
     };
+    
+    // Add attribute_value_id if provided (for product variants)
+    if (attributeValueId != null) {
+      body['attribute_value_id'] = attributeValueId;
+    }
     
     // Only add attributes if they are not null
     if (color != null || size != null) {

@@ -316,25 +316,9 @@ class _CategoryViewState extends State<CategoryView> {
                           final List<String> productImages = [];
                           for (int i = 0; i < cartItems.length && i < 3; i++) {
                             final product = cartItems[i].product;
-                            if (product?.images != null && product!.images!.isNotEmpty) {
-                              try {
-                                // Parse images from JSON string if needed
-                                final imageData = product.images!;
-                                if (imageData.startsWith('[') && imageData.endsWith(']')) {
-                                  // It's a JSON array string, extract first image
-                                  final cleanedData = imageData.substring(1, imageData.length - 1);
-                                  final firstImage = cleanedData.split(',')[0].replaceAll('"', '').trim();
-                                  if (firstImage.isNotEmpty) {
-                                    productImages.add(firstImage);
-                                  }
-                                } else {
-                                  // It's a single image URL
-                                  productImages.add(imageData);
-                                }
-                              } catch (e) {
-                                // If parsing fails, use default image
-                                productImages.add(GroceryImages.category2);
-                              }
+                            if (product?.imagesUrls != null && product!.imagesUrls.isNotEmpty) {
+                              // Use first image from the URLs list
+                              productImages.add(product.imagesUrls.first);
                             } else {
                               // Use default image if no product image
                               productImages.add(GroceryImages.category2);
@@ -512,13 +496,29 @@ class _ProductCardFromApiState extends State<ProductCardFromApi> {
   void _initializeQuantityFromCart() {
     final cartItems = context.read<HomeCubit>().state.getCartItemsApiState.model?.data ?? [];
     
-    // Find if this product exists in cart
+    // For products with variants, show total quantity from all variants
+    if (widget.product.attributeValues.isNotEmpty) {
+      int totalQuantity = 0;
+      for (final item in cartItems) {
+        if (item.productId == widget.product.id) {
+          totalQuantity += item.quantity ?? 0;
+        }
+      }
+      
+      if (_quantity != totalQuantity) {
+        setState(() {
+          _quantity = totalQuantity;
+        });
+      }
+      return;
+    }
+    
+    // Original logic for products without variants
     final cartItem = cartItems.firstWhere(
       (item) => item.productId == widget.product.id,
-      orElse: () => home_models.CartItem(), // Return empty CartItem if not found
+      orElse: () => home_models.CartItem(),
     );
     
-    // Set quantity from cart if found, otherwise keep 0
     if (cartItem.productId != null) {
       final newQuantity = cartItem.quantity ?? 0;
       if (_quantity != newQuantity) {
@@ -538,6 +538,20 @@ class _ProductCardFromApiState extends State<ProductCardFromApi> {
   void _incrementQuantity() {
     if (_isLoading) return; // Prevent multiple calls
     
+    // Check if product has variants
+    if (widget.product.attributeValues.isNotEmpty) {
+      // Show variants bottom sheet
+      ProductVariantsBottomSheet.show(
+        context: context,
+        product: widget.product,
+        onAddToCart: (attributeValueId, quantity) {
+          _handleVariantAddToCart(attributeValueId, quantity);
+        },
+      );
+      return;
+    }
+    
+    // Original logic for products without variants
     final cartItems = context.read<HomeCubit>().state.getCartItemsApiState.model?.data ?? [];
     final cartItem = cartItems.firstWhere(
       (item) => item.productId == widget.product.id,
@@ -579,6 +593,19 @@ class _ProductCardFromApiState extends State<ProductCardFromApi> {
 
   void _decrementQuantity() {
     if (_quantity > 0 && !_isLoading) {
+      // For products with variants, show bottom sheet instead of direct decrement
+      if (widget.product.attributeValues.isNotEmpty) {
+        ProductVariantsBottomSheet.show(
+          context: context,
+          product: widget.product,
+          onAddToCart: (attributeValueId, quantity) {
+            _handleVariantAddToCart(attributeValueId, quantity);
+          },
+        );
+        return;
+      }
+      
+      // Original logic for products without variants
       final cartItems = context.read<HomeCubit>().state.getCartItemsApiState.model?.data ?? [];
       final cartItem = cartItems.firstWhere(
         (item) => item.productId == widget.product.id,
@@ -613,6 +640,40 @@ class _ProductCardFromApiState extends State<ProductCardFromApi> {
     }
   }
 
+  void _handleVariantAddToCart(int attributeValueId, int quantity) {
+    if (_isLoading) return;
+    
+    setState(() {
+      _isLoading = true;
+    });
+
+    final cartItems = context.read<HomeCubit>().state.getCartItemsApiState.model?.data ?? [];
+    final existingCartItem = cartItems.firstWhere(
+      (item) => item.productId == widget.product.id && item.attributeValueId == attributeValueId,
+      orElse: () => home_models.CartItem(),
+    );
+
+    if (quantity == 0) {
+      // Delete the cart item
+      if (existingCartItem.id != null) {
+        context.read<HomeCubit>().deleteCartItem(cartItemId: existingCartItem.id!);
+      }
+    } else if (existingCartItem.id != null) {
+      // Update existing cart item
+      context.read<HomeCubit>().updateCartItem(
+        cartItemId: existingCartItem.id!,
+        quantity: quantity,
+      );
+    } else {
+      // Add new cart item with attribute
+      context.read<HomeCubit>().addToCart(
+        productId: widget.product.id,
+        quantity: quantity,
+        attributeValueId: attributeValueId,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Calculate discount percentage
@@ -624,7 +685,8 @@ class _ProductCardFromApiState extends State<ProductCardFromApi> {
       listenWhen: (previous, current) => 
           previous.addToCartApiState != current.addToCartApiState ||
           previous.updateCartItemApiState != current.updateCartItemApiState ||
-          previous.deleteCartItemApiState != current.deleteCartItemApiState,
+          previous.deleteCartItemApiState != current.deleteCartItemApiState ||
+          previous.getCartItemsApiState != current.getCartItemsApiState,
       listener: (context, state) {
         // Stop loading when API calls complete (success or failure)
         if (state.addToCartApiState.apiCallState == APICallState.loaded ||
@@ -638,6 +700,11 @@ class _ProductCardFromApiState extends State<ProductCardFromApi> {
               _isLoading = false;
             });
           }
+        }
+        
+        // Update quantity when cart items change (handles bottom sheet updates)
+        if (state.getCartItemsApiState.apiCallState == APICallState.loaded) {
+          _initializeQuantityFromCart();
         }
         
         // Handle API failures and revert local state if needed

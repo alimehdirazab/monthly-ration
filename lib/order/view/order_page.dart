@@ -126,23 +126,23 @@ class _OrderViewState extends State<OrderView> {
           // // List of Orders
         
         
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(20),
-              itemCount: 5, // Example: 5 orders
-              itemBuilder: (context, index) {
-                // You can customize order data based on _showActiveOrders
-                return _buildOrderItem(
-                  context,
-                  orderNumber: '#7226',
-                  date: '6 Jun 2025, 05:43 PM',
-                  items: ['Black currant berries'],
-                  totalPay: '₹465.07',
-                  status: 'Cancelled', // Example status
-                );
-              },
-            ),
-          ),
+          // Expanded(
+          //   child: ListView.builder(
+          //     padding: const EdgeInsets.all(20),
+          //     itemCount: 5, // Example: 5 orders
+          //     itemBuilder: (context, index) {
+          //       // You can customize order data based on _showActiveOrders
+          //       return _buildOrderItem(
+          //         context,
+          //         orderNumber: '#7226',
+          //         date: '6 Jun 2025, 05:43 PM',
+          //         items: ['Black currant berries'],
+          //         totalPay: '₹465.07',
+          //         status: 'Cancelled', // Example status
+          //       );
+          //     },
+          //   ),
+          // ),
         ],
       ),
        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
@@ -155,25 +155,9 @@ class _OrderViewState extends State<OrderView> {
             final List<String> productImages = [];
             for (int i = 0; i < cartItems.length && i < 3; i++) {
               final product = cartItems[i].product;
-              if (product?.images != null && product!.images!.isNotEmpty) {
-                try {
-                  // Parse images from JSON string if needed
-                  final imageData = product.images!;
-                  if (imageData.startsWith('[') && imageData.endsWith(']')) {
-                    // It's a JSON array string, extract first image
-                    final cleanedData = imageData.substring(1, imageData.length - 1);
-                    final firstImage = cleanedData.split(',')[0].replaceAll('"', '').trim();
-                    if (firstImage.isNotEmpty) {
-                      productImages.add(firstImage);
-                    }
-                  } else {
-                    // It's a single image URL
-                    productImages.add(imageData);
-                  }
-                } catch (e) {
-                  // If parsing fails, use default image
-                  productImages.add(GroceryImages.category2);
-                }
+              if (product?.imagesUrls != null && product!.imagesUrls!.isNotEmpty) {
+                // Use first image from the URLs list
+                productImages.add(product.imagesUrls!.first);
               } else {
                 // Use default image if no product image
                 productImages.add(GroceryImages.category2);

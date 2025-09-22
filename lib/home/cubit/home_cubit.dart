@@ -154,12 +154,12 @@ class HomeCubit extends Cubit<HomeState> {
   }
 
   // add to cart Method
-  Future<void> addToCart({required int productId, required int quantity,String? color,String? size}) async {
+  Future<void> addToCart({required int productId, required int quantity,String? color,String? size, int? attributeValueId}) async {
     emit(state.copyWith(addToCartApiState: GeneralApiState<void>(
       apiCallState: APICallState.loading,
     )));
 
-    await homeRepository.addToCart(productId: productId, quantity: quantity,color: color,size: size).then((_) {
+    await homeRepository.addToCart(productId: productId, quantity: quantity,color: color,size: size, attributeValueId: attributeValueId).then((_) {
       // Update cart items quantity in cartItems list for particular product
       List<CartItem> updatedCartItems = List.from(state.getCartItemsApiState.model?.data ?? []);
       

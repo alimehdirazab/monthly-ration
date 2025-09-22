@@ -25,3 +25,4 @@ part 'products_by_category_page.dart';
 part 'add_address_page.dart';
 part "free_coupon_page.dart";
 part 'category_page.dart';
+part 'product_variants_bottom_sheet.dart';

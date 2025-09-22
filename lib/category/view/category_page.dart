@@ -60,25 +60,9 @@ class _CategoryPageViewState extends State<_CategoryView> {
             final List<String> productImages = [];
             for (int i = 0; i < cartItems.length && i < 3; i++) {
               final product = cartItems[i].product;
-              if (product?.images != null && product!.images!.isNotEmpty) {
-                try {
-                  // Parse images from JSON string if needed
-                  final imageData = product.images!;
-                  if (imageData.startsWith('[') && imageData.endsWith(']')) {
-                    // It's a JSON array string, extract first image
-                    final cleanedData = imageData.substring(1, imageData.length - 1);
-                    final firstImage = cleanedData.split(',')[0].replaceAll('"', '').trim();
-                    if (firstImage.isNotEmpty) {
-                      productImages.add(firstImage);
-                    }
-                  } else {
-                    // It's a single image URL
-                    productImages.add(imageData);
-                  }
-                } catch (e) {
-                  // If parsing fails, use default image
-                  productImages.add(GroceryImages.category2);
-                }
+              if (product?.imagesUrls != null && product!.imagesUrls!.isNotEmpty) {
+                // Use first image from the URLs list
+                productImages.add(product.imagesUrls!.first);
               } else {
                 // Use default image if no product image
                 productImages.add(GroceryImages.category2);

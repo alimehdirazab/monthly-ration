@@ -22,6 +22,7 @@ class CartItem {
     final int? productId;
     final int? quantity;
     final dynamic attributes;
+    final int? attributeValueId;  // Keep this for product variants
     final DateTime? createdAt;
     final DateTime? updatedAt;
     final Produc? product;
@@ -32,6 +33,7 @@ class CartItem {
         this.productId,
         this.quantity,
         this.attributes,
+        this.attributeValueId,
         this.createdAt,
         this.updatedAt,
         this.product,
@@ -43,6 +45,7 @@ class CartItem {
         productId: json["product_id"],
         quantity: json["quantity"],
         attributes: json["attributes"],
+        attributeValueId: json["attribute_value_id"],  // Keep this for product variants
         createdAt: json["created_at"] == null ? null : DateTime.parse(json["created_at"]),
         updatedAt: json["updated_at"] == null ? null : DateTime.parse(json["updated_at"]),
         product: json["product"] == null ? null : Produc.fromJson(json["product"]),
@@ -54,6 +57,7 @@ class CartItem {
         "product_id": productId,
         "quantity": quantity,
         "attributes": attributes,
+        "attribute_value_id": attributeValueId,
         "created_at": createdAt?.toIso8601String(),
         "updated_at": updatedAt?.toIso8601String(),
         "product": product?.toJson(),
@@ -94,15 +98,16 @@ class Produc {
     final String? tax;
     final String? discount;
     final String? shippingCost;
-    final int? addStock;
+    final int? stock;  // Changed from addStock to stock
     final List<dynamic>? tagIds;
     final String? unit;
     final bool? published;
     final String? weight;
     final String? pieces;
     final dynamic colorsIds;
-    final String? images;
+    final List<String> imagesUrls;  // Changed from images to imagesUrls
     final List<dynamic>? extraFields;
+    final int? isTranding;  // New field
     final int? status;
     final DateTime? createdAt;
     final DateTime? updatedAt;
@@ -121,15 +126,16 @@ class Produc {
         this.tax,
         this.discount,
         this.shippingCost,
-        this.addStock,
+        this.stock,  // Changed from addStock to stock
         this.tagIds,
         this.unit,
         this.published,
         this.weight,
         this.pieces,
         this.colorsIds,
-        this.images,
+        required this.imagesUrls,  // Changed from images to imagesUrls
         this.extraFields,
+        this.isTranding,  // New field
         this.status,
         this.createdAt,
         this.updatedAt,
@@ -149,19 +155,42 @@ class Produc {
         tax: json["tax"],
         discount: json["discount"],
         shippingCost: json["shipping_cost"],
-        addStock: json["add_stock"],
+        stock: json["stock"],  // Changed from add_stock to stock
         tagIds: json["tag_ids"] == null ? [] : List<dynamic>.from(json["tag_ids"]!.map((x) => x)),
         unit: json["unit"],
         published: json["published"],
         weight: json["weight"],
         pieces: json["pieces"],
         colorsIds: json["colors_ids"],
-        images: json["images"],
+        imagesUrls: _parseImages(json["images"]),  // Parse images JSON string
         extraFields: json["extra_fields"] == null ? [] : List<dynamic>.from(json["extra_fields"]!.map((x) => x)),
+        isTranding: json["is_tranding"],  // New field
         status: json["status"],
         createdAt: json["created_at"] == null ? null : DateTime.parse(json["created_at"]),
         updatedAt: json["updated_at"] == null ? null : DateTime.parse(json["updated_at"]),
     );
+
+    // Helper method to parse images field (can be string or array)
+    static List<String> _parseImages(dynamic imagesData) {
+      if (imagesData == null) return [];
+      
+      if (imagesData is List) {
+        return List<String>.from(imagesData.map((x) => x.toString()));
+      } else if (imagesData is String) {
+        try {
+          // Try to parse as JSON array
+          final decoded = jsonDecode(imagesData);
+          if (decoded is List) {
+            return List<String>.from(decoded.map((x) => x.toString()));
+          }
+        } catch (e) {
+          // If JSON parsing fails, treat as single image URL
+          return [imagesData];
+        }
+      }
+      
+      return [];
+    }
 
     Map<String, dynamic> toJson() => {
         "id": id,
@@ -177,15 +206,16 @@ class Produc {
         "tax": tax,
         "discount": discount,
         "shipping_cost": shippingCost,
-        "add_stock": addStock,
+        "stock": stock,  // Changed from add_stock to stock
         "tag_ids": tagIds == null ? [] : List<dynamic>.from(tagIds!.map((x) => x)),
         "unit": unit,
         "published": published,
         "weight": weight,
         "pieces": pieces,
         "colors_ids": colorsIds,
-        "images": images,
+        "images": imagesUrls,
         "extra_fields": extraFields == null ? [] : List<dynamic>.from(extraFields!.map((x) => x)),
+        "is_tranding": isTranding,  // New field
         "status": status,
         "created_at": createdAt?.toIso8601String(),
         "updated_at": updatedAt?.toIso8601String(),

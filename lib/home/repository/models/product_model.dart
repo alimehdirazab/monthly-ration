@@ -19,30 +19,32 @@ class ProductModel {
 class Product {
     final int id;
     final String name;
-    final String? description;  // New field
+    final String? description;
     final dynamic category;
     final String? subcategory;
-    final String? brand;  // Made nullable
+    final String? brand;
     final String mrpPrice;
-    final String? discount;  // New field
+    final String? discount;
     final String salePrice;
-    final String? weight;  // New field
-    final List<String> images;
+    final String? weight;
     final List<String> imagesUrls;
+    final String? tax;
+    final List<ProductAttributeValue> attributeValues;
 
     Product({
         required this.id,
         required this.name,
-        this.description,  // New optional field
+        this.description,
         required this.category,
         this.subcategory,
         this.brand,
         required this.mrpPrice,
-        this.discount,  // New optional field
+        this.discount,
         required this.salePrice,
-        this.weight,  // New optional field
-        required this.images,
+        this.weight,
         required this.imagesUrls,
+        this.tax,
+        required this.attributeValues,
     });
 
     factory Product.fromJson(Map<String, dynamic> json) => Product(
@@ -56,31 +58,12 @@ class Product {
         discount: json["discount"],
         salePrice: json["sale_price"],
         weight: json["weight"],
-        images: _parseImages(json["images"]),
-        imagesUrls: _parseImagesUrls(json["images_urls"] ?? json["images"]),
+        imagesUrls: _parseImagesUrls(json["images_urls"]),
+        tax: json["tax"],
+        attributeValues: json["attribute_values"] != null 
+            ? List<ProductAttributeValue>.from(json["attribute_values"].map((x) => ProductAttributeValue.fromJson(x)))
+            : [],
     );
-
-    // Helper method to parse images field (can be string or array)
-    static List<String> _parseImages(dynamic imagesData) {
-      if (imagesData == null) return [];
-      
-      if (imagesData is List) {
-        return List<String>.from(imagesData.map((x) => x.toString()));
-      } else if (imagesData is String) {
-        try {
-          // Try to parse as JSON array
-          final decoded = jsonDecode(imagesData);
-          if (decoded is List) {
-            return List<String>.from(decoded.map((x) => x.toString()));
-          }
-        } catch (e) {
-          // If JSON parsing fails, treat as single image URL
-          return [imagesData];
-        }
-      }
-      
-      return [];
-    }
 
     // Helper method to parse images_urls field
     static List<String> _parseImagesUrls(dynamic imagesData) {
@@ -115,7 +98,80 @@ class Product {
         "discount": discount,
         "sale_price": salePrice,
         "weight": weight,
-        "images": List<dynamic>.from(images.map((x) => x)),
         "images_urls": List<dynamic>.from(imagesUrls.map((x) => x)),
+        "tax": tax,
+        "attribute_values": List<dynamic>.from(attributeValues.map((x) => x.toJson())),
+    };
+}
+
+class ProductAttributeValue {
+    final ProductAttribute attribute;
+
+    ProductAttributeValue({
+        required this.attribute,
+    });
+
+    factory ProductAttributeValue.fromJson(Map<String, dynamic> json) => ProductAttributeValue(
+        attribute: ProductAttribute.fromJson(json["attribute"]),
+    );
+
+    Map<String, dynamic> toJson() => {
+        "attribute": attribute.toJson(),
+    };
+}
+
+class ProductAttribute {
+    final int id;
+    final String name;
+    final List<ProductAttributeValueDetail> values;
+
+    ProductAttribute({
+        required this.id,
+        required this.name,
+        required this.values,
+    });
+
+    factory ProductAttribute.fromJson(Map<String, dynamic> json) => ProductAttribute(
+        id: json["id"],
+        name: json["name"],
+        values: List<ProductAttributeValueDetail>.from(json["values"].map((x) => ProductAttributeValueDetail.fromJson(x))),
+    );
+
+    Map<String, dynamic> toJson() => {
+        "id": id,
+        "name": name,
+        "values": List<dynamic>.from(values.map((x) => x.toJson())),
+    };
+}
+
+class ProductAttributeValueDetail {
+    final int id;
+    final String value;
+    final String mrpPrice;
+    final String discount;
+    final String? sellPrice;
+
+    ProductAttributeValueDetail({
+        required this.id,
+        required this.value,
+        required this.mrpPrice,
+        required this.discount,
+        this.sellPrice,
+    });
+
+    factory ProductAttributeValueDetail.fromJson(Map<String, dynamic> json) => ProductAttributeValueDetail(
+        id: json["id"],
+        value: json["value"],
+        mrpPrice: json["mrp_price"],
+        discount: json["discount"],
+        sellPrice: json["sell_price"]?.toString(),
+    );
+
+    Map<String, dynamic> toJson() => {
+        "id": id,
+        "value": value,
+        "mrp_price": mrpPrice,
+        "discount": discount,
+        "sell_price": sellPrice,
     };
 }

@@ -329,403 +329,418 @@ class _CheckoutViewState extends State<CheckoutView> {
           );
         }
       },
-      child: Scaffold(
-        appBar: AppBar(
-          backgroundColor: GroceryColorTheme().primary,
-          title: Text(
-            'Checkout',
-            style: GroceryTextTheme().bodyText.copyWith(fontSize: 20),
-          ),
-          centerTitle: true,
-          actions: [
-            TextButton(
-            child: Text('Clear All',
-            style: GroceryTextTheme().bodyText.copyWith(
-              fontSize: 14,
-              color: GroceryColorTheme().black, 
-              decoration: TextDecoration.underline,
-              ),
-              ),
-              onPressed: () {
-                context.read<HomeCubit>().clearCart();
-              },
+      child: SafeArea(
+        child: Scaffold(
+          appBar: AppBar(
+            backgroundColor: GroceryColorTheme().primary,
+            title: Text(
+              'Checkout',
+              style: GroceryTextTheme().bodyText.copyWith(fontSize: 20),
             ),
-          ],
-        ),
-        body: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      
-          child: Column(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                     BlocBuilder<HomeCubit, HomeState>(
-                      buildWhen: (previous, current) =>
-                       previous.getCartItemsApiState != current.getCartItemsApiState||
-                       previous.addToCartApiState != current.addToCartApiState||
-                       previous.clearCartApiState != current.clearCartApiState||
-                       previous.deleteCartItemApiState != current.deleteCartItemApiState||
-                       previous.updateCartItemApiState != current.updateCartItemApiState,
-                       builder: (context, state) {
-                        final cartItems = state.getCartItemsApiState.model?.data ?? [];
-                        // show loading indicator while fetching cart items
-                        if (state.getCartItemsApiState.apiCallState == APICallState.loading) {
-                          return const Center(child: CircularProgressIndicator());
-                        }
-                        
-                         return ListView.builder(
-                           shrinkWrap: true, // Takes only the space it needs
-                           physics: const NeverScrollableScrollPhysics(), // Prevents nested scrolling issues
-                           itemCount: cartItems.length,
-                           itemBuilder: (context, index) {
-                             final item = cartItems[index];
-                             
-                             return CheckoutProductCard(
-                                    imageUrl: item.product?.images != null && item.product!.images!.startsWith('[') && item.product!.images!.endsWith(']')
-                                      ? item.product!.images!.substring(1, item.product!.images!.length - 1).split(',')[0].replaceAll('"', '').trim()
-                                      : (item.product?.images ?? ''),
-                                    title: item.product?.name??'',
-                                    description: item.product?.description??'',
-                                    deliveryTime: '14 minutes',
-                                    quantity: item.quantity??0,
-                                    price: item.product?.salePrice??'',
-                                    mrpPrice: item.product?.mrpPrice??'',
-                                    onIncrement: () => _incrementQuantity(item.id??0,item.quantity??0), 
-                                    onDecrement: () => _decrementQuantity(item.id??0,item.quantity??0),
-                                    onRemove: () => _removeItem(item.id??0),
-                                  );
-                           },
-                         );
-                       }
-                     ),
-                        
-                      const SizedBox(height: 16),
-      
-                      // You might also like section
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: Text(
-                          'You might also like',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey[800],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-      
-                      GridView.builder(
-                        shrinkWrap: true, // Important for nested scrolling
-                        physics:
-                            const NeverScrollableScrollPhysics(), // Important for nested scrolling
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2, // Number of columns
-                              crossAxisSpacing:
-                                  6.0, // Horizontal space between cards
-                              mainAxisSpacing:
-                                  6.0, // Vertical space between cards
-                              childAspectRatio:
-                                  0.5, // Adjust this ratio for card height
-                            ),
-                        itemCount: productList.length,
-                        itemBuilder: (context, index) {
-                          return _ProductCard(product: productList[index]);
-                        },
-                      ),
-                      // SizedBox(
-                      //   height: 280, // Height for the horizontal list
-                      //   child: ListView.builder(
-                      //     scrollDirection: Axis.horizontal,
-                      //     itemCount: _recommendedProducts.length,
-                      //     padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                      //     itemBuilder: (context, index) {
-                      //       final product = _recommendedProducts[index];
-                      //       return RecommendedProductCard(
-                      //         imageUrl: product['imageUrl'],
-                      //         title: product['title'],
-                      //         description: product['description'],
-                      //         rating: product['rating'],
-                      //         reviews: product['reviews'],
-                      //         deliveryTime: product['deliveryTime'],
-                      //         price: product['price'],
-                      //         mrp: product['mrp'],
-                      //       );
-                      //     },
-                      //   ),
-                      // ),
-                      const SizedBox(height: 24),
-                      _buildDeliveryDateSection(),
-                      const SizedBox(height: 16),
-                      _buildTimeSlotSection(),
-                      const SizedBox(height: 16),
-                      _buildAddressSection(),
-                      const SizedBox(height: 24),
-      
-                      // You got Free delivery banner
-                      Container( 
-                        margin: const EdgeInsets.symmetric(horizontal: 16.0),
-                        padding: const EdgeInsets.all(16.0),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(15.0),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.1),
-                              spreadRadius: 1,
-                              blurRadius: 5,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Container(
-                              padding: EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                color: GroceryColorTheme().statusBlueColor
-                                    .withValues(alpha: 0.1),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.timelapse_outlined,
-                                    color: GroceryColorTheme().statusBlueColor,
-                                    size: 24,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
-                                        'You got Free delivery',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                      Text(
-                                        'No coupons needed',
-                                        style: TextStyle(
-                                          color: Colors.grey[600],
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                context.pushPage(FreeCouponPage(
-                                  homeCubit: context.read<HomeCubit>(),
-                                ));
-                              },
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: const [
-                                  Text(
-                                    'See all coupons',
-                                    style: TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                  Icon(
-                                    Icons.arrow_forward_ios,
-                                    color: Colors.black,
-                                    size: 12,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-      
-                      // Bill Details
-                      BlocBuilder<HomeCubit, HomeState>(
+            centerTitle: true,
+            actions: [
+              TextButton(
+              child: Text('Clear All',
+              style: GroceryTextTheme().bodyText.copyWith(
+                fontSize: 14,
+                color: GroceryColorTheme().black, 
+                decoration: TextDecoration.underline,
+                ),
+                ),
+                onPressed: () {
+                  context.read<HomeCubit>().clearCart();
+                },
+              ),
+            ],
+          ),
+          body: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        
+            child: Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                       BlocBuilder<HomeCubit, HomeState>(
                         buildWhen: (previous, current) =>
-                            previous.getCartItemsApiState != current.getCartItemsApiState ||
-                            previous.updateCartItemApiState != current.updateCartItemApiState ||
-                            previous.deleteCartItemApiState != current.deleteCartItemApiState,
-                        builder: (context, state) {
+                         previous.getCartItemsApiState != current.getCartItemsApiState||
+                         previous.addToCartApiState != current.addToCartApiState||
+                         previous.clearCartApiState != current.clearCartApiState||
+                         previous.deleteCartItemApiState != current.deleteCartItemApiState||
+                         previous.updateCartItemApiState != current.updateCartItemApiState,
+                         builder: (context, state) {
                           final cartItems = state.getCartItemsApiState.model?.data ?? [];
-                          
-                          // Calculate totals
-                          double itemsTotal = 0;
-                          double mrpTotal = 0;
-                          
-                          for (var cartItem in cartItems) {
-                            final product = cartItem.product;
-                            if (product != null && cartItem.quantity != null) {
-                              final salePrice = double.tryParse(product.salePrice?.toString() ?? '0') ?? 0;
-                              final mrpPrice = double.tryParse(product.mrpPrice ?? '0') ?? 0;
-                              final quantity = cartItem.quantity!;
-                              
-                              itemsTotal += salePrice * quantity;
-                              mrpTotal += mrpPrice * quantity;
-                            }
+                          // show loading indicator while fetching cart items
+                          if (state.getCartItemsApiState.apiCallState == APICallState.loading) {
+                            return const Center(child: CircularProgressIndicator());
                           }
                           
-                          final deliveryCharge = itemsTotal >= 500 ? 0.0 : 20.0; // Free delivery above ₹500
-                          final handlingCharge = itemsTotal * 0.02; // 2% handling charge
-                          final savings = mrpTotal - itemsTotal;
-                          final grandTotal = itemsTotal + deliveryCharge + handlingCharge;
+                           return ListView.builder(
+                             shrinkWrap: true, // Takes only the space it needs
+                             physics: const NeverScrollableScrollPhysics(), // Prevents nested scrolling issues
+                             itemCount: cartItems.length,
+                             itemBuilder: (context, index) {
+                               final item = cartItems[index];
+                               
+                               return CheckoutProductCard(
+                                      imageUrl: item.product?.imagesUrls != null && item.product!.imagesUrls!.isNotEmpty
+                                        ? item.product!.imagesUrls!.first
+                                        : '',
+                                      title: item.product?.name??'',
+                                      description: item.product?.description??'',
+                                      deliveryTime: '14 minutes',
+                                      quantity: item.quantity??0,
+                                      price: item.product?.salePrice??'',
+                                      mrpPrice: item.product?.mrpPrice??'',
+                                      onIncrement: () => _incrementQuantity(item.id??0,item.quantity??0), 
+                                      onDecrement: () => _decrementQuantity(item.id??0,item.quantity??0),
+                                      onRemove: () => _removeItem(item.id??0),
+                                    );
+                             },
+                           );
+                         }
+                       ),
                           
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                                child: Text(
-                                  'Bill details',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.grey[800],
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              _buildBillDetailRow(
-                                'Items total', 
-                                '₹${itemsTotal.toStringAsFixed(0)}', 
-                                isBold: false
-                              ),
-                              if (savings > 0)
-                                _buildBillDetailRow(
-                                  'You saved', 
-                                  '₹${savings.toStringAsFixed(0)}', 
-                                  isBold: false,
-                                  valueColor: Colors.green,
-                                ),
-                              _buildBillDetailRow(
-                                'Delivery charge',
-                                deliveryCharge == 0 ? '₹20 FREE' : '₹${deliveryCharge.toStringAsFixed(0)}',
-                                isBold: false,
-                                valueColor: deliveryCharge == 0 ? Colors.green : null,
-                              ),
-                              _buildBillDetailRow(
-                                'Handling charge',
-                                '₹${handlingCharge.toStringAsFixed(0)}',
-                                isBold: false,
-                              ),
-                              const Divider(
-                                indent: 16,
-                                endIndent: 16,
-                                height: 20,
-                                thickness: 1,
-                              ),
-                              _buildBillDetailRow(
-                                'Grand total', 
-                                '₹${grandTotal.toStringAsFixed(0)}', 
-                                isBold: true
+                        const SizedBox(height: 16),
+        
+                        // // You might also like section
+                        // Padding(
+                        //   padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        //   child: Text(
+                        //     'You might also like',
+                        //     style: TextStyle(
+                        //       fontSize: 18,
+                        //       fontWeight: FontWeight.bold,
+                        //       color: Colors.grey[800],
+                        //     ),
+                        //   ),
+                        // ),
+                        // const SizedBox(height: 12),
+        
+                        // GridView.builder(
+                        //   shrinkWrap: true, // Important for nested scrolling
+                        //   physics:
+                        //       const NeverScrollableScrollPhysics(), // Important for nested scrolling
+                        //   gridDelegate:
+                        //       const SliverGridDelegateWithFixedCrossAxisCount(
+                        //         crossAxisCount: 2, // Number of columns
+                        //         crossAxisSpacing:
+                        //             6.0, // Horizontal space between cards
+                        //         mainAxisSpacing:
+                        //             6.0, // Vertical space between cards
+                        //         childAspectRatio:
+                        //             0.5, // Adjust this ratio for card height
+                        //       ),
+                        //   itemCount: productList.length,
+                        //   itemBuilder: (context, index) {
+                        //     return _ProductCard(product: productList[index]);
+                        //   },
+                        // ),
+                        // SizedBox(
+                        //   height: 280, // Height for the horizontal list
+                        //   child: ListView.builder(
+                        //     scrollDirection: Axis.horizontal,
+                        //     itemCount: _recommendedProducts.length,
+                        //     padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        //     itemBuilder: (context, index) {
+                        //       final product = _recommendedProducts[index];
+                        //       return RecommendedProductCard(
+                        //         imageUrl: product['imageUrl'],
+                        //         title: product['title'],
+                        //         description: product['description'],
+                        //         rating: product['rating'],
+                        //         reviews: product['reviews'],
+                        //         deliveryTime: product['deliveryTime'],
+                        //         price: product['price'],
+                        //         mrp: product['mrp'],
+                        //       );
+                        //     },
+                        //   ),
+                        // ),
+                        const SizedBox(height: 24),
+                        _buildDeliveryDateSection(),
+                        const SizedBox(height: 16),
+                        _buildTimeSlotSection(),
+                        const SizedBox(height: 16),
+                        _buildAddressSection(),
+                        const SizedBox(height: 24),
+        
+                        // You got Free delivery banner
+                        Container( 
+                          margin: const EdgeInsets.symmetric(horizontal: 16.0),
+                          padding: const EdgeInsets.all(16.0),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(15.0),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.1),
+                                spreadRadius: 1,
+                                blurRadius: 5,
+                                offset: const Offset(0, 3),
                               ),
                             ],
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 24),
-      
-                      // Issue GST Invoice
-                      Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 16.0),
-                        padding: const EdgeInsets.all(16.0),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(15.0),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.1),
-                              spreadRadius: 1,
-                              blurRadius: 5,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.receipt_long,
-                              color: Colors.blue,
-                              size: 24,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Issue GST Invoice',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  color: GroceryColorTheme().statusBlueColor
+                                      .withValues(alpha: 0.1),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.timelapse_outlined,
+                                      color: GroceryColorTheme().statusBlueColor,
+                                      size: 24,
                                     ),
-                                  ),
-                                  RichText(
-                                    text: TextSpan(
-                                      text:
-                                          'Click on the check box to get GST invoice on this order. ',
-                                      style: TextStyle(
-                                        color: Colors.grey[600],
-                                        fontSize: 12,
-                                      ),
-                                      children: const [
-                                        TextSpan(
-                                          text: 'Edit',
+                                    const SizedBox(width: 12),
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          'You got Free delivery',
                                           style: TextStyle(
-                                            color: Colors.orange,
                                             fontWeight: FontWeight.bold,
-                                            decoration: TextDecoration.underline,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        Text(
+                                          'No coupons needed',
+                                          style: TextStyle(
+                                            color: Colors.grey[600],
+                                            fontSize: 12,
                                           ),
                                         ),
                                       ],
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                            Checkbox(
-                              value: false, // This should be managed by state
-                              onChanged: (bool? newValue) {
-                              },
-                              activeColor: Colors.orange,
-                            ),
-                          ],
+                              TextButton(
+                                onPressed: () {
+                                  context.pushPage(FreeCouponPage(
+                                    homeCubit: context.read<HomeCubit>(),
+                                  ));
+                                },
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: const [
+                                    Text(
+                                      'See all coupons',
+                                      style: TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                    Icon(
+                                      Icons.arrow_forward_ios,
+                                      color: Colors.black,
+                                      size: 12,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 10),
-                      CustomElevatedButton(
-                        backgrondColor: GroceryColorTheme().primary,
-                        width: double.infinity,
-                        onPressed:  () => _handleCheckout() ,
-                        buttonText: BlocBuilder<HomeCubit, HomeState>(
+                        const SizedBox(height: 24),
+        
+                        // Bill Details
+                        BlocBuilder<HomeCubit, HomeState>(
+                          buildWhen: (previous, current) =>
+                              previous.getCartItemsApiState != current.getCartItemsApiState ||
+                              previous.updateCartItemApiState != current.updateCartItemApiState ||
+                              previous.deleteCartItemApiState != current.deleteCartItemApiState,
                           builder: (context, state) {
-                            if (state.checkoutApiState.apiCallState == APICallState.loading) {
-                              return Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      color: GroceryColorTheme().black,
-                                      strokeWidth: 2,
+                            final cartItems = state.getCartItemsApiState.model?.data ?? [];
+                            
+                            // Calculate totals
+                            double itemsTotal = 0;
+                            double mrpTotal = 0;
+                            
+                            for (var cartItem in cartItems) {
+                              final product = cartItem.product;
+                              if (product != null && cartItem.quantity != null) {
+                                final salePrice = double.tryParse(product.salePrice?.toString() ?? '0') ?? 0;
+                                final mrpPrice = double.tryParse(product.mrpPrice ?? '0') ?? 0;
+                                final quantity = cartItem.quantity!;
+                                
+                                itemsTotal += salePrice * quantity;
+                                mrpTotal += mrpPrice * quantity;
+                              }
+                            }
+                            
+                            final deliveryCharge = itemsTotal >= 500 ? 0.0 : 20.0; // Free delivery above ₹500
+                            final handlingCharge = itemsTotal * 0.02; // 2% handling charge
+                            final savings = mrpTotal - itemsTotal;
+                            final grandTotal = itemsTotal + deliveryCharge + handlingCharge;
+                            
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                                  child: Text(
+                                    'Bill details',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.grey[800],
                                     ),
                                   ),
-                                  const SizedBox(width: 8),
+                                ),
+                                const SizedBox(height: 12),
+                                _buildBillDetailRow(
+                                  'Items total', 
+                                  '₹${itemsTotal.toStringAsFixed(0)}', 
+                                  isBold: false
+                                ),
+                                if (savings > 0)
+                                  _buildBillDetailRow(
+                                    'You saved', 
+                                    '₹${savings.toStringAsFixed(0)}', 
+                                    isBold: false,
+                                    valueColor: Colors.green,
+                                  ),
+                                _buildBillDetailRow(
+                                  'Delivery charge',
+                                  deliveryCharge == 0 ? '₹20 FREE' : '₹${deliveryCharge.toStringAsFixed(0)}',
+                                  isBold: false,
+                                  valueColor: deliveryCharge == 0 ? Colors.green : null,
+                                ),
+                                _buildBillDetailRow(
+                                  'Handling charge',
+                                  '₹${handlingCharge.toStringAsFixed(0)}',
+                                  isBold: false,
+                                ),
+                                const Divider(
+                                  indent: 16,
+                                  endIndent: 16,
+                                  height: 20,
+                                  thickness: 1,
+                                ),
+                                _buildBillDetailRow(
+                                  'Grand total', 
+                                  '₹${grandTotal.toStringAsFixed(0)}', 
+                                  isBold: true
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 24),
+        
+                        // Issue GST Invoice
+                        Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 16.0),
+                          padding: const EdgeInsets.all(16.0),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(15.0),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.1),
+                                spreadRadius: 1,
+                                blurRadius: 5,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.receipt_long,
+                                color: Colors.blue,
+                                size: 24,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Issue GST Invoice',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    RichText(
+                                      text: TextSpan(
+                                        text:
+                                            'Click on the check box to get GST invoice on this order. ',
+                                        style: TextStyle(
+                                          color: Colors.grey[600],
+                                          fontSize: 12,
+                                        ),
+                                        children: const [
+                                          TextSpan(
+                                            text: 'Edit',
+                                            style: TextStyle(
+                                              color: Colors.orange,
+                                              fontWeight: FontWeight.bold,
+                                              decoration: TextDecoration.underline,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Checkbox(
+                                value: false, // This should be managed by state
+                                onChanged: (bool? newValue) {
+                                },
+                                activeColor: Colors.orange,
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(height: 10),
+                        CustomElevatedButton(
+                          backgrondColor: GroceryColorTheme().primary,
+                          width: double.infinity,
+                          onPressed:  () => _handleCheckout() ,
+                          buttonText: BlocBuilder<HomeCubit, HomeState>(
+                            builder: (context, state) {
+                              if (state.checkoutApiState.apiCallState == APICallState.loading) {
+                                return Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        color: GroceryColorTheme().black,
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      "Processing...",
+                                      style: GroceryTextTheme().bodyText.copyWith(
+                                        fontSize: 14,
+                                        color: GroceryColorTheme().black, 
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              }
+                              return Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                spacing: 6,
+                                children: [
                                   Text(
-                                    "Processing...",
+                                    "Checkout",
                                     style: GroceryTextTheme().bodyText.copyWith(
                                       fontSize: 14,
                                       color: GroceryColorTheme().black, 
@@ -733,31 +748,18 @@ class _CheckoutViewState extends State<CheckoutView> {
                                   ),
                                 ],
                               );
-                            }
-                            return Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              spacing: 6,
-                              children: [
-                                Text(
-                                  "Checkout",
-                                  style: GroceryTextTheme().bodyText.copyWith(
-                                    fontSize: 14,
-                                    color: GroceryColorTheme().black, 
-                                  ),
-                                ),
-                              ],
-                            );
-                          },
+                            },
+                          ),
                         ),
-                      ),
-                      // Space for the floating button
-                    ],
+                        // Space for the floating button
+                      ],
+                    ),
                   ),
                 ),
-              ),
-      
-              // Bottom Floating Button
-            ],
+        
+                // Bottom Floating Button
+              ],
+            ),
           ),
         ),
       ),
