@@ -180,6 +180,14 @@ class HomeRepository {
     
     return PaymentVerifyResponse.fromJson(response);
   }
-  
-  
+
+  // get orders
+  Future<OrdersModel> getOrders() async {
+    final response = await generalRepository.get(
+      handle: GroceryApis.orders,
+    );
+    return OrdersModel.fromJson(response);
+  }
+
+
   }

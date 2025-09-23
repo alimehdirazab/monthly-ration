@@ -137,7 +137,14 @@ class _ProductDetailViewState extends State<ProductDetailView> with TickerProvid
           ),
           centerTitle: true,
         ),
-        bottomNavigationBar: _buildBottomBar(),
+        bottomNavigationBar: BlocBuilder<HomeCubit, HomeState>(
+          buildWhen: (previous, current) =>
+              previous.productDetailsApiState != current.productDetailsApiState,
+          builder: (context, state) {
+            final productDetails = state.productDetailsApiState.model?.data;
+            return _buildBottomBar(productDetails);
+          },
+        ),
         body: BlocBuilder<HomeCubit, HomeState>(
           buildWhen: (previous, current) =>
               previous.productDetailsApiState != current.productDetailsApiState,
@@ -289,29 +296,6 @@ class _ProductDetailViewState extends State<ProductDetailView> with TickerProvid
                         ),
                           ],
                         ),
-                        // Arrow button overlay positioned on the left of the card
-                        Positioned(
-                          left: 10,
-                          top: 110, // Center vertically on the image
-                          child: GestureDetector(
-                            onTap: _toggleKeyFeatures,
-                            child: Container(
-                              width: 35,
-                              height: 35,
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.6),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                _isKeyFeaturesVisible 
-                                    ? Icons.arrow_forward_ios 
-                                    : Icons.arrow_back_ios,
-                                color: Colors.white,
-                                size: 16,
-                              ),
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ),
@@ -433,6 +417,31 @@ class _ProductDetailViewState extends State<ProductDetailView> with TickerProvid
             child: _buildKeyFeaturesPanel(productDetails),
           ),
         ),
+        // Arrow button positioned at the left edge when panel is closed
+        if (!_isKeyFeaturesVisible)
+          Positioned(
+            left: 0,
+            top: MediaQuery.of(context).size.height * 0.2,
+            child: GestureDetector(
+              onTap: _toggleKeyFeatures,
+              child: Container(
+                width: 40,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.7),
+                  borderRadius: const BorderRadius.only(
+                    topRight: Radius.circular(20),
+                    bottomRight: Radius.circular(20),
+                  ),
+                ),
+                child: Icon(
+                  Icons.arrow_forward_ios,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -627,83 +636,108 @@ class _ProductDetailViewState extends State<ProductDetailView> with TickerProvid
 
   // Build the Key Features panel that slides from left
   Widget _buildKeyFeaturesPanel(ProductDetails productDetails) {
-    return Container(
-
-      height: MediaQuery.of(context).size.height * 0.53, // 53% of screen height
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.85),
-        borderRadius: const BorderRadius.only(
-          topRight: Radius.circular(0),
-          bottomRight: Radius.circular(0),
-        ),
-      ),
-      child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header with close button
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Key features',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: _toggleKeyFeatures,
-                    child: const Icon(
-                      Icons.close,
-                      color: Colors.white,
-                      size: 24,
-                    ),
-                  ),
-                ],
-              ),
+    return Row(
+      children: [
+        // Main panel content
+        Container(
+          width: MediaQuery.of(context).size.width * 0.60, // 60% of screen width
+          height: MediaQuery.of(context).size.height * 0.50, // 50% of screen height
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.85),
+            borderRadius: const BorderRadius.only(
+              topRight: Radius.circular(0), // No radius since arrow button will be attached
+              bottomRight: Radius.circular(8),
             ),
-            
-            // Key features content
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Unit - show selected variant or default
-                    if (_selectedVariant?.value != null)
-                      _buildKeyFeatureItem('Unit', _selectedVariant!.value!)
-                    else if (productDetails.weight != null && productDetails.weight!.isNotEmpty)
-                      _buildKeyFeatureItem('Unit', productDetails.weight!),
-                    
-                    // Type (category)
-                    if (productDetails.category != null && productDetails.category!.isNotEmpty)
-                      _buildKeyFeatureItem('Type', productDetails.category!),
-                    
-                    // Shelf Life (static for now, can be added to API later)
-                    _buildKeyFeatureItem('Shelf Life', '3 months'),
-                    
-                    // Brand
-                    if (productDetails.brand != null && productDetails.brand!.isNotEmpty)
-                      _buildKeyFeatureItem('Brand', productDetails.brand!),
-                  ],
+          ),
+          child: SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header with close button
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Key features',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      // GestureDetector(
+                      //   onTap: _toggleKeyFeatures,
+                      //   child: const Icon(
+                      //     Icons.close,
+                      //     color: Colors.white,
+                      //     size: 20,
+                      //   ),
+                      // ),
+                    ],
+                  ),
                 ),
+                
+                // Key features content
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Unit - show selected variant or default
+                        if (_selectedVariant?.value != null)
+                          _buildKeyFeatureItem('Unit', _selectedVariant!.value!)
+                        else if (productDetails.weight != null && productDetails.weight!.isNotEmpty)
+                          _buildKeyFeatureItem('Unit', productDetails.weight!),
+                        
+                        // Type (category)
+                        if (productDetails.category != null && productDetails.category!.isNotEmpty)
+                          _buildKeyFeatureItem('Type', productDetails.category!),
+                        
+                        // Shelf Life (static for now, can be added to API later)
+                        _buildKeyFeatureItem('Shelf Life', '3 months'),
+                        
+                        // Brand
+                        if (productDetails.brand != null && productDetails.brand!.isNotEmpty)
+                          _buildKeyFeatureItem('Brand', productDetails.brand!),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        // Integrated arrow button as part of the panel
+        GestureDetector(
+          onTap: _toggleKeyFeatures,
+          child: Container(
+            width: 40,
+            height: 80,
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.85),
+              borderRadius: const BorderRadius.only(
+                topRight: Radius.circular(20),
+                bottomRight: Radius.circular(20),
               ),
             ),
-          ],
+            child: Icon(
+              Icons.arrow_back_ios,
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
         ),
-      ),
+      ],
     );
   }
 
   // Helper method to build each key feature item
   Widget _buildKeyFeatureItem(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -711,16 +745,16 @@ class _ProductDetailViewState extends State<ProductDetailView> with TickerProvid
             label,
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.7),
-              fontSize: 14,
+              fontSize: 12,
               fontWeight: FontWeight.w400,
             ),
           ),
-          const SizedBox(height: 5),
+          const SizedBox(height: 4),
           Text(
             value,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 18,
+              fontSize: 14,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -730,12 +764,16 @@ class _ProductDetailViewState extends State<ProductDetailView> with TickerProvid
   }
 
   Widget _buildProductDetailsCard(ProductDetails productDetails) {
-    // Build attribute tags with brand, category, and weight
+    // Build attribute tags with brand, category, and weight - use selected variant weight if available
     List<Widget> attributeTags = [];
     if (productDetails.brand != null && productDetails.brand!.isNotEmpty) {
       attributeTags.add(_buildTag(productDetails.brand!));
     }
-    if (productDetails.weight != null && productDetails.weight!.isNotEmpty) {
+    // Show selected variant value or default product weight
+    if (_selectedVariant?.value != null && _selectedVariant!.value!.isNotEmpty) {
+      if (attributeTags.isNotEmpty) attributeTags.add(const SizedBox(width: 8));
+      attributeTags.add(_buildTag(_selectedVariant!.value!));
+    } else if (productDetails.weight != null && productDetails.weight!.isNotEmpty) {
       if (attributeTags.isNotEmpty) attributeTags.add(const SizedBox(width: 8));
       attributeTags.add(_buildTag(productDetails.weight!));
     }
@@ -826,11 +864,11 @@ class _ProductDetailViewState extends State<ProductDetailView> with TickerProvid
 
               const SizedBox(height: 10),
               
-              // Price from API
+              // Price from selected variant or API default
               Row(
                 children: [
                   Text(
-                    '₹${productDetails.sellPrice ?? 0}',
+                    '₹${_selectedVariant?.sellPrice ?? productDetails.sellPrice ?? 0}',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -838,10 +876,10 @@ class _ProductDetailViewState extends State<ProductDetailView> with TickerProvid
                     ),
                   ),
                   const SizedBox(width: 8),
-                  // MRP from API
-                  if (productDetails.mrpPrice != null)
+                  // MRP from selected variant or API default
+                  if ((_selectedVariant?.mrpPrice ?? productDetails.mrpPrice) != null)
                     Text(
-                      'MRP ₹${productDetails.mrpPrice}',
+                      'MRP ₹${_selectedVariant?.mrpPrice ?? productDetails.mrpPrice}',
                       style: TextStyle(
                         fontSize: 16,
                         color: Colors.black54,
@@ -952,15 +990,12 @@ class _ProductDetailViewState extends State<ProductDetailView> with TickerProvid
           onTap: () {
             if (productId != null) {
               // Navigate to product details with push replacement to avoid stack buildup
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ProductDetailPage(
+           context.pushReplacementPage(
+            ProductDetailPage(
                     homeCubit: context.read<HomeCubit>(),
                     productId: productId,
                   ),
-                ),
-              );
+           );
             }
           },
           borderRadius: BorderRadius.circular(12),
@@ -1047,7 +1082,7 @@ class _ProductDetailViewState extends State<ProductDetailView> with TickerProvid
     // Optional: You can add a callback here to notify the parent widget (e.g., a cart)
   }
 
-  Widget _buildBottomBar() {
+  Widget _buildBottomBar(ProductDetails? productDetails) {
     return BlocListener<HomeCubit, HomeState>(
       listenWhen: (previous, current) =>
           previous.addToCartApiState != current.addToCartApiState,
@@ -1083,23 +1118,31 @@ class _ProductDetailViewState extends State<ProductDetailView> with TickerProvid
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // Price display section for selected variant
-            if (_selectedVariant != null)
+            // Price display section - show selected variant price or default product price
+            if (_selectedVariant != null || productDetails != null)
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    '₹${_selectedVariant!.sellPrice}',
+                    '₹${_selectedVariant?.sellPrice ?? productDetails?.sellPrice ?? 0}',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                       color: Colors.black,
                     ),
                   ),
-                  if (_selectedVariant!.value != null)
+                  if (_selectedVariant?.value != null)
                     Text(
                       'Per ${_selectedVariant!.value}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    )
+                  else if (productDetails?.weight != null && productDetails!.weight!.isNotEmpty)
+                    Text(
+                      'Per ${productDetails.weight}',
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.grey[600],

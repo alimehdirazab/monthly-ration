@@ -78,6 +78,8 @@ class GroceryApis {
   static const String checkout = "checkout";
   // order-payment-varify
   static const String orderPaymentVerify = "order-payment-varify";
+  // orders
+  static const String orders = "orders";
 
   initBaseUrlAndAuthEndpoints() {
     ApiConfig.baseUrl = baseApiUrl;

@@ -6,7 +6,6 @@ class ProductVariantsBottomSheet extends StatefulWidget {
   final Function(int attributeValueId, int quantity) onAddToCart;
 
   const ProductVariantsBottomSheet._({
-    super.key,
     required this.product,
     required this.cartItems,
     required this.onAddToCart,
@@ -97,8 +96,8 @@ class _ProductVariantsBottomSheetState extends State<ProductVariantsBottomSheet>
         }
       },
       child: Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration:  BoxDecoration(
+        color: const Color.fromARGB(255, 238, 240, 248),
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
@@ -110,41 +109,17 @@ class _ProductVariantsBottomSheetState extends State<ProductVariantsBottomSheet>
             height: 4,
             width: 40,
             decoration: BoxDecoration(
-              color: Colors.grey[300],
+              color: Colors.grey,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
           
           // Header
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(8),
             child: Row(
               children: [
-                // Product image
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: widget.product.imagesUrls.isNotEmpty
-                      ? Image.network(
-                          widget.product.imagesUrls.first,
-                          height: 60,
-                          width: 60,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              height: 60,
-                              width: 60,
-                              color: Colors.grey[200],
-                              child: const Icon(Icons.image_not_supported),
-                            );
-                          },
-                        )
-                      : Container(
-                          height: 60,
-                          width: 60,
-                          color: Colors.grey[200],
-                          child: const Icon(Icons.image_not_supported),
-                        ),
-                ),
+               
                 const SizedBox(width: 12),
                 
                 // Product details
@@ -161,23 +136,12 @@ class _ProductVariantsBottomSheetState extends State<ProductVariantsBottomSheet>
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      if (widget.product.brand != null && widget.product.brand!.isNotEmpty)
-                        Text(
-                          widget.product.brand!,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
+                     
                     ],
                   ),
                 ),
                 
-                // Close button
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close),
-                ),
+            
               ],
             ),
           ),
@@ -194,17 +158,17 @@ class _ProductVariantsBottomSheetState extends State<ProductVariantsBottomSheet>
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Attribute name (e.g., "Weight")
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Text(
-                        attributeValue.attribute.name,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
+                    // // Attribute name (e.g., "Weight")
+                    // Padding(
+                    //   padding: const EdgeInsets.symmetric(vertical: 8),
+                    //   child: Text(
+                    //     attributeValue.attribute.name,
+                    //     style: const TextStyle(
+                    //       fontSize: 14,
+                    //       fontWeight: FontWeight.w600,
+                    //     ),
+                    //   ),
+                    // ),
                     
                     // Attribute values list
                     ...attributeValue.attribute.values.map((value) {
@@ -217,9 +181,11 @@ class _ProductVariantsBottomSheetState extends State<ProductVariantsBottomSheet>
                       return Container(
                         margin: const EdgeInsets.only(bottom: 12),
                         padding: const EdgeInsets.all(12),
+                        
                         decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey[300]!),
-                          borderRadius: BorderRadius.circular(8),
+                          color: GroceryColorTheme().white,
+                         // border: Border.all(color: Colors.grey[500]!),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
                           children: [

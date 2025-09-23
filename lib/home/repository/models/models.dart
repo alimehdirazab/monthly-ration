@@ -7,3 +7,4 @@ part 'product_details_model.dart';
 part 'cart_list_model.dart';
 part 'coupons_model.dart';
 part 'checkout_model.dart';
+part 'orders_model.dart';

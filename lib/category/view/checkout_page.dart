@@ -23,6 +23,7 @@ class CheckoutView extends StatefulWidget {
 class _CheckoutViewState extends State<CheckoutView> {
   // Remove dummy data - will use cart data from API
   Razorpay? _razorpay;
+  bool _isGSTSelected = false; // State for GST checkbox
 
   bool _isCheckoutEnabled() {
     final state = context.read<HomeCubit>().state;
@@ -329,32 +330,113 @@ class _CheckoutViewState extends State<CheckoutView> {
           );
         }
       },
-      child: SafeArea(
-        child: Scaffold(
-          appBar: AppBar(
-            backgroundColor: GroceryColorTheme().primary,
-            title: Text(
-              'Checkout',
-              style: GroceryTextTheme().bodyText.copyWith(fontSize: 20),
-            ),
-            centerTitle: true,
-            actions: [
-              TextButton(
-              child: Text('Clear All',
-              style: GroceryTextTheme().bodyText.copyWith(
-                fontSize: 14,
-                color: GroceryColorTheme().black, 
-                decoration: TextDecoration.underline,
+      child: Scaffold(
+        backgroundColor: Colors.grey[100],
+        body: Column(
+          children: [
+            // Custom gradient app bar
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    GroceryColorTheme().primary,
+                    GroceryColorTheme().primary.withOpacity(0.8),
+                    GroceryColorTheme().primary.withOpacity(0.4),
+                  ],
+                  stops: const [0.0, 0.6, 1.0],
                 ),
-                ),
-                onPressed: () {
-                  context.read<HomeCubit>().clearCart();
-                },
               ),
-            ],
-          ),
-          body: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  child: Row(
+                    children: [
+                      // Back button
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white.withOpacity(0.2),
+                          ),
+                          child: Icon(
+                            Icons.arrow_back,
+                            color: Colors.black,
+                            size: 22,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      
+                      // Title section
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Checkout',
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                              ),
+                            ),
+                            Text(
+                              'Review your order',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.black.withOpacity(0.7),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      
+                      // Clear all button
+                      GestureDetector(
+                        onTap: () {
+                          context.read<HomeCubit>().clearCart();
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.delete_outline,
+                                color: Colors.black,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Clear All',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            
+            // Body content
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         
             child: Column(
               children: [
@@ -578,8 +660,8 @@ class _CheckoutViewState extends State<CheckoutView> {
                               }
                             }
                             
-                            final deliveryCharge = itemsTotal >= 500 ? 0.0 : 20.0; // Free delivery above ₹500
-                            final handlingCharge = itemsTotal * 0.02; // 2% handling charge
+                            final deliveryCharge = itemsTotal >= 500 ? 0.0 : 0.0; 
+                            final handlingCharge = 0; // 
                             final savings = mrpTotal - itemsTotal;
                             final grandTotal = itemsTotal + deliveryCharge + handlingCharge;
                             
@@ -612,7 +694,7 @@ class _CheckoutViewState extends State<CheckoutView> {
                                   ),
                                 _buildBillDetailRow(
                                   'Delivery charge',
-                                  deliveryCharge == 0 ? '₹20 FREE' : '₹${deliveryCharge.toStringAsFixed(0)}',
+                                  '₹${deliveryCharge.toStringAsFixed(0)}',
                                   isBold: false,
                                   valueColor: deliveryCharge == 0 ? Colors.green : null,
                                 ),
@@ -697,14 +779,122 @@ class _CheckoutViewState extends State<CheckoutView> {
                                 ),
                               ),
                               Checkbox(
-                                value: false, // This should be managed by state
+                                value: _isGSTSelected,
                                 onChanged: (bool? newValue) {
+                                  setState(() {
+                                    _isGSTSelected = newValue ?? false;
+                                  });
                                 },
                                 activeColor: Colors.orange,
                               ),
                             ],
                           ),
                         ),
+                        
+                        // GST Details Section (shown when GST is selected)
+                        if (_isGSTSelected) ...[
+                          const SizedBox(height: 16),
+                          Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 16.0),
+                            padding: const EdgeInsets.all(16.0),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.shade50,
+                              borderRadius: BorderRadius.circular(15.0),
+                              border: Border.all(color: Colors.orange.shade200, width: 1),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.business,
+                                      color: Colors.orange,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Text(
+                                      'GST Details',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                        color: Colors.orange,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                
+                                // Company Name Field
+                                TextFormField(
+                                  decoration: InputDecoration(
+                                    labelText: 'Company Name *',
+                                    labelStyle: TextStyle(color: Colors.grey[600]),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: BorderSide(color: Colors.grey.shade300),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: const BorderSide(color: Colors.orange),
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    filled: true,
+                                    fillColor: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                
+                                // GST Number Field
+                                TextFormField(
+                                  decoration: InputDecoration(
+                                    labelText: 'GST Number *',
+                                    labelStyle: TextStyle(color: Colors.grey[600]),
+                                    hintText: 'Enter 15-digit GST number',
+                                    hintStyle: TextStyle(color: Colors.grey[400], fontSize: 12),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: BorderSide(color: Colors.grey.shade300),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: const BorderSide(color: Colors.orange),
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    filled: true,
+                                    fillColor: Colors.white,
+                                  ),
+                                  maxLength: 15,
+                                  textCapitalization: TextCapitalization.characters,
+                                ),
+                                const SizedBox(height: 8),
+                                
+                                // Info text
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Icon(
+                                      Icons.info_outline,
+                                      color: Colors.orange,
+                                      size: 16,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        'GST will be calculated and added to your bill. You will receive a GST invoice for this order.',
+                                        style: TextStyle(
+                                          color: Colors.grey[600],
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                        
                         SizedBox(height: 10),
                         CustomElevatedButton(
                           backgrondColor: GroceryColorTheme().primary,
@@ -756,14 +946,17 @@ class _CheckoutViewState extends State<CheckoutView> {
                     ),
                   ),
                 ),
-        
+                
                 // Bottom Floating Button
               ],
             ),
           ),
+        
         ),
-      ),
-    );
+      ],
+    ),
+  ),
+);
   }
 
   Widget _buildDeliveryDateSection() {
@@ -1447,41 +1640,41 @@ class CheckoutProductCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(height: 10),
-          Row(
-            children: [
-              const Icon(
-                Icons.timelapse_outlined,
-                color: Colors.green,
-                size: 20,
-              ), // Placeholder for delivery icon
-              const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Free delivery in $deliveryTime', // Using deliveryTime for "14 minutes"
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16,
-                    ),
-                  ),
-                  Text(
-                    'Shipment of $quantity item${quantity > 1 ? 's' : ''}', // Dynamic shipment count
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w300,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          SizedBox(height: 10),
-          Divider(
-            height: 20,
-            thickness: 1,
-            color: GroceryColorTheme().black.withValues(alpha: 0.3),
-          ),
+          // Row(
+          //   children: [
+          //     const Icon(
+          //       Icons.timelapse_outlined,
+          //       color: Colors.green,
+          //       size: 20,
+          //     ), // Placeholder for delivery icon
+          //     const SizedBox(width: 8),
+          //     Column(
+          //       crossAxisAlignment: CrossAxisAlignment.start,
+          //       children: [
+          //         Text(
+          //           'Free delivery in $deliveryTime', // Using deliveryTime for "14 minutes"
+          //           style: const TextStyle(
+          //             fontWeight: FontWeight.w700,
+          //             fontSize: 16,
+          //           ),
+          //         ),
+          //         Text(
+          //           'Shipment of $quantity item${quantity > 1 ? 's' : ''}', // Dynamic shipment count
+          //           style: const TextStyle(
+          //             fontWeight: FontWeight.w300,
+          //             fontSize: 12,
+          //           ),
+          //         ),
+          //       ],
+          //     ),
+          //   ],
+          // ),
+          // SizedBox(height: 10),
+          // Divider(
+          //   height: 20,
+          //   thickness: 1,
+          //   color: GroceryColorTheme().black.withValues(alpha: 0.3),
+          // ),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

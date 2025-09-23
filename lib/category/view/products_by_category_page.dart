@@ -790,35 +790,53 @@ class _ProductCardFromApiState extends State<ProductCardFromApi> {
                                   _incrementQuantity();
                                 },
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
+                                  width: 70,
+                                  height: 30,
+                                 
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                      color: _isLoading ? Colors.grey : GroceryColorTheme().greenColor,
-                                    ),
+                                    color: GroceryColorTheme().white,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: GroceryColorTheme().primary),
                                   ),
-                                  child: _isLoading
-                                      ? SizedBox(
-                                          width: 20,
-                                          height: 15,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            valueColor: AlwaysStoppedAnimation<Color>(
-                                              GroceryColorTheme().greenColor,
+                                  child: Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          crossAxisAlignment: CrossAxisAlignment.center,
+                                          children: [
+                                             Spacer(),
+                                            Text(
+                                              'ADD',
+                                              style: TextStyle(
+                                                color: GroceryColorTheme().primary,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 11,
+                                              ),
                                             ),
-                                          ),
-                                        )
-                                      : Text(
-                                          'ADD',
-                                          style: TextStyle(
-                                            color: GroceryColorTheme().greenColor,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 11,
-                                          ),
+                                            Spacer(),
+                                            // Show "OPTIONS" text if product has multiple varieties
+                                            if (widget.product.attributeValues.isNotEmpty)
+                                              Container(
+                                                width: double.infinity,
+                                                decoration: BoxDecoration(
+                                                  borderRadius: BorderRadius.vertical(
+                                                    bottom: Radius.circular(10),
+                                                  ),
+                                                  color: GroceryColorTheme().primary.withValues(alpha: 0.1),
+                                                ),
+                                                child: Row(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  children: [
+                                                    Text(
+                                                      'OPTIONS ${widget.product.attributeValues.first.attribute.values.length}',
+                                                      style: TextStyle(
+                                                        color: GroceryColorTheme().primary,
+                                                        fontSize: 8,
+                                                        fontWeight: FontWeight.w500,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                          ],
                                         ),
                                 ),
                               )
@@ -1086,20 +1104,15 @@ class _ProductCardState extends State<ProductCard> {
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: GroceryColorTheme().black,
-                              ), // Using your custom theme color
+                              color: GroceryColorTheme().greenColor,
+                              borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
                               'ADD',
                               style: TextStyle(
-                                color:
-                                    GroceryColorTheme()
-                                        .black, // Using your custom theme color
+                                color: Colors.white,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 12,
+                                fontSize: 11,
                               ),
                             ),
                           ),

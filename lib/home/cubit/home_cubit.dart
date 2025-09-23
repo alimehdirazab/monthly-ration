@@ -420,4 +420,23 @@ class HomeCubit extends Cubit<HomeState> {
     ));
   }
 
+  // get orders Method
+  Future<void> getOrders() async {
+    emit(state.copyWith(ordersApiState: GeneralApiState<OrdersModel>(
+      apiCallState: APICallState.loading,
+    )));
+
+    await homeRepository.getOrders().then((ordersModel) {
+      emit(state.copyWith(ordersApiState: GeneralApiState<OrdersModel>(
+        apiCallState: APICallState.loaded,
+        model: ordersModel,
+      )));
+    }).catchError((error) {
+      emit(state.copyWith(ordersApiState: GeneralApiState<OrdersModel>(
+        apiCallState: APICallState.failure,
+        errorMessage: error.toString(),
+      )));
+    });
+  }
+
 }

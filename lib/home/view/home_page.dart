@@ -1240,16 +1240,19 @@ class SubcategoryItemContainer extends StatelessWidget {
                 ),
         ),
         const SizedBox(height: 4),
-        Text(
-          subcategory.name,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Colors.black87,
-            fontWeight: FontWeight.w400,
+        SizedBox(
+          width: context.mWidth * 0.2,
+          child: Text(
+            subcategory.name,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Colors.black87,
+              fontWeight: FontWeight.w700,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
         ),
       ],
     );

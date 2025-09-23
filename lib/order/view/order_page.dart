@@ -155,9 +155,9 @@ class _OrderViewState extends State<OrderView> {
             final List<String> productImages = [];
             for (int i = 0; i < cartItems.length && i < 3; i++) {
               final product = cartItems[i].product;
-              if (product?.imagesUrls != null && product!.imagesUrls!.isNotEmpty) {
+              if (product?.imagesUrls != null && product!.imagesUrls.isNotEmpty) {
                 // Use first image from the URLs list
-                productImages.add(product.imagesUrls!.first);
+                productImages.add(product.imagesUrls.first);
               } else {
                 // Use default image if no product image
                 productImages.add(GroceryImages.category2);
