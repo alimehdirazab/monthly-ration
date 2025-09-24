@@ -540,13 +540,13 @@ Widget _buildDialogContent(BuildContext context) {
               Image.asset(GroceryImages.dialog),
               const SizedBox(height: 20),
               Text(
-                'Congratulations! You\'ve won a coupon voucher. Redeem it using the code sent to your WhatsApp.',
+                'Congratulations! You\'ve Applied a coupon voucher.',
                 textAlign: TextAlign.center,
                 style: GroceryTextTheme().boldText.copyWith(fontSize: 22),
               ),
               const SizedBox(height: 24),
               const Text(
-                'Monthlyratio code applied',
+                'code applied',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 14, color: Colors.black),
               ),

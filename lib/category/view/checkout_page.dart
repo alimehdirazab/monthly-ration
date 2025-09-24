@@ -197,53 +197,194 @@ class _CheckoutViewState extends State<CheckoutView> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        icon: Icon(
-          Icons.check_circle,
-          color: Colors.green,
-          size: 64,
-        ),
-        title: const Text('Order Placed Successfully!'),
-        content: Stack(
-          children: [
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('Order ID: ${checkoutResponse.orderId ?? 'N/A'}'),
-                const SizedBox(height: 8),
-                Text('Total Amount: ₹${(checkoutResponse.amount ?? 0) / 100}'),
-                const SizedBox(height: 8),
-                Text('Payment Method: Razorpay'),
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: _buildDialogContent(context, checkoutResponse),
+      ),
+    );
+  }
+
+  Widget _buildDialogContent(BuildContext context, home_models.CheckoutResponse checkoutResponse) {
+    return Stack(
+      children: [
+        // 🎯 Dialog content
+        Center(
+          child: Container(
+            margin: const EdgeInsets.only(top: 80),
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20.0),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
+                ),
               ],
             ),
-             // 🎉 Lottie animation on top, but doesn't block taps
-      IgnorePointer(
-        child: Center(
-          child: Lottie.asset(
-            GroceryImages.partyLottie,
-            repeat: false,
-            onLoaded: (composition) {
-              Future.delayed(composition.duration, () {
-                // animation ends — do nothing or hide it if needed
-              });
-            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Success icon with circular background
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.green.shade50,
+                  ),
+                  child: Icon(
+                    Icons.check_circle,
+                    color: Colors.green,
+                    size: 50,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                
+                // Success message
+                Text(
+                  'Order Placed Successfully!',
+                  textAlign: TextAlign.center,
+                  style: GroceryTextTheme().boldText.copyWith(
+                    fontSize: 22,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                
+                // Order details
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Order ID:',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          Text(
+                            '${checkoutResponse.orderId ?? 'N/A'}',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Total Amount:',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          Text(
+                            '₹${(checkoutResponse.amount ?? 0) / 100}',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Payment Method:',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.payment,
+                                size: 16,
+                                color: Colors.green,
+                              ),
+                              const SizedBox(width: 4),
+                              const Text(
+                                'Razorpay',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                
+                // Success message
+                Text(
+                  'Thank you for your order!',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                
+                // Continue shopping button
+                CustomElevatedButton(
+                  backgrondColor: GroceryColorTheme().primary,
+                  width: double.infinity,
+                  onPressed: () {
+                    context.pushAndRemoveUntilPage(const RootPage());
+                  },
+                  buttonText: Text(
+                    "Continue Shopping",
+                    style: GroceryTextTheme().boldText.copyWith(
+                      fontSize: 14,
+                      color: GroceryColorTheme().black,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-      ),
-          ],
-        ),
-        actions: [
-          CustomElevatedButton(
-            width: double.infinity,
-            onPressed: () {
-            context.pushAndRemoveUntilPage(const RootPage());
-            },
-            buttonText: const Text('OK'),
-            backgrondColor: GroceryColorTheme().primary,
 
+        // 🎉 Lottie animation on top, but doesn't block taps
+        IgnorePointer(
+          child: Center(
+            child: Lottie.asset(
+              GroceryImages.partyLottie,
+              repeat: false,
+              onLoaded: (composition) {
+                Future.delayed(composition.duration, () {
+                  // animation ends — do nothing or hide it if needed
+                });
+              },
+            ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -279,6 +420,10 @@ class _CheckoutViewState extends State<CheckoutView> {
     context.read<HomeCubit>().getCartItems();
     context.read<AuthCubit>().getAddress();
     
+    // Get shipping and handling fees
+    context.read<HomeCubit>().getShippingFee();
+    context.read<HomeCubit>().getHandlingFee();
+    
     // Initialize Razorpay
     try {
       _razorpay = Razorpay();
@@ -310,6 +455,16 @@ class _CheckoutViewState extends State<CheckoutView> {
           context.read<HomeCubit>().getCartItems();
         } else if(state.clearCartApiState.apiCallState == APICallState.failure) {
           context.showSnacbar(state.clearCartApiState.errorMessage ?? 'Failed to clear cart',backgroundColor: GroceryColorTheme().redColor);
+        }
+        
+        // Handle shipping fee API errors
+        if(state.shippingApiState.apiCallState == APICallState.failure) {
+          debugPrint('Shipping fee API error: ${state.shippingApiState.errorMessage}');
+        }
+        
+        // Handle handling fee API errors
+        if(state.handlingApiState.apiCallState == APICallState.failure) {
+          debugPrint('Handling fee API error: ${state.handlingApiState.errorMessage}');
         }
         
         // Handle payment verification
@@ -467,8 +622,8 @@ class _CheckoutViewState extends State<CheckoutView> {
                                final item = cartItems[index];
                                
                                return CheckoutProductCard(
-                                      imageUrl: item.product?.imagesUrls != null && item.product!.imagesUrls!.isNotEmpty
-                                        ? item.product!.imagesUrls!.first
+                                      imageUrl: item.product?.imagesUrls != null && item.product!.imagesUrls.isNotEmpty
+                                        ? item.product!.imagesUrls.first
                                         : '',
                                       title: item.product?.name??'',
                                       description: item.product?.description??'',
@@ -640,7 +795,9 @@ class _CheckoutViewState extends State<CheckoutView> {
                           buildWhen: (previous, current) =>
                               previous.getCartItemsApiState != current.getCartItemsApiState ||
                               previous.updateCartItemApiState != current.updateCartItemApiState ||
-                              previous.deleteCartItemApiState != current.deleteCartItemApiState,
+                              previous.deleteCartItemApiState != current.deleteCartItemApiState ||
+                              previous.shippingApiState != current.shippingApiState ||
+                              previous.handlingApiState != current.handlingApiState,
                           builder: (context, state) {
                             final cartItems = state.getCartItemsApiState.model?.data ?? [];
                             
@@ -660,8 +817,32 @@ class _CheckoutViewState extends State<CheckoutView> {
                               }
                             }
                             
-                            final deliveryCharge = itemsTotal >= 500 ? 0.0 : 0.0; 
-                            final handlingCharge = 0; // 
+                            // Get shipping fee from API
+                            double deliveryCharge = 0.0;
+                            final shippingModel = state.shippingApiState.model;
+                            if (shippingModel?.data != null) {
+                              final shippingApplicableAmount = shippingModel!.data!.shiipingApplicableAmount ?? 0;
+                              final shippingAmount = shippingModel.data!.shippingAmount ?? 0;
+                              
+                              // Apply shipping charge if items total is less than applicable amount
+                              if (itemsTotal < shippingApplicableAmount) {
+                                deliveryCharge = shippingAmount.toDouble();
+                              }
+                            }
+                            
+                            // Get handling fee from API
+                            double handlingCharge = 0.0;
+                            final handlingModel = state.handlingApiState.model;
+                            if (handlingModel?.data != null) {
+                              final handlingApplicableAmount = handlingModel!.data!.handlingApplicableAmount ?? 0;
+                              final handlingAmount = handlingModel.data!.handlingAmount ?? 0;
+                              
+                              // Apply handling charge if items total is less than applicable amount
+                              if (itemsTotal < handlingApplicableAmount) {
+                                handlingCharge = handlingAmount.toDouble();
+                              }
+                            }
+                            
                             final savings = mrpTotal - itemsTotal;
                             final grandTotal = itemsTotal + deliveryCharge + handlingCharge;
                             
@@ -694,14 +875,19 @@ class _CheckoutViewState extends State<CheckoutView> {
                                   ),
                                 _buildBillDetailRow(
                                   'Delivery charge',
-                                  '₹${deliveryCharge.toStringAsFixed(0)}',
+                                  state.shippingApiState.apiCallState == APICallState.loading
+                                      ? 'Loading...'
+                                      : (deliveryCharge == 0 ? 'FREE' : '₹${deliveryCharge.toStringAsFixed(0)}'),
                                   isBold: false,
                                   valueColor: deliveryCharge == 0 ? Colors.green : null,
                                 ),
                                 _buildBillDetailRow(
                                   'Handling charge',
-                                  '₹${handlingCharge.toStringAsFixed(0)}',
+                                  state.handlingApiState.apiCallState == APICallState.loading
+                                      ? 'Loading...'
+                                      : (handlingCharge == 0 ? 'FREE' : '₹${handlingCharge.toStringAsFixed(0)}'),
                                   isBold: false,
+                                  valueColor: handlingCharge == 0 ? Colors.green : null,
                                 ),
                                 const Divider(
                                   indent: 16,
@@ -711,7 +897,10 @@ class _CheckoutViewState extends State<CheckoutView> {
                                 ),
                                 _buildBillDetailRow(
                                   'Grand total', 
-                                  '₹${grandTotal.toStringAsFixed(0)}', 
+                                  (state.shippingApiState.apiCallState == APICallState.loading ||
+                                   state.handlingApiState.apiCallState == APICallState.loading)
+                                      ? 'Calculating...'
+                                      : '₹${grandTotal.toStringAsFixed(0)}', 
                                   isBold: true
                                 ),
                               ],

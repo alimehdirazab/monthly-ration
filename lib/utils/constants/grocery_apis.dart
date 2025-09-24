@@ -80,6 +80,11 @@ class GroceryApis {
   static const String orderPaymentVerify = "order-payment-varify";
   // orders
   static const String orders = "orders";
+  // shipping fee
+  static const String shippingFee = "settings/shipping";
+  // handling fee
+  static const String handlingFee = "settings/handling";
+  
 
   initBaseUrlAndAuthEndpoints() {
     ApiConfig.baseUrl = baseApiUrl;

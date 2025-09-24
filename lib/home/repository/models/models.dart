@@ -8,3 +8,5 @@ part 'cart_list_model.dart';
 part 'coupons_model.dart';
 part 'checkout_model.dart';
 part 'orders_model.dart';
+part 'shiping_model.dart';
+part 'handling_model.dart';

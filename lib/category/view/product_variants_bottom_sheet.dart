@@ -51,12 +51,14 @@ class _ProductVariantsBottomSheetState extends State<ProductVariantsBottomSheet>
     // Initialize quantities for each variant from cart
     for (final attributeValue in widget.product.attributeValues) {
       for (final value in attributeValue.attribute.values) {
-        final cartItem = widget.cartItems.firstWhere(
-          (item) => item.productId == widget.product.id && item.attributeValueId == value.id,
-          orElse: () => home_models.CartItem(),
-        );
-        
-        _quantities[value.id] = cartItem.quantity ?? 0;
+        if (value.id != null) {
+          final cartItem = widget.cartItems.firstWhere(
+            (item) => item.productId == widget.product.id && item.attributeValueId == value.id,
+            orElse: () => home_models.CartItem(),
+          );
+          
+          _quantities[value.id!] = cartItem.quantity ?? 0;
+        }
       }
     }
   }
@@ -66,7 +68,7 @@ class _ProductVariantsBottomSheetState extends State<ProductVariantsBottomSheet>
       _quantities[attributeValueId] = (_quantities[attributeValueId] ?? 0) + 1;
     });
     
-    widget.onAddToCart(attributeValueId, _quantities[attributeValueId]!);
+    widget.onAddToCart(attributeValueId, _quantities[attributeValueId] ?? 0);
   }
 
   void _decrementQuantity(int attributeValueId) {
@@ -76,7 +78,7 @@ class _ProductVariantsBottomSheetState extends State<ProductVariantsBottomSheet>
         _quantities[attributeValueId] = currentQuantity - 1;
       });
       
-      widget.onAddToCart(attributeValueId, _quantities[attributeValueId]!);
+      widget.onAddToCart(attributeValueId, _quantities[attributeValueId] ?? 0);
     }
   }
 
@@ -251,7 +253,7 @@ class _ProductVariantsBottomSheetState extends State<ProductVariantsBottomSheet>
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    value.value,
+                                    value.value ?? '',
                                     style: const TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w500,
@@ -302,7 +304,7 @@ class _ProductVariantsBottomSheetState extends State<ProductVariantsBottomSheet>
                             if (hasValidPrice) ...[
                               if (quantity == 0)
                                 GestureDetector(
-                                  onTap: () => _incrementQuantity(value.id),
+                                  onTap: value.id != null ? () => _incrementQuantity(value.id!) : null,
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                     decoration: BoxDecoration(
@@ -329,7 +331,7 @@ class _ProductVariantsBottomSheetState extends State<ProductVariantsBottomSheet>
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       GestureDetector(
-                                        onTap: () => _decrementQuantity(value.id),
+                                        onTap: value.id != null ? () => _decrementQuantity(value.id!) : null,
                                         child: Container(
                                           padding: const EdgeInsets.all(8),
                                           child: const Icon(
@@ -351,7 +353,7 @@ class _ProductVariantsBottomSheetState extends State<ProductVariantsBottomSheet>
                                         ),
                                       ),
                                       GestureDetector(
-                                        onTap: () => _incrementQuantity(value.id),
+                                        onTap: value.id != null ? () => _incrementQuantity(value.id!) : null,
                                         child: Container(
                                           padding: const EdgeInsets.all(8),
                                           child: const Icon(

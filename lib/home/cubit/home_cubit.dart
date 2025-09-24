@@ -439,4 +439,43 @@ class HomeCubit extends Cubit<HomeState> {
     });
   }
 
+  // get shipping Method
+  Future<void> getShippingFee() async {
+    emit(state.copyWith(shippingApiState: GeneralApiState<ShippingModel>(
+      apiCallState: APICallState.loading,
+    )));
+
+    await homeRepository.getShippingFee().then((shippingModel) {
+      emit(state.copyWith(shippingApiState: GeneralApiState<ShippingModel>(
+        apiCallState: APICallState.loaded,
+        model: shippingModel,
+      )));
+    }).catchError((error) {
+      emit(state.copyWith(shippingApiState: GeneralApiState<ShippingModel>(
+        apiCallState: APICallState.failure,
+        errorMessage: error.toString(),
+      )));
+    });
+  }
+
+
+  // get handling Method
+  Future<void> getHandlingFee() async {
+    emit(state.copyWith(handlingApiState: GeneralApiState<HandlingModel>(
+      apiCallState: APICallState.loading,
+    )));
+
+    await homeRepository.getHandlingFee().then((handlingModel) {
+      emit(state.copyWith(handlingApiState: GeneralApiState<HandlingModel>(
+        apiCallState: APICallState.loaded,
+        model: handlingModel,
+      )));
+    }).catchError((error) {
+      emit(state.copyWith(handlingApiState: GeneralApiState<HandlingModel>(
+        apiCallState: APICallState.failure,
+        errorMessage: error.toString(),
+      )));
+    });
+  }
+
 }

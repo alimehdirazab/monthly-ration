@@ -17,134 +17,180 @@ class OrderView extends StatefulWidget {
 }
 
 class _OrderViewState extends State<OrderView> {
+
+  @override
+  initState() {
+    super.initState();
+    context.read<HomeCubit>().getOrders();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-         backgroundColor: GroceryColorTheme().offWhiteColor,
+      backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        backgroundColor:
-            GroceryColorTheme().primary, // Yellow color for app bar
         elevation: 0,
+        backgroundColor: GroceryColorTheme().primary,
         automaticallyImplyLeading: false,
-        title: Text(
-          'Order Again',
-          style: GroceryTextTheme().bodyText.copyWith(fontSize: 20),
+      centerTitle: true,
+        title: const Text(
+          'Your Orders',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: Colors.black,
+          ),
         ),
-        centerTitle: true,
       ),
-      body:  Column(
-        children: [
-          // Tab/Button Section for Active/Previous Orders
-          SizedBox(height: 10),
-          // Container(
-          //   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-          //   color: GroceryColorTheme().white,
-          //   child: Row(
-          //     children: [
-          //       Expanded(
-          //         child: GestureDetector(
-          //           onTap: () {
-          //             setState(() {
-          //               _showActiveOrders = true;
-          //             });
-          //           },
-          //           child: Container(
-          //             padding: const EdgeInsets.symmetric(vertical: 12),
-          //             decoration: BoxDecoration(
-          //               color:
-          //                   _showActiveOrders
-          //                       ? GroceryColorTheme().primary
-          //                       : Colors.transparent,
-          //               borderRadius: BorderRadius.circular(10),
-          //               border: Border.all(
-          //                 color:
-          //                     _showActiveOrders
-          //                         ? Colors.transparent
-          //                         : Colors.white.withOpacity(0.5),
-          //                 width: 1,
-          //               ),
-          //             ),
-          //             child: Center(
-          //               child: Text(
-          //                 'Active orders',
-          //                 style: TextStyle(
-          //                   color:
-          //                       _showActiveOrders
-          //                           ? Colors.black
-          //                           : Colors.black54,
-          //                   fontWeight: FontWeight.w600,
-          //                   fontSize: 14,
-          //                 ),
-          //               ),
-          //             ),
-          //           ),
-          //         ),
-          //       ),
-          //       const SizedBox(width: 10),
-          //       Expanded(
-          //         child: GestureDetector(
-          //           onTap: () {
-          //             setState(() {
-          //               _showActiveOrders = false;
-          //             });
-          //           },
-          //           child: Container(
-          //             padding: const EdgeInsets.symmetric(vertical: 12),
-          //             decoration: BoxDecoration(
-          //               color:
-          //                   !_showActiveOrders
-          //                       ? GroceryColorTheme().primary
-          //                       : Colors.transparent,
-          //               borderRadius: BorderRadius.circular(10),
-          //               border: Border.all(
-          //                 color:
-          //                     !_showActiveOrders
-          //                         ? Colors.transparent
-          //                         : Colors.white.withOpacity(0.5),
-          //                 width: 1,
-          //               ),
-          //             ),
-          //             child: Center(
-          //               child: Text(
-          //                 'Previous order',
-          //                 style: TextStyle(
-          //                   color:
-          //                       !_showActiveOrders
-          //                           ? Colors.black
-          //                           : Colors.black54,
-          //                   fontWeight: FontWeight.w600,
-          //                   fontSize: 14,
-          //                 ),
-          //               ),
-          //             ),
-          //           ),
-          //         ),
-          //       ),
-          //     ],
-          //   ),
-          // ),
-          // // List of Orders
-        
-        
-          // Expanded(
-          //   child: ListView.builder(
-          //     padding: const EdgeInsets.all(20),
-          //     itemCount: 5, // Example: 5 orders
-          //     itemBuilder: (context, index) {
-          //       // You can customize order data based on _showActiveOrders
-          //       return _buildOrderItem(
-          //         context,
-          //         orderNumber: '#7226',
-          //         date: '6 Jun 2025, 05:43 PM',
-          //         items: ['Black currant berries'],
-          //         totalPay: '₹465.07',
-          //         status: 'Cancelled', // Example status
-          //       );
-          //     },
-          //   ),
-          // ),
-        ],
-      ),
+      body: BlocBuilder<HomeCubit, HomeState>(
+        buildWhen: (previous, current) =>
+            previous.ordersApiState != current.ordersApiState,
+        builder: (context, state) {
+          final apiState = state.ordersApiState;
+
+            if (apiState.apiCallState == APICallState.loading) {
+            return SliverFillRemaining(
+              child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                CircularProgressIndicator(
+                  color: GroceryColorTheme().primary,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Loading your orders...',
+                  style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 16,
+                  ),
+                ),
+                ],
+              ),
+              ),
+            );
+            }
+            
+            if (apiState.apiCallState == APICallState.failure) {
+            return SliverFillRemaining(
+              child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                Icon(
+                  Icons.error_outline,
+                  size: 64,
+                  color: Colors.red[300],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Failed to load orders',
+                  style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[700],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  apiState.errorMessage ?? 'Something went wrong',
+                  style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 14,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () {
+                  context.read<HomeCubit>().getOrders();
+                  },
+                  style: ElevatedButton.styleFrom(
+                  backgroundColor: GroceryColorTheme().primary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  ),
+                  child: const Text(
+                  'Retry',
+                  style: TextStyle(color: Colors.black),
+                  ),
+                ),
+                ],
+              ),
+              ),
+            );
+            }
+            
+            final orders = apiState.model?.orders ?? [];
+            
+            if (orders.isEmpty) {
+            return SliverFillRemaining(
+              child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                Icon(
+                  Icons.shopping_bag_outlined,
+                  size: 80,
+                  color: Colors.grey[400],
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'No orders yet',
+                  style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[700],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'When you place orders, they\'ll appear here',
+                  style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 14,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () {
+                  // Navigate to home to start shopping
+                  //context.read<NavBarCubit>().getNavBarItem(NavBarItem.home);
+                  },
+                  style: ElevatedButton.styleFrom(
+                  backgroundColor: GroceryColorTheme().primary,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  ),
+                  child: const Text(
+                  'Start Shopping',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  ),
+                ),
+                ],
+              ),
+              ),
+            );
+            }
+            
+            return ListView.separated(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 90),
+            itemCount: orders.length,
+            separatorBuilder: (context, index) => const SizedBox(height: 0),
+            itemBuilder: (context, index) {
+              final order = orders[index];
+              return _buildOrderCard(context, order);
+            },
+            );
+          },
+          ),
        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: BlocBuilder<HomeCubit, HomeState>(
         builder: (context, state) {
@@ -290,110 +336,410 @@ class _OrderViewState extends State<OrderView> {
     );
   }
 
-  // Helper method to build an individual order item card
-  Widget _buildOrderItem(
-    BuildContext context, {
-    required String orderNumber,
-    required String date,
-    required List<String> items,
-    required String totalPay,
-    String? status,
-  }) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 15),
-      color: GroceryColorTheme().white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
-      elevation: 1,
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Order $orderNumber',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-                if (status != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: GroceryColorTheme().white,
-                      borderRadius: BorderRadius.circular(5),
-                      border: Border.all(color: Colors.red, width: 0.8),
-                    ),
-                    child: Text(
-                      status,
-                      style: const TextStyle(
-                        color: Colors.red,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 5),
-            Text(
-              date,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.black54,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-            const SizedBox(height: 15),
-            // Display items
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children:
-                  items
-                      .map(
-                        (item) => Padding(
-                          padding: const EdgeInsets.only(bottom: 4.0),
-                          child: Text(
-                            '• $item',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ),
-                      )
-                      .toList(),
-            ),
-            const SizedBox(height: 15),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Total pay',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.black87,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  totalPay,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Color(0xFF4CAF50), // Green color
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+  // Order card matching the design from the image
+  Widget _buildOrderCard(BuildContext context, dynamic order) {
+    // Parse order data - only use actual data, no dummy values
+    final orderDate = order.createdAt;
+    final orderStatus = order.status;
+    final totalAmount = order.totalAmount?.toString();
+    final orderItems = order.items ?? [];
+    
+    return GestureDetector(
+      onTap: () {
+       context.pushPage(OrderDetailsPage(order: order, homeCubit: context.read<HomeCubit>()));
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
           ],
+        ),
+        child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Order status header with checkmark
+          Row(
+            children: [
+              if (orderStatus != null && orderStatus.isNotEmpty) ...[
+                Text(
+                  'Order ${orderStatus.toLowerCase()}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                if (orderStatus.toLowerCase() == 'delivered' || orderStatus.toLowerCase() == 'completed')
+                  Container(
+                    width: 20,
+                    height: 20,
+                    decoration: const BoxDecoration(
+                      color: Colors.green,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.check,
+                      color: Colors.white,
+                      size: 14,
+                    ),
+                  ),
+              ],
+              const Spacer(),
+              if (totalAmount != null && totalAmount.isNotEmpty)
+                Text(
+                  '₹$totalAmount',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+              const SizedBox(width: 8),
+              PopupMenuButton<String>(
+                onSelected: (value) {
+                  if (value == 'details') {
+                    context.pushPage(OrderDetailsPage(order: order, homeCubit: context.read<HomeCubit>()));
+      
+                  } else if (value == 'rate') {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Rating feature coming soon!'),
+                        backgroundColor: Colors.blue,
+                      ),
+                    );
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'details',
+                    child: Row(
+                      children: [
+                        Icon(Icons.visibility, size: 20),
+                        SizedBox(width: 12),
+                        Text('View Details'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'rate',
+                    child: Row(
+                      children: [
+                        Icon(Icons.star_rate, size: 20),
+                        SizedBox(width: 12),
+                        Text('Rate Us'),
+                      ],
+                    ),
+                  ),
+                ],
+                icon: Container(
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(
+                    Icons.more_vert,
+                    color: Colors.grey[600],
+                    size: 20,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          
+          if (orderStatus != null || totalAmount != null || orderDate != null)
+            const SizedBox(height: 8),
+          
+          // Order date - only show if available
+          if (orderDate != null && orderDate.isNotEmpty) ...[
+            Text(
+              'Placed at ${_formatOrderDate(orderDate)}',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+          
+          // Product images row
+          if (orderItems.isNotEmpty)
+            Container(
+              height: 60,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: orderItems.length > 5 ? 5 : orderItems.length,
+                itemBuilder: (context, index) {
+                  final item = orderItems[index];
+                  final imageUrl = item.image ?? '';
+                  
+                  return Container(
+                    width: 60,
+                    height: 60,
+                    margin: const EdgeInsets.only(right: 12),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey[300]!),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: imageUrl.isNotEmpty
+                          ? Image.network(
+                              imageUrl.startsWith('https')
+                                  ? imageUrl
+                                  : '${GroceryApis.baseUrl}/$imageUrl',
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  color: Colors.grey[100],
+                                  child: Icon(
+                                    Icons.image_not_supported,
+                                    color: Colors.grey[400],
+                                    size: 24,
+                                  ),
+                                );
+                              },
+                            )
+                          : Container(
+                              color: Colors.grey[100],
+                              child: Icon(
+                                Icons.shopping_bag_outlined,
+                                color: Colors.grey[400],
+                                size: 24,
+                              ),
+                            ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          
+          const SizedBox(height: 20),
+          
+          // Action buttons row
+          Row(
+            children: [
+              // Rate Order button
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Rating feature coming soon!'),
+                        backgroundColor: Colors.blue,
+                      ),
+                    );
+                  },
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: Colors.grey[300]!),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: Text(
+                    'Rate Order',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[700],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+              
+              const SizedBox(width: 12),
+              
+              // Order Again button
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    _handleReorder(order);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: GroceryColorTheme().primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Order Again',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
+    );
+  }
+
+  // Helper method to format order date exactly like in the image
+  String _formatOrderDate(String dateString) {
+    try {
+      // Parse the date string - assuming it's in format like "24-09-2025 12:51"
+      final parts = dateString.split(' ');
+      if (parts.length >= 2) {
+        final datePart = parts[0];
+        final timePart = parts[1];
+        final dateParts = datePart.split('-');
+        
+        if (dateParts.length == 3) {
+          final day = int.parse(dateParts[0]);
+          final month = int.parse(dateParts[1]);
+          final year = int.parse(dateParts[2]);
+          
+          // Format: "19th Sep 2025, 06:34 am"
+          final monthNames = [
+            '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+            'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+          ];
+          
+          final dayWithSuffix = _getDayWithSuffix(day);
+          final monthName = monthNames[month];
+          
+          // Convert 24-hour time to 12-hour with am/pm
+          final timeFormatted = _formatTime(timePart);
+          
+          return '$dayWithSuffix $monthName $year, $timeFormatted';
+        }
+      }
+      
+      // Fallback to original format if parsing fails
+      return dateString;
+    } catch (e) {
+      return dateString;
+    }
+  }
+  
+  String _getDayWithSuffix(int day) {
+    if (day >= 11 && day <= 13) {
+      return '${day}th';
+    }
+    switch (day % 10) {
+      case 1:
+        return '${day}st';
+      case 2:
+        return '${day}nd';
+      case 3:
+        return '${day}rd';
+      default:
+        return '${day}th';
+    }
+  }
+  
+  String _formatTime(String time24) {
+    try {
+      final parts = time24.split(':');
+      if (parts.length >= 2) {
+        int hour = int.parse(parts[0]);
+        final minute = parts[1];
+        
+        String period = 'am';
+        if (hour >= 12) {
+          period = 'pm';
+          if (hour > 12) {
+            hour = hour - 12;
+          }
+        }
+        if (hour == 0) {
+          hour = 12;
+        }
+        
+        return '$hour:$minute $period';
+      }
+      return time24;
+    } catch (e) {
+      return time24;
+    }
+  }
+  
+  void _handleReorder(dynamic order) {
+    final orderItems = order.items ?? [];
+    
+    if (orderItems.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No items found in this order'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Show confirmation dialog
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reorder Items'),
+        content: Text('Add ${orderItems.length} item${orderItems.length != 1 ? 's' : ''} from this order to your cart?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _addItemsToCart(orderItems);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.pink,
+            ),
+            child: const Text(
+              'Add to Cart',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  void _addItemsToCart(List<dynamic> orderItems) {
+    // Add each item to cart using the HomeCubit
+    for (final item in orderItems) {
+      final productId = item.productId;
+      final quantity = item.quantity ?? 1;
+      
+      if (productId != null) {
+        context.read<HomeCubit>().addToCart(
+          productId: productId,
+          quantity: quantity,
+        );
+      }
+      // in last call getCartItems to refresh the cart state
+      if (item == orderItems.last) {
+        context.read<HomeCubit>().getCartItems();
+      }
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${orderItems.length} item${orderItems.length != 1 ? 's' : ''} added to cart!'),
+        backgroundColor: Colors.green,
+        action: SnackBarAction(
+          label: 'View Cart',
+          textColor: Colors.white,
+          onPressed: () {
+            context.pushPage(CheckoutPage(
+              homeCubit: context.read<HomeCubit>(),
+            ));
+          },
         ),
       ),
     );

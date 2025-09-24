@@ -41,6 +41,10 @@ class HomeState extends Equatable {
     this.selectedAddress,
     // orders api State
     this.ordersApiState = const GeneralApiState<OrdersModel>(),
+    // shipping api State
+    this.shippingApiState = const GeneralApiState<ShippingModel>(),
+    // handling api State
+    this.handlingApiState = const GeneralApiState<HandlingModel>(),
   });
    final List<String> cartItems;
    // banners api State
@@ -82,6 +86,10 @@ class HomeState extends Equatable {
    final Address? selectedAddress;
    // orders api State
    final GeneralApiState<OrdersModel> ordersApiState;
+   // shipping api State
+    final GeneralApiState<ShippingModel> shippingApiState;
+    // handling api State
+    final GeneralApiState<HandlingModel> handlingApiState;
 
   // CopyWith
   HomeState copyWith({
@@ -106,6 +114,8 @@ class HomeState extends Equatable {
     int? selectedTimeSlotIndex,
     Address? selectedAddress,
     GeneralApiState<OrdersModel>? ordersApiState,
+    GeneralApiState<ShippingModel>? shippingApiState,
+    GeneralApiState<HandlingModel>? handlingApiState,
   }) {
     return HomeState(
       cartItems: cartItems ?? this.cartItems,
@@ -129,6 +139,9 @@ class HomeState extends Equatable {
       selectedTimeSlotIndex: selectedTimeSlotIndex ?? this.selectedTimeSlotIndex,
       selectedAddress: selectedAddress ?? this.selectedAddress,
       ordersApiState: ordersApiState ?? this.ordersApiState,
+      shippingApiState: shippingApiState ?? this.shippingApiState,
+      handlingApiState: handlingApiState ?? this.handlingApiState,
+
     );
   }
   
@@ -155,5 +168,7 @@ class HomeState extends Equatable {
     selectedTimeSlotIndex,
     selectedAddress,
     ordersApiState,
+    shippingApiState,
+    handlingApiState,
     ];
 }

@@ -190,4 +190,22 @@ class HomeRepository {
   }
 
 
+  // get shipping fee
+  Future<ShippingModel> getShippingFee() async {
+    final response = await generalRepository.get(
+      handle: GroceryApis.shippingFee,
+    );
+    return ShippingModel.fromJson(response);
+
+  }
+
+
+  // get handling fee
+  Future<HandlingModel> getHandlingFee() async {
+    final response = await generalRepository.get(
+      handle: GroceryApis.handlingFee,
+    );
+    return HandlingModel.fromJson(response);
+
+  }
   }

@@ -145,15 +145,15 @@ class ProductAttribute {
 }
 
 class ProductAttributeValueDetail {
-    final int id;
-    final String value;
+    final int? id;
+    final String? value;
     final String mrpPrice;
     final String discount;
     final String? sellPrice;
 
     ProductAttributeValueDetail({
-        required this.id,
-        required this.value,
+        this.id,
+        this.value,
         required this.mrpPrice,
         required this.discount,
         this.sellPrice,

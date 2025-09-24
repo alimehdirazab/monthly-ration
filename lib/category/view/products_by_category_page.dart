@@ -916,7 +916,7 @@ class _ProductCardFromApiState extends State<ProductCardFromApi> {
                         Padding(
                           padding: const EdgeInsets.only(top: 2.0),
                           child: Text(
-                            widget.product.weight!,
+                            widget.product.weight??'',
                             style: TextStyle(
                               color: Colors.grey[600], 
                               fontSize: 10,

@@ -31,6 +31,7 @@ class _HomeViewState extends State<HomeView> {
     context.read<HomeCubit>().getDefaultCategories();
     context.read<HomeCubit>().getCategories();
     context.read<HomeCubit>().getCartItems();
+    context.read<HomeCubit>().getOrders();
   }
 
   @override
@@ -52,6 +53,7 @@ class _HomeViewState extends State<HomeView> {
           context.read<HomeCubit>().getDefaultCategories();
           context.read<HomeCubit>().getCategories();
           context.read<HomeCubit>().getCartItems();
+          context.read<HomeCubit>().getOrders();
           // Reset banner controller and timer on refresh
           _bannerTimer?.cancel();
           _bannerPageController?.dispose();
