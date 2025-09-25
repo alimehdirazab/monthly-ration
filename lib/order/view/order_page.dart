@@ -528,12 +528,7 @@ class _OrderViewState extends State<OrderView> {
               Expanded(
                 child: OutlinedButton(
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Rating feature coming soon!'),
-                        backgroundColor: Colors.blue,
-                      ),
-                    );
+                    context.pushPage(RateOrderPage(order: order));
                   },
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: Colors.grey[300]!),

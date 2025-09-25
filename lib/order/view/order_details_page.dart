@@ -454,12 +454,7 @@ class _OrderDetailsViewState extends State<OrderDetailsView> {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Rating feature coming soon!'),
-                          backgroundColor: Colors.blue,
-                        ),
-                      );
+                      context.pushPage(RateOrderPage(order: widget.order));
                     },
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Colors.pink, width: 1.5),

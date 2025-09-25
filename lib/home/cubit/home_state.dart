@@ -29,7 +29,7 @@ class HomeState extends Equatable {
     // get coupons api State
     this.getCouponsApiState = const GeneralApiState<CouponsModel>(),
     // apply coupon api State
-    this.applyCouponApiState = const GeneralApiState<void>(),
+    this.applyCouponApiState = const GeneralApiState<ApplyCouponModel>(),
     // checkout api State
     this.checkoutApiState = const GeneralApiState<CheckoutResponse>(),
     // payment verify api State
@@ -45,6 +45,8 @@ class HomeState extends Equatable {
     this.shippingApiState = const GeneralApiState<ShippingModel>(),
     // handling api State
     this.handlingApiState = const GeneralApiState<HandlingModel>(),
+    // submit review api State
+    this.submitReviewApiState = const GeneralApiState<void>(),
   });
    final List<String> cartItems;
    // banners api State
@@ -74,7 +76,7 @@ class HomeState extends Equatable {
    // get coupons api State
    final GeneralApiState<CouponsModel> getCouponsApiState;
    // apply coupon api State
-   final GeneralApiState<void> applyCouponApiState;
+   final GeneralApiState<ApplyCouponModel> applyCouponApiState;
    // checkout api State
    final GeneralApiState<CheckoutResponse> checkoutApiState;
    // payment verify api State
@@ -86,12 +88,12 @@ class HomeState extends Equatable {
    final Address? selectedAddress;
    // orders api State
    final GeneralApiState<OrdersModel> ordersApiState;
-   // shipping api State
+    // shipping api State
     final GeneralApiState<ShippingModel> shippingApiState;
     // handling api State
     final GeneralApiState<HandlingModel> handlingApiState;
-
-  // CopyWith
+    // submit review api State
+    final GeneralApiState<void> submitReviewApiState;  // CopyWith
   HomeState copyWith({
     List<String>? cartItems,
     GeneralApiState<BannersModel>? bannersApiState,
@@ -107,7 +109,7 @@ class HomeState extends Equatable {
     GeneralApiState<void>? deleteCartItemApiState,
     GeneralApiState<void>? clearCartApiState,
     GeneralApiState<CouponsModel>? getCouponsApiState,
-    GeneralApiState<void>? applyCouponApiState,
+    GeneralApiState<ApplyCouponModel>? applyCouponApiState,
     GeneralApiState<CheckoutResponse>? checkoutApiState,
     GeneralApiState<PaymentVerifyResponse>? paymentVerifyApiState,
     int? selectedDeliveryDateIndex,
@@ -116,6 +118,7 @@ class HomeState extends Equatable {
     GeneralApiState<OrdersModel>? ordersApiState,
     GeneralApiState<ShippingModel>? shippingApiState,
     GeneralApiState<HandlingModel>? handlingApiState,
+    GeneralApiState<void>? submitReviewApiState,
   }) {
     return HomeState(
       cartItems: cartItems ?? this.cartItems,
@@ -141,6 +144,7 @@ class HomeState extends Equatable {
       ordersApiState: ordersApiState ?? this.ordersApiState,
       shippingApiState: shippingApiState ?? this.shippingApiState,
       handlingApiState: handlingApiState ?? this.handlingApiState,
+      submitReviewApiState: submitReviewApiState ?? this.submitReviewApiState,
 
     );
   }
@@ -170,5 +174,6 @@ class HomeState extends Equatable {
     ordersApiState,
     shippingApiState,
     handlingApiState,
+    submitReviewApiState,
     ];
 }

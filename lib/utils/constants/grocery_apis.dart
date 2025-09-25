@@ -84,6 +84,8 @@ class GroceryApis {
   static const String shippingFee = "settings/shipping";
   // handling fee
   static const String handlingFee = "settings/handling";
+  // submit review
+  static const String submitReview = "orders/review/create";
   
 
   initBaseUrlAndAuthEndpoints() {

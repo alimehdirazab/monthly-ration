@@ -120,7 +120,11 @@ class AccountView extends StatelessWidget {
                             context,
                             Icons.shopping_bag_outlined,
                             'Your orders',
-                            () => context.pushPage(OrderHistoryPage()),
+                            () {
+                            //  context.pushPage(OrderHistoryPage()); 
+                             // context.pushPage(OrderPage());
+                             context.read<NavBarCubit>().getNavBarItem(NavBarItem.order);
+                            },  
                           ),
                           _buildTopActionCard(
                             context,
@@ -416,7 +420,7 @@ class AccountView extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 10,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w700,
                       color: Colors.black87,
                     ),
                     maxLines: 2,

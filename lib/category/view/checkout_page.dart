@@ -739,55 +739,107 @@ class _CheckoutViewState extends State<CheckoutView> {
                                       size: 24,
                                     ),
                                     const SizedBox(width: 12),
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        const Text(
-                                          'You got Free delivery',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                        Text(
-                                          'No coupons needed',
-                                          style: TextStyle(
-                                            color: Colors.grey[600],
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
+                                    BlocBuilder<HomeCubit, HomeState>(
+                                      buildWhen: (previous, current) =>
+                                          previous.applyCouponApiState != current.applyCouponApiState,
+                                      builder: (context, state) {
+                                        final isApplied = state.applyCouponApiState.apiCallState == APICallState.loaded &&
+                                                         state.applyCouponApiState.model != null &&
+                                                         state.applyCouponApiState.model!.success == true;
+
+                                        if (isApplied) {
+                                          return Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'Coupon Applied: ${state.applyCouponApiState.model!.coupon}',
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 14,
+                                                  color: Colors.green,
+                                                ),
+                                              ),
+                                              Text(
+                                                'You saved ₹${state.applyCouponApiState.model!.discount}',
+                                                style: TextStyle(
+                                                  color: Colors.grey[600],
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                            ],
+                                          );
+                                        } else {
+                                          return Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              const Text(
+                                                'You got Free delivery',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 14,
+                                                ),
+                                              ),
+                                              Text(
+                                                'No coupons needed',
+                                                style: TextStyle(
+                                                  color: Colors.grey[600],
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                            ],
+                                          );
+                                        }
+                                      },
                                     ),
                                   ],
                                 ),
                               ),
-                              TextButton(
-                                onPressed: () {
-                                  context.pushPage(FreeCouponPage(
-                                    homeCubit: context.read<HomeCubit>(),
-                                  ));
+                              BlocBuilder<HomeCubit, HomeState>(
+                                buildWhen: (previous, current) =>
+                                    previous.applyCouponApiState != current.applyCouponApiState,
+                                builder: (context, state) {
+                                  final isApplied = state.applyCouponApiState.apiCallState == APICallState.loaded &&
+                                                   state.applyCouponApiState.model != null &&
+                                                   state.applyCouponApiState.model!.success == true;
+
+                                  // Hide the button if coupon is applied
+                                  if (isApplied) {
+                                    return const SizedBox.shrink();
+                                  }
+
+                                  return TextButton(
+                                    onPressed: () {
+                                      context.pushPage(FreeCouponPage(
+                                        homeCubit: context.read<HomeCubit>(),
+                                      ));
+                                    },
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: const [
+                                        Text(
+                                          'See all coupons',
+                                          style: TextStyle(
+                                            color: Colors.black,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                        Icon(
+                                          Icons.arrow_forward_ios,
+                                          color: Colors.black,
+                                          size: 12,
+                                        ),
+                                      ],
+                                    ),
+                                  );
                                 },
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: const [
-                                    Text(
-                                      'See all coupons',
-                                      style: TextStyle(
-                                        color: Colors.black,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                    Icon(
-                                      Icons.arrow_forward_ios,
-                                      color: Colors.black,
-                                      size: 12,
-                                    ),
-                                  ],
-                                ),
                               ),
                             ],
                           ),
                         ),
+                        const SizedBox(height: 24),
+
+                        // Coupon Section
+                       // _buildCouponSection(),
                         const SizedBox(height: 24),
         
                         // Bill Details
@@ -797,7 +849,8 @@ class _CheckoutViewState extends State<CheckoutView> {
                               previous.updateCartItemApiState != current.updateCartItemApiState ||
                               previous.deleteCartItemApiState != current.deleteCartItemApiState ||
                               previous.shippingApiState != current.shippingApiState ||
-                              previous.handlingApiState != current.handlingApiState,
+                              previous.handlingApiState != current.handlingApiState ||
+                              previous.applyCouponApiState != current.applyCouponApiState,
                           builder: (context, state) {
                             final cartItems = state.getCartItemsApiState.model?.data ?? [];
                             
@@ -844,7 +897,16 @@ class _CheckoutViewState extends State<CheckoutView> {
                             }
                             
                             final savings = mrpTotal - itemsTotal;
-                            final grandTotal = itemsTotal + deliveryCharge + handlingCharge;
+                            
+                            // Get coupon discount
+                            double couponDiscount = 0.0;
+                            if (state.applyCouponApiState.apiCallState == APICallState.loaded &&
+                                state.applyCouponApiState.model != null &&
+                                state.applyCouponApiState.model!.success == true) {
+                              couponDiscount = (state.applyCouponApiState.model!.discount ?? 0).toDouble();
+                            }
+                            
+                            final grandTotal = itemsTotal + deliveryCharge + handlingCharge - couponDiscount;
                             
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -889,6 +951,17 @@ class _CheckoutViewState extends State<CheckoutView> {
                                   isBold: false,
                                   valueColor: handlingCharge == 0 ? Colors.green : null,
                                 ),
+                                // Show discount if coupon is applied
+                                if (state.applyCouponApiState.apiCallState == APICallState.loaded &&
+                                    state.applyCouponApiState.model != null &&
+                                    state.applyCouponApiState.model!.success == true &&
+                                    (state.applyCouponApiState.model!.discount ?? 0) > 0)
+                                  _buildBillDetailRow(
+                                    'Coupon discount',
+                                    '-₹${state.applyCouponApiState.model!.discount}',
+                                    isBold: false,
+                                    valueColor: Colors.green,
+                                  ),
                                 const Divider(
                                   indent: 16,
                                   endIndent: 16,
@@ -1780,6 +1853,84 @@ class _CheckoutViewState extends State<CheckoutView> {
       ),
     );
   }
+
+//   Widget _buildCouponSection() {
+//     return BlocBuilder<HomeCubit, HomeState>(
+//       buildWhen: (previous, current) =>
+//           previous.applyCouponApiState != current.applyCouponApiState,
+//       builder: (context, state) {
+//         final isApplied = state.applyCouponApiState.apiCallState == APICallState.loaded &&
+//                          state.applyCouponApiState.model != null &&
+//                          state.applyCouponApiState.model!.success == true;
+
+//         // Only show if coupon is applied
+//         if (!isApplied) {
+//           return const SizedBox.shrink();
+//         }
+
+//         return Container(
+//           margin: const EdgeInsets.symmetric(horizontal: 16.0),
+//           padding: const EdgeInsets.all(16.0),
+//           decoration: BoxDecoration(
+//             color: Colors.white,
+//             borderRadius: BorderRadius.circular(15.0),
+//             boxShadow: [
+//               BoxShadow(
+//                 color: Colors.grey.withOpacity(0.1),
+//                 spreadRadius: 2,
+//                 blurRadius: 8,
+//                 offset: const Offset(0, 2),
+//               ),
+//             ],
+//           ),
+//           child: Container(
+//             padding: const EdgeInsets.all(12),
+//             decoration: BoxDecoration(
+//               color: Colors.green[50],
+//               borderRadius: BorderRadius.circular(8),
+//               border: Border.all(color: Colors.green[300]!),
+//             ),
+//             child: Row(
+//               children: [
+//                 Icon(Icons.check_circle, color: Colors.green[700], size: 20),
+//                 const SizedBox(width: 8),
+//                 Expanded(
+//                   child: Column(
+//                     crossAxisAlignment: CrossAxisAlignment.start,
+//                     children: [
+//                       Text(
+//                         'Coupon Applied: ${state.applyCouponApiState.model!.coupon}',
+//                         style: TextStyle(
+//                           fontWeight: FontWeight.w600,
+//                           color: Colors.green[700],
+//                         ),
+//                       ),
+//                       Text(
+//                         'You saved ₹${state.applyCouponApiState.model!.discount}',
+//                         style: TextStyle(
+//                           color: Colors.green[600],
+//                           fontSize: 12,
+//                         ),
+//                       ),
+//                     ],
+//                   ),
+//                 ),
+//                 TextButton(
+//                   onPressed: () {
+//                     // Navigate to coupons page to manage coupons
+//                     context.pushPage(FreeCouponPage(
+//                       homeCubit: context.read<HomeCubit>(),
+//                     ));
+//                   },
+//                   child: Text('Manage', style: TextStyle(color: Colors.orange[600])),
+//                 ),
+//               ],
+//             ),
+//           ),
+//         );
+//       },
+//     );
+//   }
 }
 
 class CheckoutProductCard extends StatelessWidget {

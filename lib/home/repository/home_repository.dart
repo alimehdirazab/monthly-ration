@@ -129,16 +129,17 @@ class HomeRepository {
   }
 
   // apply coupon
-  Future<void> applyCoupon({required String couponCode, required double orderAmount}) async {
+  Future<ApplyCouponModel> applyCoupon({required String couponCode, required double orderAmount}) async {
    final body = {
       "code": couponCode,
       "order_amount": orderAmount
     };
 
-   await generalRepository.post(
+   final response = await generalRepository.post(
       handle: GroceryApis.applyCoupon,
       body:  jsonEncode(body),
     );
+    return ApplyCouponModel.fromJson(response);
   }
 
   // checkout
@@ -146,11 +147,19 @@ class HomeRepository {
     required int addressId,
     required String paymentMethod,
     required List<CheckoutCartItem> cart,
+    String? couponId,
+    double? couponDiscountAmount,
+    double? shippingCharge,
+    double? handlingCharge,
   }) async {
     final checkoutRequest = CheckoutRequest(
       addressId: addressId,
       paymentMethod: paymentMethod,
       cart: cart,
+      couponId: couponId,
+      couponDiscountAmount: couponDiscountAmount,
+      shippingCharge: shippingCharge,
+      handlingCharge: handlingCharge,
     );
 
     final response = await generalRepository.post(
@@ -207,5 +216,25 @@ class HomeRepository {
     );
     return HandlingModel.fromJson(response);
 
+  }
+
+  // submit review
+  Future<Map<String, dynamic>> submitReview({
+    required int orderId,
+    required String review,
+    required List<Map<String, dynamic>> ratings,
+  }) async {
+    final reviewData = {
+      "order_id": orderId,
+      "review": review,
+      "ratings": ratings,
+    };
+
+    final response = await generalRepository.post(
+      handle: GroceryApis.submitReview,
+      body: jsonEncode(reviewData),
+    );
+    
+    return response;
   }
   }

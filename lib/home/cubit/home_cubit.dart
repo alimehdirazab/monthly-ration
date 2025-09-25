@@ -338,16 +338,17 @@ class HomeCubit extends Cubit<HomeState> {
 
   // apply coupon Method
   Future<void> applyCoupon({required String couponCode, required double orderAmount}) async {
-    emit(state.copyWith(applyCouponApiState: GeneralApiState<void>(
+    emit(state.copyWith(applyCouponApiState: GeneralApiState<ApplyCouponModel>(
       apiCallState: APICallState.loading,
     )));
 
-    await homeRepository.applyCoupon(couponCode: couponCode, orderAmount: orderAmount).then((_) {
-      emit(state.copyWith(applyCouponApiState: GeneralApiState<void>(
+    await homeRepository.applyCoupon(couponCode: couponCode, orderAmount: orderAmount).then((applyCouponModel) {
+      emit(state.copyWith(applyCouponApiState: GeneralApiState<ApplyCouponModel>(
         apiCallState: APICallState.loaded,
+        model: applyCouponModel,
       )));
     }).catchError((error) {
-      emit(state.copyWith(applyCouponApiState: GeneralApiState<void>(
+      emit(state.copyWith(applyCouponApiState: GeneralApiState<ApplyCouponModel>(
         apiCallState: APICallState.failure,
         errorMessage: error.toString(),
       )));
@@ -364,10 +365,37 @@ class HomeCubit extends Cubit<HomeState> {
       apiCallState: APICallState.loading,
     )));
 
+    // Get coupon data if applied
+    String? couponId;
+    double? couponDiscountAmount;
+    if (state.applyCouponApiState.apiCallState == APICallState.loaded && 
+        state.applyCouponApiState.model != null) {
+      couponId = state.applyCouponApiState.model!.coupon;
+      couponDiscountAmount = state.applyCouponApiState.model!.discount?.toDouble();
+    }
+
+    // Get shipping and handling charges
+    double? shippingCharge;
+    double? handlingCharge;
+    if (state.shippingApiState.apiCallState == APICallState.loaded && 
+        state.shippingApiState.model != null &&
+        state.shippingApiState.model!.data != null) {
+      shippingCharge = state.shippingApiState.model!.data!.shippingAmount?.toDouble();
+    }
+    if (state.handlingApiState.apiCallState == APICallState.loaded && 
+        state.handlingApiState.model != null &&
+        state.handlingApiState.model!.data != null) {
+      handlingCharge = state.handlingApiState.model!.data!.handlingAmount?.toDouble();
+    }
+
     await homeRepository.checkout(
       addressId: addressId,
       paymentMethod: paymentMethod,
       cart: cart,
+      couponId: couponId,
+      couponDiscountAmount: couponDiscountAmount,
+      shippingCharge: shippingCharge,
+      handlingCharge: handlingCharge,
     ).then((checkoutResponse) {
       emit(state.copyWith(checkoutApiState: GeneralApiState<CheckoutResponse>(
         apiCallState: APICallState.loaded,
@@ -472,6 +500,32 @@ class HomeCubit extends Cubit<HomeState> {
       )));
     }).catchError((error) {
       emit(state.copyWith(handlingApiState: GeneralApiState<HandlingModel>(
+        apiCallState: APICallState.failure,
+        errorMessage: error.toString(),
+      )));
+    });
+  }
+
+  // submit review Method
+  Future<void> submitReview({
+    required int orderId,
+    required String review,
+    required List<Map<String, dynamic>> ratings,
+  }) async {
+    emit(state.copyWith(submitReviewApiState: GeneralApiState<void>(
+      apiCallState: APICallState.loading,
+    )));
+
+    await homeRepository.submitReview(
+      orderId: orderId,
+      review: review,
+      ratings: ratings,
+    ).then((response) {
+      emit(state.copyWith(submitReviewApiState: GeneralApiState<void>(
+        apiCallState: APICallState.loaded,
+      )));
+    }).catchError((error) {
+      emit(state.copyWith(submitReviewApiState: GeneralApiState<void>(
         apiCallState: APICallState.failure,
         errorMessage: error.toString(),
       )));
