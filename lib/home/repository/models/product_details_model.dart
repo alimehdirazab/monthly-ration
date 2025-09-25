@@ -30,6 +30,7 @@ class ProductDetails {
     final String? mrpPrice;
     final dynamic sellPrice; // Changed to dynamic to handle both int and double
     final String? discount;
+    final int? cartQuantity;  // New field
     final List<String>? images;
     final List<dynamic>? extraFields;
     final String? brand;
@@ -47,6 +48,7 @@ class ProductDetails {
         this.mrpPrice,
         this.sellPrice,
         this.discount,
+        this.cartQuantity,  // New field
         this.images,
         this.extraFields,
         this.brand,
@@ -65,6 +67,7 @@ class ProductDetails {
         mrpPrice: json["mrp_price"],
         sellPrice: json["sell_price"],
         discount: json["discount"],
+        cartQuantity: _parseIntFromDynamic(json["cart_quantity"]),  // Handle string/int conversion
         images: json["images"] == null ? [] : List<String>.from(json["images"]!.map((x) => x)),
         extraFields: json["extra_fields"] == null ? [] : List<dynamic>.from(json["extra_fields"]!.map((x) => x)),
         brand: json["brand"],
@@ -72,6 +75,16 @@ class ProductDetails {
         attributeValues: json["attribute_values"] == null ? [] : List<AttributeValue>.from(json["attribute_values"]!.map((x) => AttributeValue.fromJson(x))),
         relatedProducts: json["related_products"] == null ? [] : List<RelatedProduct>.from(json["related_products"]!.map((x) => RelatedProduct.fromJson(x))),
     );
+
+    // Helper method to parse int from dynamic (handles string/int conversion)
+    static int? _parseIntFromDynamic(dynamic value) {
+      if (value == null) return null;
+      if (value is int) return value;
+      if (value is String) {
+        return int.tryParse(value);
+      }
+      return null;
+    }
 
     Map<String, dynamic> toJson() => {
         "id": id,
@@ -83,6 +96,7 @@ class ProductDetails {
         "mrp_price": mrpPrice,
         "sell_price": sellPrice,
         "discount": discount,
+        "cart_quantity": cartQuantity,
         "images": images == null ? [] : List<dynamic>.from(images!.map((x) => x)),
         "extra_fields": extraFields == null ? [] : List<dynamic>.from(extraFields!.map((x) => x)),
         "brand": brand,
@@ -138,6 +152,8 @@ class AttributeValueDetail {
     final String? mrpPrice;
     final String? discount;
     final String? sellPrice;
+    final int? stock;  // New field
+    final int? cartQuantity;  // New field
 
     AttributeValueDetail({
         this.id,
@@ -145,6 +161,8 @@ class AttributeValueDetail {
         this.mrpPrice,
         this.discount,
         this.sellPrice,
+        this.stock,  // New field
+        this.cartQuantity,  // New field
     });
 
     factory AttributeValueDetail.fromJson(Map<String, dynamic> json) => AttributeValueDetail(
@@ -153,7 +171,19 @@ class AttributeValueDetail {
         mrpPrice: json["mrp_price"],
         discount: json["discount"],
         sellPrice: json["sell_price"],
+        stock: _parseIntFromDynamic(json["stock"]),  // Handle string/int conversion
+        cartQuantity: _parseIntFromDynamic(json["cart_quantity"]),  // Handle string/int conversion
     );
+
+    // Helper method to parse int from dynamic (handles string/int conversion)
+    static int? _parseIntFromDynamic(dynamic value) {
+      if (value == null) return null;
+      if (value is int) return value;
+      if (value is String) {
+        return int.tryParse(value);
+      }
+      return null;
+    }
 
     Map<String, dynamic> toJson() => {
         "id": id,
@@ -161,6 +191,8 @@ class AttributeValueDetail {
         "mrp_price": mrpPrice,
         "discount": discount,
         "sell_price": sellPrice,
+        "stock": stock,
+        "cart_quantity": cartQuantity,
     };
 }
 

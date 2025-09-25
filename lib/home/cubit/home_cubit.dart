@@ -154,12 +154,17 @@ class HomeCubit extends Cubit<HomeState> {
   }
 
   // add to cart Method
-  Future<void> addToCart({required int productId, required int quantity,String? color,String? size, int? attributeValueId}) async {
+  Future<void> addToCart({
+    required int productId, 
+    required int quantity,
+    int? attributeId,        // Main attribute ID (e.g., 7 for "Weight")
+    int? attributeValueId,   // Selected attribute value ID (e.g., 128)
+  }) async {
     emit(state.copyWith(addToCartApiState: GeneralApiState<void>(
       apiCallState: APICallState.loading,
     )));
 
-    await homeRepository.addToCart(productId: productId, quantity: quantity,color: color,size: size, attributeValueId: attributeValueId).then((_) {
+    await homeRepository.addToCart(productId: productId, quantity: quantity, attributeId: attributeId, attributeValueId: attributeValueId).then((_) {
       // Update cart items quantity in cartItems list for particular product
       List<CartItem> updatedCartItems = List.from(state.getCartItemsApiState.model?.data ?? []);
       
@@ -530,6 +535,329 @@ class HomeCubit extends Cubit<HomeState> {
         errorMessage: error.toString(),
       )));
     });
+  }
+
+  // Optimistic Add to Cart - Updates UI immediately, then calls API
+  Future<void> optimisticAddToCart({
+    required int productId,
+    required int quantity,
+    required Product product,
+    int? attributeId,
+    int? attributeValueId,
+    bool isIncrement = false,  // New parameter to indicate if this is an increment operation
+  }) async {
+    // 1. Add/Update item in cart items list first
+    _updateCartItemsOptimistically(productId, quantity, product, attributeValueId, isIncrement: isIncrement);
+    
+    // 2. Update product's cartQuantity in the products list (calculated from cart total)
+    _updateProductCartQuantity(productId, null);
+    
+    // 3. Call the actual API
+    try {
+      await homeRepository.addToCart(
+        productId: productId, 
+        quantity: quantity, 
+        attributeId: attributeId, 
+        attributeValueId: attributeValueId
+      );
+      
+      // API Success - emit success state
+      emit(state.copyWith(addToCartApiState: GeneralApiState<void>(
+        apiCallState: APICallState.loaded,
+      )));
+      
+    } catch (error) {
+      // API Failed - rollback the optimistic changes
+      _rollbackCartItemsOptimistically(productId, quantity, attributeValueId);
+      _updateProductCartQuantity(productId, null);
+      
+      emit(state.copyWith(addToCartApiState: GeneralApiState<void>(
+        apiCallState: APICallState.failure,
+        errorMessage: error.toString(),
+      )));
+      
+      rethrow; // Re-throw to handle in UI
+    }
+  }
+
+  // Optimistic Update Cart - Updates UI immediately, then calls API
+  Future<void> optimisticUpdateCart({
+    required int productId,
+    required int quantity,
+    required Product product,
+    int? attributeValueId,
+  }) async {
+    // Store previous cart state for rollback
+    final previousCartItems = List<CartItem>.from(state.getCartItemsApiState.model?.data ?? []);
+    
+    // 1. Update cart items list first
+    _updateCartItemsOptimistically(productId, quantity, product, attributeValueId);
+    
+    // 2. Update product's cartQuantity (calculated from cart total)
+    _updateProductCartQuantity(productId, null);
+    
+    // 3. Find cart item ID and call update API
+    try {
+      final cartItems = state.getCartItemsApiState.model?.data ?? [];
+      final cartItem = cartItems.firstWhere(
+        (item) => item.productId == productId && 
+                  (attributeValueId == null || item.attributeValueId == attributeValueId),
+        orElse: () => CartItem(),
+      );
+      
+      if (cartItem.id != null) {
+        await homeRepository.updateCartItem(cartItemId: cartItem.id!, quantity: quantity);
+        
+        // API Success
+        emit(state.copyWith(updateCartItemApiState: GeneralApiState<void>(
+          apiCallState: APICallState.loaded,
+        )));
+      }
+      
+    } catch (error) {
+      // API Failed - rollback changes
+      final rollbackCartModel = CartListModel(success: true, data: previousCartItems);
+      emit(state.copyWith(
+        getCartItemsApiState: GeneralApiState<CartListModel>(
+          apiCallState: APICallState.loaded,
+          model: rollbackCartModel,
+        ),
+        updateCartItemApiState: GeneralApiState<void>(
+          apiCallState: APICallState.failure,
+          errorMessage: error.toString(),
+        ),
+      ));
+      _updateProductCartQuantity(productId, null);
+      
+      rethrow;
+    }
+  }
+
+  // Optimistic Remove from Cart - Updates UI immediately, then calls API
+  Future<void> optimisticRemoveFromCart({
+    required int productId,
+    required Product product,
+    int? attributeValueId,
+  }) async {
+    // Store previous cart state for rollback
+    final previousCartItems = List<CartItem>.from(state.getCartItemsApiState.model?.data ?? []);
+    
+    // 1. Remove from cart items list first
+    _removeCartItemOptimistically(productId, attributeValueId);
+    
+    // 2. Update product's cartQuantity (calculated from remaining cart total)
+    _updateProductCartQuantity(productId, null);
+    
+    // 3. Find cart item ID and call delete API
+    try {
+      final cartItem = previousCartItems.firstWhere(
+        (item) => item.productId == productId && 
+                  (attributeValueId == null || item.attributeValueId == attributeValueId),
+        orElse: () => CartItem(),
+      );
+      
+      if (cartItem.id != null) {
+        await homeRepository.deleteCartItem(cartItemId: cartItem.id!);
+        
+        // API Success
+        emit(state.copyWith(deleteCartItemApiState: GeneralApiState<void>(
+          apiCallState: APICallState.loaded,
+        )));
+      }
+      
+    } catch (error) {
+      // API Failed - rollback changes
+      final rollbackCartModel = CartListModel(success: true, data: previousCartItems);
+      emit(state.copyWith(
+        getCartItemsApiState: GeneralApiState<CartListModel>(
+          apiCallState: APICallState.loaded,
+          model: rollbackCartModel,
+        ),
+        deleteCartItemApiState: GeneralApiState<void>(
+          apiCallState: APICallState.failure,
+          errorMessage: error.toString(),
+        ),
+      ));
+      _updateProductCartQuantity(productId, null);
+      
+      rethrow;
+    }
+  }
+
+  // Helper methods for optimistic updates
+  void _updateProductCartQuantity(int productId, int? quantity) {
+    // For variant products, calculate total quantity from cart items
+    // For single variant products, use the provided quantity
+    if (state.productsBySubCategoryApiState.model != null) {
+      final products = List<Product>.from(state.productsBySubCategoryApiState.model!.data);
+      final productIndex = products.indexWhere((p) => p.id == productId);
+      
+      if (productIndex != -1) {
+        final product = products[productIndex];
+        int totalCartQuantity;
+        
+        // For both variant and single variant products, calculate total from all cart items
+        // This ensures we always have the most up-to-date quantity after cart operations
+        final cartItems = state.getCartItemsApiState.model?.data ?? [];
+        totalCartQuantity = cartItems
+            .where((item) => item.productId == productId)
+            .fold(0, (sum, item) => sum + (item.quantity ?? 0));
+        
+        final updatedProduct = Product(
+          id: product.id,
+          name: product.name,
+          description: product.description,
+          category: product.category,
+          subcategory: product.subcategory,
+          brand: product.brand,
+          mrpPrice: product.mrpPrice,
+          discount: product.discount,
+          salePrice: product.salePrice,
+          weight: product.weight,
+          imagesUrls: product.imagesUrls,
+          tax: product.tax,
+          cartQuantity: totalCartQuantity, // Update cart quantity
+          attributeValues: product.attributeValues,
+        );
+        
+        products[productIndex] = updatedProduct;
+        
+        final updatedModel = ProductModel(data: products);
+        emit(state.copyWith(productsBySubCategoryApiState: GeneralApiState<ProductModel>(
+          apiCallState: APICallState.loaded,
+          model: updatedModel,
+        )));
+      }
+    }
+  }
+
+
+
+  void _updateCartItemsOptimistically(int productId, int quantity, Product product, int? attributeValueId, {bool isIncrement = false}) {
+    final cartItems = List<CartItem>.from(state.getCartItemsApiState.model?.data ?? []);
+    final existingItemIndex = cartItems.indexWhere(
+      (item) => item.productId == productId && 
+                (attributeValueId == null || item.attributeValueId == attributeValueId),
+    );
+    
+    if (existingItemIndex != -1) {
+      // Update existing item
+      final existingItem = cartItems[existingItemIndex];
+      final newQuantity = isIncrement 
+          ? (existingItem.quantity ?? 0) + quantity  // Add to existing quantity for increments
+          : quantity;  // Set to new quantity for regular updates
+          
+      cartItems[existingItemIndex] = CartItem(
+        id: existingItem.id,
+        customerId: existingItem.customerId,
+        productId: existingItem.productId,
+        quantity: newQuantity,
+        attributes: existingItem.attributes,
+        attributeValueId: existingItem.attributeValueId,
+        createdAt: existingItem.createdAt,
+        updatedAt: existingItem.updatedAt,
+        product: existingItem.product,
+        attributesValues: existingItem.attributesValues,
+      );
+    } else {
+      // Add new item
+      cartItems.add(CartItem(
+        id: DateTime.now().millisecondsSinceEpoch, // Temporary ID
+        customerId: null,
+        productId: productId,
+        quantity: quantity,
+        attributes: null,
+        attributeValueId: attributeValueId,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        product: Produc(
+          id: product.id,
+          name: product.name,
+          slug: null,
+          description: product.description,
+          categoryIds: null,
+          subCategory: null,
+          subsubCategoryId: null,
+          brandId: null,
+          mrpPrice: product.mrpPrice,
+          salePrice: product.salePrice,
+          purchasePrice: null,
+          tax: product.tax,
+          discount: product.discount,
+          shippingCost: null,
+          stock: null,
+          tagIds: null,
+          unit: null,
+          published: null,
+          weight: product.weight,
+          pieces: null,
+          colorsIds: null,
+          imagesUrls: product.imagesUrls,
+          extraFields: null,
+          isTranding: null,
+          status: null,
+          createdAt: null,
+          updatedAt: null,
+        ),
+        attributesValues: null,
+      ));
+    }
+    
+    final updatedCartModel = CartListModel(success: true, data: cartItems);
+    emit(state.copyWith(getCartItemsApiState: GeneralApiState<CartListModel>(
+      apiCallState: APICallState.loaded,
+      model: updatedCartModel,
+    )));
+  }
+
+  void _removeCartItemOptimistically(int productId, int? attributeValueId) {
+    final cartItems = List<CartItem>.from(state.getCartItemsApiState.model?.data ?? []);
+    cartItems.removeWhere(
+      (item) => item.productId == productId && 
+                (attributeValueId == null || item.attributeValueId == attributeValueId),
+    );
+    
+    final updatedCartModel = CartListModel(success: true, data: cartItems);
+    emit(state.copyWith(getCartItemsApiState: GeneralApiState<CartListModel>(
+      apiCallState: APICallState.loaded,
+      model: updatedCartModel,
+    )));
+  }
+
+  void _rollbackCartItemsOptimistically(int productId, int quantityToSubtract, int? attributeValueId) {
+    final cartItems = List<CartItem>.from(state.getCartItemsApiState.model?.data ?? []);
+    final existingItemIndex = cartItems.indexWhere(
+      (item) => item.productId == productId && 
+                (attributeValueId == null || item.attributeValueId == attributeValueId),
+    );
+    
+    if (existingItemIndex != -1) {
+      final existingItem = cartItems[existingItemIndex];
+      final newQuantity = (existingItem.quantity ?? 0) - quantityToSubtract;
+      
+      if (newQuantity <= 0) {
+        cartItems.removeAt(existingItemIndex);
+      } else {
+        cartItems[existingItemIndex] = CartItem(
+          id: existingItem.id,
+          customerId: existingItem.customerId,
+          productId: existingItem.productId,
+          quantity: newQuantity,
+          attributes: existingItem.attributes,
+          attributeValueId: existingItem.attributeValueId,
+          createdAt: existingItem.createdAt,
+          updatedAt: existingItem.updatedAt,
+          product: existingItem.product,
+          attributesValues: existingItem.attributesValues,
+        );
+      }
+      
+      final updatedCartModel = CartListModel(success: true, data: cartItems);
+      emit(state.copyWith(getCartItemsApiState: GeneralApiState<CartListModel>(
+        apiCallState: APICallState.loaded,
+        model: updatedCartModel,
+      )));
+    }
   }
 
 }

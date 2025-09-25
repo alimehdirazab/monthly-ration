@@ -64,21 +64,36 @@ class _ProductVariantsBottomSheetState extends State<ProductVariantsBottomSheet>
   }
 
   void _incrementQuantity(int attributeValueId) {
+    final currentQuantity = _quantities[attributeValueId] ?? 0;
+    final newQuantity = currentQuantity + 1;
+    
+    // Optimistic UI update
     setState(() {
-      _quantities[attributeValueId] = (_quantities[attributeValueId] ?? 0) + 1;
+      _quantities[attributeValueId] = newQuantity;
     });
     
-    widget.onAddToCart(attributeValueId, _quantities[attributeValueId] ?? 0);
+    // For increment, we need to determine if this is the first add or an increment
+    if (currentQuantity == 0) {
+      // First time adding - pass the new quantity (1)
+      widget.onAddToCart(attributeValueId, newQuantity);
+    } else {
+      // Incrementing existing - pass the new total quantity but API should use addToCart with quantity 1
+      widget.onAddToCart(attributeValueId, newQuantity);
+    }
   }
 
   void _decrementQuantity(int attributeValueId) {
     final currentQuantity = _quantities[attributeValueId] ?? 0;
     if (currentQuantity > 0) {
+      final newQuantity = currentQuantity - 1;
+      
+      // Optimistic UI update
       setState(() {
-        _quantities[attributeValueId] = currentQuantity - 1;
+        _quantities[attributeValueId] = newQuantity;
       });
       
-      widget.onAddToCart(attributeValueId, _quantities[attributeValueId] ?? 0);
+      // Call parent's callback which will handle optimistic API calls
+      widget.onAddToCart(attributeValueId, newQuantity);
     }
   }
 
@@ -90,11 +105,28 @@ class _ProductVariantsBottomSheetState extends State<ProductVariantsBottomSheet>
           previous.updateCartItemApiState != current.updateCartItemApiState ||
           previous.deleteCartItemApiState != current.deleteCartItemApiState,
       listener: (context, state) {
-        // Refresh quantities when cart operations complete
-        if (state.addToCartApiState.apiCallState == APICallState.loaded ||
-            state.updateCartItemApiState.apiCallState == APICallState.loaded ||
-            state.deleteCartItemApiState.apiCallState == APICallState.loaded) {
-          _initializeQuantitiesFromCart();
+        // Sync quantities when cart state changes (from optimistic updates)
+        if (state.getCartItemsApiState.apiCallState == APICallState.loaded) {
+          final cartItems = state.getCartItemsApiState.model?.data ?? [];
+          
+          // Update quantities from current cart state
+          for (final attributeValue in widget.product.attributeValues) {
+            for (final value in attributeValue.attribute.values) {
+              if (value.id != null) {
+                final cartItem = cartItems.firstWhere(
+                  (item) => item.productId == widget.product.id && item.attributeValueId == value.id,
+                  orElse: () => home_models.CartItem(),
+                );
+                
+                final newQuantity = cartItem.quantity ?? 0;
+                if (_quantities[value.id!] != newQuantity) {
+                  setState(() {
+                    _quantities[value.id!] = newQuantity;
+                  });
+                }
+              }
+            }
+          }
         }
       },
       child: Container(
@@ -175,9 +207,9 @@ class _ProductVariantsBottomSheetState extends State<ProductVariantsBottomSheet>
                     // Attribute values list
                     ...attributeValue.attribute.values.map((value) {
                       final quantity = _quantities[value.id] ?? 0;
-                      final mrpPrice = double.tryParse(value.mrpPrice) ?? 0.0;
+                      final mrpPrice = double.tryParse(value.mrpPrice ?? '0') ?? 0.0;
                       final sellPrice = double.tryParse(value.sellPrice ?? '0') ?? 0.0;
-                      final discountPercent = value.discount.replaceAll('%', '');
+                      final discountPercent = (value.discount ?? '0').replaceAll('%', '');
                       final hasValidPrice = sellPrice > 0;
                       
                       return Container(

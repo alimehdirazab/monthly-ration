@@ -454,7 +454,7 @@ class _OrderDetailsViewState extends State<OrderDetailsView> {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () {
-                      context.pushPage(RateOrderPage(order: widget.order));
+                      context.pushPage(RateOrderPage(order: widget.order, homeCubit: context.read<HomeCubit>()));
                     },
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Colors.pink, width: 1.5),
@@ -568,6 +568,7 @@ class _OrderDetailsViewState extends State<OrderDetailsView> {
         context.read<HomeCubit>().addToCart(
           productId: productId,
           quantity: quantity,
+          // No attributes needed for reordering - will use default values
         );
       }
       // in last call getCartItems to refresh the cart state

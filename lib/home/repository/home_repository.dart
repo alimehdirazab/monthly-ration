@@ -55,23 +55,22 @@ class HomeRepository {
   }
 
   // add to cart
-  Future<void> addToCart({required int productId, required int quantity,String? color,String? size, int? attributeValueId}) async {
-    // Try simpler body first to see if attributes are causing issues
+  Future<void> addToCart({
+    required int productId, 
+    required int quantity,
+    int? attributeId,        // Main attribute ID (e.g., 7 for "Weight")
+    int? attributeValueId,   // Selected attribute value ID (e.g., 128)
+  }) async {
     final Map<String, dynamic> body = {
       'product_id': productId,
       'quantity': quantity,
     };
     
-    // Add attribute_value_id if provided (for product variants)
-    if (attributeValueId != null) {
-      body['attribute_value_id'] = attributeValueId;
-    }
-    
-    // Only add attributes if they are not null
-    if (color != null || size != null) {
-      body['attributes'] = {
-        if (color != null) 'color': color,
-        if (size != null) 'size': size,
+    // Add attributes in the exact format requested if both attributeId and attributeValueId are provided
+    if (attributeId != null && attributeValueId != null) {
+      body['attribures'] = {
+        '{attributeid}': attributeId.toString(),
+        '{attributeidnext}': attributeValueId.toString(),
       };
     }
     
@@ -79,8 +78,6 @@ class HomeRepository {
       handle: GroceryApis.addToCart,
       body:  jsonEncode(body),
     );
-    
-   
   }
 
   // get cart items
@@ -225,13 +222,12 @@ class HomeRepository {
     required List<Map<String, dynamic>> ratings,
   }) async {
     final reviewData = {
-      "order_id": orderId,
       "review": review,
       "ratings": ratings,
     };
 
     final response = await generalRepository.post(
-      handle: GroceryApis.submitReview,
+      handle: '${GroceryApis.submitReview}?order_id=$orderId',
       body: jsonEncode(reviewData),
     );
     

@@ -3,22 +3,20 @@ part of 'view.dart';
 class ProductDetailPage extends StatelessWidget {
   final HomeCubit homeCubit;
   final int productId;
-  final int initialQuantity;
-  const ProductDetailPage({super.key, required this.homeCubit, required this.productId, this.initialQuantity = 0});
+  const ProductDetailPage({super.key, required this.homeCubit, required this.productId});
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider.value(
       value: homeCubit,
-      child: ProductDetailView(productId: productId, initialQuantity: initialQuantity),
+      child: ProductDetailView(productId: productId),
     );
   }
 }
 
 class ProductDetailView extends StatefulWidget {
   final int productId;
-  final int initialQuantity;
-  const ProductDetailView({super.key, required this.productId, this.initialQuantity = 0});
+  const ProductDetailView({super.key, required this.productId});
 
   @override
   State<ProductDetailView> createState() => _ProductDetailViewState();
@@ -36,7 +34,8 @@ class _ProductDetailViewState extends State<ProductDetailView> with TickerProvid
   
   // Selected variant state
   AttributeValueDetail? _selectedVariant;
-  int? _selectedAttributeValueId;
+  int? _selectedAttributeId;       // Main attribute ID
+  int? _selectedAttributeValueId;  // Selected attribute value ID
 
   // // Example product images (replace with actual image URLs)
   // final List<String> _productImages = [
@@ -56,7 +55,6 @@ class _ProductDetailViewState extends State<ProductDetailView> with TickerProvid
   @override
   initState() {
     super.initState();
-    _quantity = widget.initialQuantity; // Initialize from constructor parameter
     context.read<HomeCubit>().getProductDetails(widget.productId);
     
     // Initialize animation controller for key features
@@ -107,9 +105,10 @@ class _ProductDetailViewState extends State<ProductDetailView> with TickerProvid
     }
   }
 
-  void _selectVariant(AttributeValueDetail variant) {
+  void _selectVariant(AttributeValueDetail variant, int attributeId) {
     setState(() {
       _selectedVariant = variant;
+      _selectedAttributeId = attributeId;
       _selectedAttributeValueId = variant.id;
     });
   }
@@ -463,7 +462,7 @@ class _ProductDetailViewState extends State<ProductDetailView> with TickerProvid
     // Initialize selected variant if not set
     if (_selectedVariant == null && variants.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _selectVariant(variants.first);
+        _selectVariant(variants.first, attributeValue.attribute!.id!);
       });
     }
 
@@ -490,7 +489,7 @@ class _ProductDetailViewState extends State<ProductDetailView> with TickerProvid
               
               return Expanded(
                 child: GestureDetector(
-                  onTap: () => _selectVariant(variant),
+                  onTap: () => _selectVariant(variant, attributeValue.attribute!.id!),
                   child: Container(
                     margin: const EdgeInsets.only(right: 8),
                     padding: const EdgeInsets.all(12),
@@ -1063,44 +1062,27 @@ class _ProductDetailViewState extends State<ProductDetailView> with TickerProvid
     );
   }
 
-  int _quantity = 0; // Will be initialized from constructor
-  bool _isPlaceOrderPressed = false; // Track place order button press
 
-  void _incrementQuantity() {
-    setState(() {
-      _quantity++;
-    });
-    // Optional: You can add a callback here to notify the parent widget (e.g., a cart)
-  }
-
-  void _decrementQuantity() {
-    setState(() {
-      if (_quantity > 0) {
-        _quantity--;
-      }
-    });
-    // Optional: You can add a callback here to notify the parent widget (e.g., a cart)
-  }
 
   Widget _buildBottomBar(ProductDetails? productDetails) {
     return BlocListener<HomeCubit, HomeState>(
       listenWhen: (previous, current) =>
           previous.addToCartApiState != current.addToCartApiState,
       listener: (context, state) {
-        // Navigate to checkout after successful add to cart (for place order)
-        if (state.addToCartApiState.apiCallState == APICallState.loaded && 
-            _isPlaceOrderPressed) {
-          _isPlaceOrderPressed = false;
+        // Navigate to checkout after successful add to cart
+        if (state.addToCartApiState.apiCallState == APICallState.loaded) {
           context.pushPage(CheckoutPage(
             homeCubit: context.read<HomeCubit>(),
           ));
+        } else if (state.addToCartApiState.apiCallState == APICallState.failure) {
+          context.showSnacbar('Failed to add to cart');
         }
       },
       child: Container(
         padding: const EdgeInsets.symmetric(
-          horizontal: 10,
-          vertical: 10,
-        ).copyWith(bottom: 10),
+          horizontal: 20,
+          vertical: 15,
+        ).copyWith(bottom: 15),
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.only(
@@ -1127,7 +1109,7 @@ class _ProductDetailViewState extends State<ProductDetailView> with TickerProvid
                   Text(
                     '₹${_selectedVariant?.sellPrice ?? productDetails?.sellPrice ?? 0}',
                     style: TextStyle(
-                      fontSize: 20,
+                      fontSize: 24,
                       fontWeight: FontWeight.bold,
                       color: Colors.black,
                     ),
@@ -1136,7 +1118,7 @@ class _ProductDetailViewState extends State<ProductDetailView> with TickerProvid
                     Text(
                       'Per ${_selectedVariant!.value}',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 14,
                         color: Colors.grey[600],
                       ),
                     )
@@ -1144,7 +1126,7 @@ class _ProductDetailViewState extends State<ProductDetailView> with TickerProvid
                     Text(
                       'Per ${productDetails.weight}',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 14,
                         color: Colors.grey[600],
                       ),
                     ),
@@ -1153,133 +1135,33 @@ class _ProductDetailViewState extends State<ProductDetailView> with TickerProvid
             else
               SizedBox(),
             
-            Spacer(),
-            
-            // Dynamic button area - Add to Cart OR Quantity selector
-            BlocConsumer<HomeCubit, HomeState>(
-              listenWhen: (previous, current) =>
-                  previous.addToCartApiState != current.addToCartApiState,
-              listener: (context, state) {
-                if (state.addToCartApiState.apiCallState == APICallState.loaded &&
-                    !_isPlaceOrderPressed) {
-                  context.showSnacbar('Added to cart successfully');
-                  // After successful add to cart, increment quantity to show +/- controls
-                  setState(() {
-                    _quantity = 1;
-                  });
-                } else if (state.addToCartApiState.apiCallState == APICallState.failure) {
-                  context.showSnacbar('Failed to add to cart');
-                }
-              },
-              buildWhen: (previous, current) =>
-                  previous.addToCartApiState != current.addToCartApiState,
-              builder: (context, state) {
-                final isLoading = state.addToCartApiState.apiCallState == APICallState.loading;
-                final isQuantityZero = _quantity == 0;
-                
-                if (isQuantityZero) {
-                  // Show Add to Cart button when quantity is 0
-                  return CustomElevatedButton(
-                    backgrondColor: GroceryColorTheme().primary,
-                    width: 120,
-                    height: 40,
-                    onPressed: isLoading
-                        ? () {}
-                        : () {
-                            context.read<HomeCubit>().addToCart(
-                              productId: widget.productId,
-                              quantity: 1, // Add 1 item
-                              attributeValueId: _selectedAttributeValueId,
-                            );
-                          },
-                    buttonText: isLoading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          )
-                        : Text(
-                            "Add to Cart",
-                            style: GroceryTextTheme().bodyText.copyWith(
-                              color: GroceryColorTheme().black,
-                              fontSize: 14,
-                            ),
-                          ),
-                  );
-                } else {
-                  // Show quantity selector when quantity > 0
-                  return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: GroceryColorTheme().primary,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        GestureDetector(
-                          onTap: _decrementQuantity,
-                          child: const Icon(
-                            Icons.remove,
-                            color: Colors.white,
-                            size: 24,
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                          child: Text(
-                            '$_quantity',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: _incrementQuantity,
-                          child: const Icon(Icons.add, color: Colors.white, size: 24),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-              },
-            ),
-            
-            SizedBox(width: 10),
-            
-            // Place Order button (always visible)
+            // Place Order button (only button visible)
             BlocBuilder<HomeCubit, HomeState>(
               buildWhen: (previous, current) =>
                   previous.addToCartApiState != current.addToCartApiState,
               builder: (context, state) {
                 final isLoading = state.addToCartApiState.apiCallState == APICallState.loading;
-                final isQuantityZero = _quantity == 0;
                 
                 return CustomElevatedButton(
-                  backgrondColor: isQuantityZero 
-                      ? Colors.grey[400]! 
-                      : GroceryColorTheme().primary,
-                  width: 100,
-                  height: 40,
-                  onPressed: isQuantityZero || isLoading
+                  backgrondColor: GroceryColorTheme().primary,
+                  width: 150,
+                  height: 50,
+                  onPressed: isLoading
                       ? () {}
                       : () {
-                          _isPlaceOrderPressed = true;
+                          // Add to cart with quantity 1 and selected variant (if any)
+                          // For variants, use the format: "attribures":{"{attributeid}":"{7}","{attributeidnext}":"{128}"}
                           context.read<HomeCubit>().addToCart(
                             productId: widget.productId,
-                            quantity: _quantity,
+                            quantity: 1,
+                            attributeId: _selectedAttributeId,
                             attributeValueId: _selectedAttributeValueId,
                           );
                         },
-                  buttonText: isLoading && _isPlaceOrderPressed
+                  buttonText: isLoading
                       ? const SizedBox(
-                          width: 20,
-                          height: 20,
+                          width: 24,
+                          height: 24,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
                             valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
@@ -1288,10 +1170,9 @@ class _ProductDetailViewState extends State<ProductDetailView> with TickerProvid
                       : Text(
                           "Place Order",
                           style: GroceryTextTheme().bodyText.copyWith(
-                            color: isQuantityZero 
-                                ? GroceryColorTheme().white
-                                : GroceryColorTheme().black,
-                            fontSize: 14,
+                            color: GroceryColorTheme().black,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                 );

@@ -489,49 +489,48 @@ class _ProductCardFromApiState extends State<ProductCardFromApi> {
   @override
   void initState() {
     super.initState();
-    // Initialize quantity from cart if product exists
-    _initializeQuantityFromCart();
+    // Initialize quantity from product's cart_quantity field (from product API)
+    _initializeQuantityFromProduct();
   }
 
-  void _initializeQuantityFromCart() {
-    final cartItems = context.read<HomeCubit>().state.getCartItemsApiState.model?.data ?? [];
-    
-    // For products with variants, show total quantity from all variants
+  void _initializeQuantityFromProduct() {
+    // For products with variants, calculate total quantity from all variants in cart
     if (widget.product.attributeValues.isNotEmpty) {
-      int totalQuantity = 0;
-      for (final item in cartItems) {
-        if (item.productId == widget.product.id) {
-          totalQuantity += item.quantity ?? 0;
+      _calculateTotalVariantQuantity();
+    } else {
+      // Use cart_quantity from product API response for single variant products
+      final productCartQuantity = widget.product.cartQuantity ?? 0;
+      
+      if (_quantity != productCartQuantity) {
+        setState(() {
+          _quantity = productCartQuantity;
+        });
+      }
+    }
+  }
+
+  void _calculateTotalVariantQuantity() {
+    final cartItems = context.read<HomeCubit>().state.getCartItemsApiState.model?.data ?? [];
+    int totalQuantity = 0;
+    
+    // Sum up quantities of all variants of this product in the cart
+    // Also update previous quantities tracker
+    for (final cartItem in cartItems) {
+      if (cartItem.productId == widget.product.id) {
+        totalQuantity += cartItem.quantity ?? 0;
+        
+        // Update previous quantities tracker
+        if (cartItem.attributeValueId != null) {
+          _previousVariantQuantities[cartItem.attributeValueId!] = cartItem.quantity ?? 0;
         }
       }
-      
-      if (_quantity != totalQuantity) {
-        setState(() {
-          _quantity = totalQuantity;
-        });
-      }
-      return;
     }
     
-    // Original logic for products without variants
-    final cartItem = cartItems.firstWhere(
-      (item) => item.productId == widget.product.id,
-      orElse: () => home_models.CartItem(),
-    );
-    
-    if (cartItem.productId != null) {
-      final newQuantity = cartItem.quantity ?? 0;
-      if (_quantity != newQuantity) {
-        setState(() {
-          _quantity = newQuantity;
-        });
-      }
-    } else {
-      if (_quantity != 0) {
-        setState(() {
-          _quantity = 0;
-        });
-      }
+    // Only update quantity if not in loading state to preserve optimistic updates
+    if (!_isLoading && _quantity != totalQuantity) {
+      setState(() {
+        _quantity = totalQuantity;
+      });
     }
   }
 
@@ -551,44 +550,43 @@ class _ProductCardFromApiState extends State<ProductCardFromApi> {
       return;
     }
     
-    // Original logic for products without variants
-    final cartItems = context.read<HomeCubit>().state.getCartItemsApiState.model?.data ?? [];
-    final cartItem = cartItems.firstWhere(
-      (item) => item.productId == widget.product.id,
-      orElse: () => home_models.CartItem(),
-    );
-
+    final newQuantity = _quantity + 1;
+    final previousQuantity = _quantity; // Store for rollback
+    final isFirstTimeAdding = _quantity == 0;
+    
+    // Optimistic UI update - immediately update local quantity FIRST
     setState(() {
+      _quantity = newQuantity;
       _isLoading = true;
     });
-
-    if (_quantity == 0) {
-      // Product not in cart yet, call addToCart API
-      context.read<HomeCubit>().addToCart(
-        productId: widget.product.id,
-        quantity: 1,
-      );
-      
-      // Update local state immediately for better UX
+    
+    // Optimistically update product model and cart items in HomeCubit
+    context.read<HomeCubit>().optimisticAddToCart(
+      productId: widget.product.id,
+      quantity: isFirstTimeAdding ? 1 : 1, // Always add 1, but the logic differs
+      product: widget.product,
+      isIncrement: !isFirstTimeAdding, // Only mark as increment if not first time
+    ).then((_) {
+      // API Success - keep the optimistic changes
       setState(() {
-        _quantity = 1;
+        _isLoading = false;
       });
-    } else {
-      // Product already in cart, call updateCartItem API
-      if (cartItem.id != null) {
-        final newQuantity = _quantity + 1;
-        
-        context.read<HomeCubit>().updateCartItem(
-          cartItemId: cartItem.id!,
-          quantity: newQuantity,
-        );
-        
-        // Update local state immediately for better UX
-        setState(() {
-          _quantity = newQuantity;
-        });
-      }
-    }
+    }).catchError((error) {
+      // API Failed - rollback the changes
+      setState(() {
+        _quantity = previousQuantity;
+        _isLoading = false;
+      });
+      
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to add item to cart. Please try again.'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    });
   }
 
   void _decrementQuantity() {
@@ -605,40 +603,75 @@ class _ProductCardFromApiState extends State<ProductCardFromApi> {
         return;
       }
       
-      // Original logic for products without variants
-      final cartItems = context.read<HomeCubit>().state.getCartItemsApiState.model?.data ?? [];
-      final cartItem = cartItems.firstWhere(
-        (item) => item.productId == widget.product.id,
-        orElse: () => home_models.CartItem(),
-      );
-
+      final newQuantity = _quantity - 1;
+      final previousQuantity = _quantity; // Store for rollback
+      
+      // Optimistic UI update - immediately update local quantity FIRST
       setState(() {
+        _quantity = newQuantity;
         _isLoading = true;
       });
-
-      if (cartItem.id != null) {
-        final newQuantity = _quantity - 1;
-        
-        if (newQuantity == 0) {
-          // Delete cart item when quantity becomes 0
-          context.read<HomeCubit>().deleteCartItem(
-            cartItemId: cartItem.id!,
+      
+      // Optimistically update product model and cart items in HomeCubit
+      if (newQuantity == 0) {
+        // Remove from cart optimistically
+        context.read<HomeCubit>().optimisticRemoveFromCart(
+          productId: widget.product.id,
+          product: widget.product,
+        ).then((_) {
+          // API Success - keep the optimistic changes
+          setState(() {
+            _isLoading = false;
+          });
+        }).catchError((error) {
+          // API Failed - rollback the changes
+          setState(() {
+            _quantity = previousQuantity;
+            _isLoading = false;
+          });
+          
+          // Show error message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to remove item from cart. Please try again.'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 2),
+            ),
           );
-        } else {
-          // Update with decremented quantity
-          context.read<HomeCubit>().updateCartItem(
-            cartItemId: cartItem.id!,
-            quantity: newQuantity,
+        });
+      } else {
+        // Update quantity optimistically
+        context.read<HomeCubit>().optimisticUpdateCart(
+          productId: widget.product.id,
+          quantity: newQuantity,
+          product: widget.product,
+        ).then((_) {
+          // API Success - keep the optimistic changes
+          setState(() {
+            _isLoading = false;
+          });
+        }).catchError((error) {
+          // API Failed - rollback the changes
+          setState(() {
+            _quantity = previousQuantity;
+            _isLoading = false;
+          });
+          
+          // Show error message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to update cart. Please try again.'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 2),
+            ),
           );
-        }
-        
-        // Update local state immediately for better UX
-        setState(() {
-          _quantity = newQuantity;
         });
       }
     }
   }
+
+  // Store previous quantities to detect increment/decrement
+  Map<int, int> _previousVariantQuantities = {};
 
   void _handleVariantAddToCart(int attributeValueId, int quantity) {
     if (_isLoading) return;
@@ -653,24 +686,162 @@ class _ProductCardFromApiState extends State<ProductCardFromApi> {
       orElse: () => home_models.CartItem(),
     );
 
-    if (quantity == 0) {
-      // Delete the cart item
-      if (existingCartItem.id != null) {
-        context.read<HomeCubit>().deleteCartItem(cartItemId: existingCartItem.id!);
+    final previousTotalQuantity = _quantity; // Store for rollback
+    final previousVariantQuantity = _previousVariantQuantities[attributeValueId] ?? 0;
+    
+    // Update previous quantities tracker
+    _previousVariantQuantities[attributeValueId] = quantity;
+    
+    // Find the attributeId from the product's attribute structure
+    int? attributeId;
+    for (final attributeValue in widget.product.attributeValues) {
+      for (final value in attributeValue.attribute.values) {
+        if (value.id == attributeValueId) {
+          attributeId = attributeValue.attribute.id;
+          break;
+        }
       }
-    } else if (existingCartItem.id != null) {
-      // Update existing cart item
-      context.read<HomeCubit>().updateCartItem(
-        cartItemId: existingCartItem.id!,
-        quantity: quantity,
-      );
-    } else {
-      // Add new cart item with attribute
-      context.read<HomeCubit>().addToCart(
+      if (attributeId != null) break;
+    }
+
+    if (quantity == 0) {
+      // Optimistic UI update - immediately update main card total
+      setState(() {
+        _quantity = _quantity - previousVariantQuantity; // Subtract the removed variant quantity
+      });
+      
+      // Remove variant from cart optimistically
+      context.read<HomeCubit>().optimisticRemoveFromCart(
+        productId: widget.product.id,
+        product: widget.product,
+        attributeValueId: attributeValueId,
+      ).then((_) {
+        // API Success - recalculate total quantity to sync with actual cart state
+        _calculateTotalVariantQuantity();
+        setState(() {
+          _isLoading = false;
+        });
+      }).catchError((error) {
+        // API Failed - rollback
+        setState(() {
+          _quantity = previousTotalQuantity;
+          _isLoading = false;
+        });
+        _previousVariantQuantities[attributeValueId] = previousVariantQuantity;
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to remove item from cart. Please try again.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      });
+    } else if (existingCartItem.id != null && quantity > previousVariantQuantity) {
+      // Optimistic UI update - immediately update main card total
+      setState(() {
+        _quantity = _quantity + 1; // Increment total quantity immediately
+      });
+      
+      // Increment: Always use addToCart with quantity 1 to avoid 404 errors
+      context.read<HomeCubit>().optimisticAddToCart(
+        productId: widget.product.id,
+        quantity: 1, // Always add 1 for increment
+        product: widget.product,
+        attributeId: attributeId,
+        attributeValueId: attributeValueId,
+        isIncrement: true, // Mark as increment operation
+      ).then((_) {
+        // API Success - recalculate total quantity to sync with actual cart state
+        _calculateTotalVariantQuantity();
+        setState(() {
+          _isLoading = false;
+        });
+      }).catchError((error) {
+        // API Failed - rollback
+        setState(() {
+          _quantity = previousTotalQuantity;
+          _isLoading = false;
+        });
+        _previousVariantQuantities[attributeValueId] = previousVariantQuantity;
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to add item to cart. Please try again.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      });
+    } else if (existingCartItem.id != null && quantity < previousVariantQuantity) {
+      // Optimistic UI update - immediately update main card total
+      setState(() {
+        _quantity = _quantity - 1; // Decrement total quantity immediately
+      });
+      
+      // Decrement: Use updateCart to set the new quantity
+      context.read<HomeCubit>().optimisticUpdateCart(
         productId: widget.product.id,
         quantity: quantity,
+        product: widget.product,
         attributeValueId: attributeValueId,
-      );
+      ).then((_) {
+        // API Success - recalculate total quantity to sync with actual cart state
+        _calculateTotalVariantQuantity();
+        setState(() {
+          _isLoading = false;
+        });
+      }).catchError((error) {
+        // API Failed - rollback
+        setState(() {
+          _quantity = previousTotalQuantity;
+          _isLoading = false;
+        });
+        _previousVariantQuantities[attributeValueId] = previousVariantQuantity;
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update cart. Please try again.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      });
+    } else {
+      // Optimistic UI update - immediately update main card total
+      setState(() {
+        _quantity = _quantity + quantity; // Add the new variant quantity
+      });
+      
+      // Add new variant optimistically (first time)
+      context.read<HomeCubit>().optimisticAddToCart(
+        productId: widget.product.id,
+        quantity: quantity,
+        product: widget.product,
+        attributeId: attributeId,
+        attributeValueId: attributeValueId,
+      ).then((_) {
+        // API Success - recalculate total quantity to sync with actual cart state
+        _calculateTotalVariantQuantity();
+        setState(() {
+          _isLoading = false;
+        });
+      }).catchError((error) {
+        // API Failed - rollback
+        setState(() {
+          _quantity = previousTotalQuantity;
+          _isLoading = false;
+        });
+        _previousVariantQuantities[attributeValueId] = previousVariantQuantity;
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to add item to cart. Please try again.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      });
     }
   }
 
@@ -688,37 +859,29 @@ class _ProductCardFromApiState extends State<ProductCardFromApi> {
           previous.deleteCartItemApiState != current.deleteCartItemApiState ||
           previous.getCartItemsApiState != current.getCartItemsApiState,
       listener: (context, state) {
-        // Stop loading when API calls complete (success or failure)
-        if (state.addToCartApiState.apiCallState == APICallState.loaded ||
-            state.addToCartApiState.apiCallState == APICallState.failure ||
-            state.updateCartItemApiState.apiCallState == APICallState.loaded ||
-            state.updateCartItemApiState.apiCallState == APICallState.failure ||
-            state.deleteCartItemApiState.apiCallState == APICallState.loaded ||
-            state.deleteCartItemApiState.apiCallState == APICallState.failure) {
-          if (_isLoading) {
-            setState(() {
-              _isLoading = false;
-            });
+        // Only update quantity when NOT in loading state to preserve optimistic updates
+        if (!_isLoading && (state.productsBySubCategoryApiState.apiCallState == APICallState.loaded ||
+            state.getCartItemsApiState.apiCallState == APICallState.loaded)) {
+          
+          if (widget.product.attributeValues.isNotEmpty) {
+            // For variant products, recalculate total from cart items
+            _calculateTotalVariantQuantity();
+          } else {
+            // For single variant products, use product model
+            final products = state.productsBySubCategoryApiState.model?.data ?? [];
+            final updatedProduct = products.firstWhere(
+              (p) => p.id == widget.product.id,
+              orElse: () => widget.product,
+            );
+            
+            // Update quantity from the updated product model
+            final productCartQuantity = updatedProduct.cartQuantity ?? 0;
+            if (_quantity != productCartQuantity) {
+              setState(() {
+                _quantity = productCartQuantity;
+              });
+            }
           }
-        }
-        
-        // Update quantity when cart items change (handles bottom sheet updates)
-        if (state.getCartItemsApiState.apiCallState == APICallState.loaded) {
-          _initializeQuantityFromCart();
-        }
-        
-        // Handle API failures and revert local state if needed
-        if (state.addToCartApiState.apiCallState == APICallState.failure) {
-          // Revert to 0 if add failed
-          setState(() {
-            _quantity = 0;
-          });
-        }
-        
-        if (state.updateCartItemApiState.apiCallState == APICallState.failure ||
-            state.deleteCartItemApiState.apiCallState == APICallState.failure) {
-          // Revert to previous cart state if update/delete failed
-          _initializeQuantityFromCart();
         }
       },
       child: GestureDetector(
@@ -726,7 +889,6 @@ class _ProductCardFromApiState extends State<ProductCardFromApi> {
             context.pushPage(ProductDetailPage(
               homeCubit: context.read<HomeCubit>(),
               productId: widget.product.id,
-              initialQuantity: _quantity,
             ));
           },
         child: Stack(
@@ -786,7 +948,7 @@ class _ProductCardFromApiState extends State<ProductCardFromApi> {
                         right: 8,
                         child: _quantity == 0
                             ? GestureDetector(
-                                onTap: _isLoading ? null : () {
+                                onTap: () {
                                   _incrementQuantity();
                                 },
                                 child: Container(
@@ -853,10 +1015,10 @@ class _ProductCardFromApiState extends State<ProductCardFromApi> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     GestureDetector(
-                                      onTap: _isLoading ? null : _decrementQuantity,
+                                      onTap: _decrementQuantity,
                                       child: Icon(
                                         Icons.remove,
-                                        color: _isLoading ? Colors.grey[300] : Colors.white,
+                                        color: Colors.white,
                                         size: 20,
                                       ),
                                     ),
@@ -864,29 +1026,20 @@ class _ProductCardFromApiState extends State<ProductCardFromApi> {
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 8.0,
                                       ),
-                                      child: _isLoading
-                                          ? SizedBox(
-                                              width: 16,
-                                              height: 16,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 2,
-                                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                              ),
-                                            )
-                                          : Text(
-                                              '$_quantity',
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 14,
-                                              ),
-                                            ),
+                                      child: Text(
+                                        '$_quantity',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                      ),
                                     ),
                                     GestureDetector(
-                                      onTap: _isLoading ? null : _incrementQuantity,
+                                      onTap: _incrementQuantity,
                                       child: Icon(
                                         Icons.add,
-                                        color: _isLoading ? Colors.grey[300] : Colors.white,
+                                        color: Colors.white,
                                         size: 20,
                                       ),
                                     ),

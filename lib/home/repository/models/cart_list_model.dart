@@ -1,17 +1,21 @@
 part of 'models.dart';
 
 class CartListModel {
+    final bool? success;  // New field
     final List<CartItem>? data;
 
     CartListModel({
+        this.success,  // New field
         this.data,
     });
 
     factory CartListModel.fromJson(Map<String, dynamic> json) => CartListModel(
+        success: json["success"],  // New field
         data: json["data"] == null ? [] : List<CartItem>.from(json["data"]!.map((x) => CartItem.fromJson(x))),
     );
 
     Map<String, dynamic> toJson() => {
+        "success": success,  // New field
         "data": data == null ? [] : List<dynamic>.from(data!.map((x) => x.toJson())),
     };
 }
@@ -22,10 +26,11 @@ class CartItem {
     final int? productId;
     final int? quantity;
     final dynamic attributes;
-    final int? attributeValueId;  // Keep this for product variants
+    final int? attributeValueId;  // Keep this for product variants (optional)
     final DateTime? createdAt;
     final DateTime? updatedAt;
     final Produc? product;
+    final List<dynamic>? attributesValues;  // New field
 
     CartItem({
         this.id,
@@ -37,6 +42,7 @@ class CartItem {
         this.createdAt,
         this.updatedAt,
         this.product,
+        this.attributesValues,  // New field
     });
 
     factory CartItem.fromJson(Map<String, dynamic> json) => CartItem(
@@ -45,10 +51,11 @@ class CartItem {
         productId: json["product_id"],
         quantity: json["quantity"],
         attributes: json["attributes"],
-        attributeValueId: json["attribute_value_id"],  // Keep this for product variants
+        attributeValueId: json["attribute_value_id"],  // Optional field for product variants
         createdAt: json["created_at"] == null ? null : DateTime.parse(json["created_at"]),
         updatedAt: json["updated_at"] == null ? null : DateTime.parse(json["updated_at"]),
         product: json["product"] == null ? null : Produc.fromJson(json["product"]),
+        attributesValues: json["attributesValues"] == null ? [] : List<dynamic>.from(json["attributesValues"]!.map((x) => x)),  // New field
     );
 
     Map<String, dynamic> toJson() => {
@@ -61,6 +68,7 @@ class CartItem {
         "created_at": createdAt?.toIso8601String(),
         "updated_at": updatedAt?.toIso8601String(),
         "product": product?.toJson(),
+        "attributesValues": attributesValues == null ? [] : List<dynamic>.from(attributesValues!.map((x) => x)),  // New field
     };
 }
 
@@ -95,6 +103,7 @@ class Produc {
     final String? brandId;
     final String? mrpPrice;
     final String? salePrice;
+    final String? purchasePrice;  // New field
     final String? tax;
     final String? discount;
     final String? shippingCost;
@@ -123,6 +132,7 @@ class Produc {
         this.brandId,
         this.mrpPrice,
         this.salePrice,
+        this.purchasePrice,  // New field
         this.tax,
         this.discount,
         this.shippingCost,
@@ -152,6 +162,7 @@ class Produc {
         brandId: json["brand_id"],
         mrpPrice: json["mrp_price"],
         salePrice: json["sale_price"],
+        purchasePrice: json["purchase_price"],  // New field
         tax: json["tax"],
         discount: json["discount"],
         shippingCost: json["shipping_cost"],
@@ -203,6 +214,7 @@ class Produc {
         "brand_id": brandId,
         "mrp_price": mrpPrice,
         "sale_price": salePrice,
+        "purchase_price": purchasePrice,  // New field
         "tax": tax,
         "discount": discount,
         "shipping_cost": shippingCost,
