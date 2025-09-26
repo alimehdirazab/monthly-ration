@@ -11,3 +11,4 @@ part 'orders_model.dart';
 part 'shiping_model.dart';
 part 'handling_model.dart';
 part 'apply_coupon_model.dart';
+part 'search_model.dart';

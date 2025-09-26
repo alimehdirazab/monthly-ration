@@ -10,6 +10,8 @@ class AccountState extends Equatable {
     this.termsAndConditionsApiState = const GeneralApiState<TermsAndConditionModel>(),
     // faqs Api State
     this.faqsApiState = const GeneralApiState<FaqsModel>(),
+    // wallet History Api State
+    this.walletHistoryApiState = const GeneralApiState<WalletModel>(),
   });
   // about us Api State
   final GeneralApiState<AboutUsModel> aboutUsApiState;
@@ -19,6 +21,8 @@ class AccountState extends Equatable {
   final GeneralApiState<TermsAndConditionModel> termsAndConditionsApiState;
   // faqs Api State
   final GeneralApiState<FaqsModel> faqsApiState;
+  // Wallet History Api State
+  final GeneralApiState<WalletModel>  walletHistoryApiState;
 
 
   AccountState copyWith({
@@ -30,6 +34,8 @@ class AccountState extends Equatable {
     GeneralApiState<TermsAndConditionModel>? termsAndConditionsApiState,
     // faqs Api State
     GeneralApiState<FaqsModel>? faqsApiState,
+    // Wallet History Api State
+    GeneralApiState<WalletModel>?  walletHistoryApiState,
   }) {
     return AccountState(
       // about us Api State
@@ -40,6 +46,8 @@ class AccountState extends Equatable {
       termsAndConditionsApiState: termsAndConditionsApiState ?? this.termsAndConditionsApiState,
       // faqs Api State
       faqsApiState: faqsApiState ?? this.faqsApiState,
+       // Wallet History Api State
+       walletHistoryApiState: walletHistoryApiState ?? this.walletHistoryApiState
     );
   }
 
@@ -53,5 +61,7 @@ class AccountState extends Equatable {
         termsAndConditionsApiState,
         // faqs Api State
         faqsApiState,
+         // Wallet History Api State
+        walletHistoryApiState
       ];
 }

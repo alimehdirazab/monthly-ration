@@ -37,4 +37,15 @@ AccountRepository(this.generalRepository);
     return FaqsModel.fromJson(response);
   }
 
+  // wallet history
+   Future<WalletModel> getWalletHistory() async {
+    final response = await generalRepository.get(
+      handle: GroceryApis.walletHistory,
+    );
+    return WalletModel.fromJson(response);
+  }
+
+
+
+
 }

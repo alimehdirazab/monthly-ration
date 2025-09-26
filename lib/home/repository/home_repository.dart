@@ -233,4 +233,14 @@ class HomeRepository {
     
     return response;
   }
+
+
+  // search products
+  Future<SearchModel> searchProducts({required String query}) async {
+    final response = await generalRepository.get(
+      handle: '${GroceryApis.products}?search=$query',
+    );
+    return SearchModel.fromJson(response);
+  }
+  
   }

@@ -47,6 +47,8 @@ class HomeState extends Equatable {
     this.handlingApiState = const GeneralApiState<HandlingModel>(),
     // submit review api State
     this.submitReviewApiState = const GeneralApiState<void>(),
+    // search products api State
+    this.searchProductsApiState = const GeneralApiState<SearchModel>(),
   });
    final List<String> cartItems;
    // banners api State
@@ -93,7 +95,10 @@ class HomeState extends Equatable {
     // handling api State
     final GeneralApiState<HandlingModel> handlingApiState;
     // submit review api State
-    final GeneralApiState<void> submitReviewApiState;  // CopyWith
+    final GeneralApiState<void> submitReviewApiState; 
+    // search products api State
+    final GeneralApiState<SearchModel> searchProductsApiState;
+     // CopyWith
   HomeState copyWith({
     List<String>? cartItems,
     GeneralApiState<BannersModel>? bannersApiState,
@@ -119,6 +124,7 @@ class HomeState extends Equatable {
     GeneralApiState<ShippingModel>? shippingApiState,
     GeneralApiState<HandlingModel>? handlingApiState,
     GeneralApiState<void>? submitReviewApiState,
+    GeneralApiState<SearchModel>? searchProductsApiState,
   }) {
     return HomeState(
       cartItems: cartItems ?? this.cartItems,
@@ -145,7 +151,7 @@ class HomeState extends Equatable {
       shippingApiState: shippingApiState ?? this.shippingApiState,
       handlingApiState: handlingApiState ?? this.handlingApiState,
       submitReviewApiState: submitReviewApiState ?? this.submitReviewApiState,
-
+      searchProductsApiState: searchProductsApiState ?? this.searchProductsApiState
     );
   }
   
@@ -175,5 +181,6 @@ class HomeState extends Equatable {
     shippingApiState,
     handlingApiState,
     submitReviewApiState,
+    searchProductsApiState
     ];
 }

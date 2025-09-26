@@ -860,4 +860,25 @@ class HomeCubit extends Cubit<HomeState> {
     }
   }
 
+
+  // search products Method
+  Future<void> searchProducts(String query) async {
+    emit(state.copyWith(searchProductsApiState: GeneralApiState<SearchModel>(
+      apiCallState: APICallState.loading,
+    )));
+
+    await homeRepository.searchProducts(query: query).then((searchModel) {
+      emit(state.copyWith(searchProductsApiState: GeneralApiState<SearchModel>(
+        apiCallState: APICallState.loaded,
+        model: searchModel,
+      )));
+    }).catchError((error) {
+      emit(state.copyWith(searchProductsApiState: GeneralApiState<SearchModel>(
+        apiCallState: APICallState.failure,
+        errorMessage: error.toString(),
+      )));
+    });
+  }
+
+
 }

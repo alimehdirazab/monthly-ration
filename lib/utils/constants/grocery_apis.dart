@@ -86,6 +86,8 @@ class GroceryApis {
   static const String handlingFee = "settings/handling";
   // submit review
   static const String submitReview = "orders/review/create";
+  // /wallet/history
+  static const String walletHistory = "wallet/history";
   
 
   initBaseUrlAndAuthEndpoints() {

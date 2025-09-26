@@ -331,7 +331,14 @@ class _HomeViewState extends State<HomeView> {
           child: Column(
             children: [
               // Search Field
-              const SearchField(),
+              GestureDetector(
+                onTap: () {
+                context.pushPage(SearchProductPage(homeCubit: context.read<HomeCubit>()));
+                },
+                child: const SearchField(
+                  
+                ),
+              ),
               SizedBox(height: 8),
               _buildCategoryTabs(),
               ],

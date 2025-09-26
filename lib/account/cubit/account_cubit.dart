@@ -85,4 +85,25 @@ class AccountCubit extends Cubit<AccountState> {
     });
   }
 
+  // get wallet history Method
+   Future<void> getWalletHistory()async {
+    emit(state.copyWith(walletHistoryApiState: const GeneralApiState<WalletModel>(
+      apiCallState: APICallState.loading,
+    )));
+
+    await accountRepository.getWalletHistory().then((walletModel) {
+      emit(state.copyWith(walletHistoryApiState: GeneralApiState<WalletModel>(
+        apiCallState: APICallState.loaded,
+        model: walletModel,
+      )));
+    }).catchError((error) {
+      emit(state.copyWith(walletHistoryApiState: GeneralApiState<WalletModel>(
+        apiCallState: APICallState.failure,
+        errorMessage: error.toString(),
+      )));
+    });
+  }
+
+
+
 }
