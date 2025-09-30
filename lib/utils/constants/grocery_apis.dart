@@ -88,6 +88,10 @@ class GroceryApis {
   static const String submitReview = "orders/review/create";
   // /wallet/history
   static const String walletHistory = "wallet/history";
+  // order invoice
+  static const String orderInvoice = "orders/invoice";
+  // trending products
+  static const String trendingProducts = "tranding-products";
   
 
   initBaseUrlAndAuthEndpoints() {

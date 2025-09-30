@@ -31,8 +31,9 @@ class _SearchProductViewState extends State<_SearchProductView> {
   void initState() {
     super.initState();
     _focusNode.requestFocus();
-    // Get cart items on page load
+    // Get cart items and shipping info on page load
     context.read<HomeCubit>().getCartItems();
+    context.read<HomeCubit>().getShippingFee();
   }
 
   @override
@@ -155,25 +156,28 @@ class _SearchProductViewState extends State<_SearchProductView> {
           ),
         ),
       ),
-      body: BlocBuilder<HomeCubit, HomeState>(
-        buildWhen: (previous, current) =>
-            previous.searchProductsApiState != current.searchProductsApiState,
-        builder: (context, state) {
-          // Update suggestions when we get search results
-          if (state.searchProductsApiState.apiCallState == APICallState.loaded &&
-              state.searchProductsApiState.model?.data != null) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (_showSuggestions && _searchController.text.isNotEmpty) {
-                setState(() {
-                  _suggestions = _extractSuggestions(state.searchProductsApiState.model!.data!);
-                });
-              }
-            });
-          }
+      body: Column(
+        children: [
+          Expanded(
+            child: BlocBuilder<HomeCubit, HomeState>(
+              buildWhen: (previous, current) =>
+                  previous.searchProductsApiState != current.searchProductsApiState,
+              builder: (context, state) {
+                // Update suggestions when we get search results
+                if (state.searchProductsApiState.apiCallState == APICallState.loaded &&
+                    state.searchProductsApiState.model?.data != null) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (_showSuggestions && _searchController.text.isNotEmpty) {
+                      setState(() {
+                        _suggestions = _extractSuggestions(state.searchProductsApiState.model!.data!);
+                      });
+                    }
+                  });
+                }
 
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
               // Suggestions Section
               if (_showSuggestions && _searchController.text.isNotEmpty && _suggestions.isNotEmpty) ...[
                 Container(
@@ -283,9 +287,13 @@ class _SearchProductViewState extends State<_SearchProductView> {
                     ),
                   ),
                 ),
-            ],
-          );
-        },
+                  ],
+                );
+              },
+            ),
+          ),
+          //const FreeShippingProgressWidget(),
+        ],
       ),
        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: BlocBuilder<HomeCubit, HomeState>(

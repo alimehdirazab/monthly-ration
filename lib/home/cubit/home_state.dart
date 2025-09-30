@@ -49,6 +49,12 @@ class HomeState extends Equatable {
     this.submitReviewApiState = const GeneralApiState<void>(),
     // search products api State
     this.searchProductsApiState = const GeneralApiState<SearchModel>(),
+    // order invoice api State
+    this.orderInvoiceApiState = const GeneralApiState<OrderInvoiceModel>(),
+    // pdf generation api State
+    this.pdfGenerationApiState = const GeneralApiState<String>(),
+    // trending products api State
+    this.trendingProductsApiState = const GeneralApiState<ProductModel>(),
   });
    final List<String> cartItems;
    // banners api State
@@ -98,6 +104,14 @@ class HomeState extends Equatable {
     final GeneralApiState<void> submitReviewApiState; 
     // search products api State
     final GeneralApiState<SearchModel> searchProductsApiState;
+    // order invoice api State
+    final GeneralApiState<OrderInvoiceModel> orderInvoiceApiState;
+    // pdf generation api State
+    final GeneralApiState<String> pdfGenerationApiState;
+    // trending products api State
+    final GeneralApiState<ProductModel> trendingProductsApiState;
+    
+
      // CopyWith
   HomeState copyWith({
     List<String>? cartItems,
@@ -125,6 +139,9 @@ class HomeState extends Equatable {
     GeneralApiState<HandlingModel>? handlingApiState,
     GeneralApiState<void>? submitReviewApiState,
     GeneralApiState<SearchModel>? searchProductsApiState,
+    GeneralApiState<OrderInvoiceModel>? orderInvoiceApiState,
+    GeneralApiState<String>? pdfGenerationApiState,
+    GeneralApiState<ProductModel>? trendingProductsApiState,
   }) {
     return HomeState(
       cartItems: cartItems ?? this.cartItems,
@@ -151,7 +168,10 @@ class HomeState extends Equatable {
       shippingApiState: shippingApiState ?? this.shippingApiState,
       handlingApiState: handlingApiState ?? this.handlingApiState,
       submitReviewApiState: submitReviewApiState ?? this.submitReviewApiState,
-      searchProductsApiState: searchProductsApiState ?? this.searchProductsApiState
+      searchProductsApiState: searchProductsApiState ?? this.searchProductsApiState,
+      orderInvoiceApiState: orderInvoiceApiState ?? this.orderInvoiceApiState,
+      pdfGenerationApiState: pdfGenerationApiState ?? this.pdfGenerationApiState,
+      trendingProductsApiState: trendingProductsApiState ?? this.trendingProductsApiState
     );
   }
   
@@ -181,6 +201,9 @@ class HomeState extends Equatable {
     shippingApiState,
     handlingApiState,
     submitReviewApiState,
-    searchProductsApiState
+    searchProductsApiState,
+    orderInvoiceApiState,
+    pdfGenerationApiState,
+    trendingProductsApiState
     ];
 }

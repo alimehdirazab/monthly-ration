@@ -36,6 +36,7 @@ class _CategoryViewState extends State<CategoryView> {
   void initState() {
     super.initState();
     context.read<HomeCubit>().getCartItems();
+    context.read<HomeCubit>().getShippingFee();
     
     if (widget.isFromSubCategory) {
        context.read<HomeCubit>().getProductsBySubCategory(subSubCategoryId: widget.subCategory?[_selectedIndex].id);
@@ -85,8 +86,11 @@ class _CategoryViewState extends State<CategoryView> {
           ),
         ],
       ),
-      body: Row(
+      body: Column(
         children: [
+          Expanded(
+            child: Row(
+              children: [
           // Left Sidebar for Categories
           Container(
             width: 70, // Fixed width for sidebar
@@ -257,6 +261,10 @@ class _CategoryViewState extends State<CategoryView> {
               ],
             ),
           ),
+              ],
+            ),
+          ),
+         // const FreeShippingProgressWidget(),
         ],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,

@@ -242,5 +242,23 @@ class HomeRepository {
     );
     return SearchModel.fromJson(response);
   }
+
+  // get order invoice
+  Future<OrderInvoiceModel> getOrderInvoice({required int orderId}) async {
+    final response = await generalRepository.get(
+      handle: '${GroceryApis.orderInvoice}?order_id=$orderId',
+    );
+    return OrderInvoiceModel.fromJson(response);
+  }
+
+
+
+  // get trending products
+  Future<ProductModel> getTrendingProducts() async {
+    final response = await generalRepository.get(
+      handle: GroceryApis.trendingProducts,
+    );
+    return ProductModel.fromJson(response);
+  }
   
   }

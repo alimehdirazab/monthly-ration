@@ -12,3 +12,4 @@ part 'shiping_model.dart';
 part 'handling_model.dart';
 part 'apply_coupon_model.dart';
 part 'search_model.dart';
+part 'order_invoice_model.dart';

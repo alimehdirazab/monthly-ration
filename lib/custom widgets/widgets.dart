@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:lottie/lottie.dart';
+import 'package:grocery_flutter_app/home/cubit/home_cubit.dart';
 import 'package:grocery_flutter_app/utils/generics/generics.dart';
 
 import '../utils/themes/grocery_color_theme.dart';
@@ -21,3 +23,4 @@ part 'custom_textfield_error_widget.dart';
 part 'network_image_widget.dart';
 part 'shimmer_widget.dart';
 part 'api_state_widget.dart';
+part 'free_shipping_progress_widget.dart';

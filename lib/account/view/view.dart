@@ -3,6 +3,7 @@ import 'package:authentication_repository/authentication_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:grocery_flutter_app/account/cubit/account_cubit.dart';
+import 'package:grocery_flutter_app/account/repository/models/models.dart';
 import 'package:grocery_flutter_app/app/cubit/app_cubit.dart';
 import 'package:grocery_flutter_app/auth/cubit/auth_cubit.dart';
 import 'package:grocery_flutter_app/auth/view/view.dart';

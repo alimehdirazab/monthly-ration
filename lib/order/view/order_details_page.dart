@@ -150,34 +150,149 @@ class _OrderDetailsViewState extends State<OrderDetailsView> {
                       const SizedBox(height: 24),
                       
                       // Download Invoice Button
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () {
+                      BlocConsumer<HomeCubit, HomeState>(
+                        listener: (context, state) {
+                          // Handle order invoice API response
+                          if (state.orderInvoiceApiState.apiCallState == APICallState.loaded) {
+                            final invoiceModel = state.orderInvoiceApiState.model;
+                            if (invoiceModel != null) {
+                              // Reset order invoice state immediately before generating PDF
+                              context.read<HomeCubit>().resetOrderInvoiceState();
+                              context.read<HomeCubit>().generateInvoicePdf(invoiceModel);
+                            }
+                          } else if (state.orderInvoiceApiState.apiCallState == APICallState.failure) {
+                            // Reset state and show error
+                            context.read<HomeCubit>().resetOrderInvoiceState();
+                            
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Download feature coming soon!'),
-                                backgroundColor: Colors.blue,
+                              SnackBar(
+                                content: Text(state.orderInvoiceApiState.errorMessage ?? 'Failed to get invoice data'),
+                                backgroundColor: Colors.red,
                               ),
                             );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFE8D7FF),
-                            foregroundColor: const Color(0xFF8B5CF6),
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                          }
+                          
+                          // Handle PDF generation response
+                          if (state.pdfGenerationApiState.apiCallState == APICallState.loaded) {
+                            final filePath = state.pdfGenerationApiState.model;
+                            if (filePath != null) {
+                              // Reset state and show success
+                              context.read<HomeCubit>().resetPdfGenerationState();
+                              
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        '✅ Invoice PDF Generated Successfully!',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        _getDisplayPath(filePath),
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.white70,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  backgroundColor: Colors.green,
+                                  duration: const Duration(seconds: 5),
+                                  behavior: SnackBarBehavior.floating,
+                                  action: SnackBarAction(
+                                    label: 'OK',
+                                    textColor: Colors.white,
+                                    onPressed: () {
+                                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                                    },
+                                  ),
+                                ),
+                              );
+                            }
+                          } else if (state.pdfGenerationApiState.apiCallState == APICallState.failure) {
+                            // Reset state and show error
+                            context.read<HomeCubit>().resetPdfGenerationState();
+                            
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Row(
+                                  children: [
+                                    const Icon(Icons.error, color: Colors.white),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        state.pdfGenerationApiState.errorMessage ?? 'Failed to generate PDF',
+                                        style: const TextStyle(color: Colors.white),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                backgroundColor: Colors.red,
+                                duration: const Duration(seconds: 4),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          }
+                        },
+                        builder: (context, state) {
+                          final isLoading = state.orderInvoiceApiState.apiCallState == APICallState.loading ||
+                                          state.pdfGenerationApiState.apiCallState == APICallState.loading;
+                          
+                          return SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: isLoading ? null : () {
+                                _handleDownloadInvoice();
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFE8D7FF),
+                                foregroundColor: const Color(0xFF8B5CF6),
+                                elevation: 0,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: isLoading
+                                  ? Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF8B5CF6)),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          state.orderInvoiceApiState.apiCallState == APICallState.loading 
+                                              ? 'Fetching Invoice...'
+                                              : 'Generating PDF...',
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  : const Text(
+                                      'Download Invoice / Credit Note',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
                             ),
-                          ),
-                          child: const Text(
-                            'Download Invoice / Credit Note',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -515,6 +630,66 @@ class _OrderDetailsViewState extends State<OrderDetailsView> {
 
 
 
+  // Handle download invoice with permission check first
+  Future<void> _handleDownloadInvoice() async {
+    final orderId = widget.order.id?.toString();
+    final orderIdInt = int.tryParse(orderId ?? '0') ?? 0;
+    
+    if (orderIdInt <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Invalid order ID'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Check permissions first on Android
+    if (Platform.isAndroid) {
+      try {
+        var storageStatus = await Permission.storage.status;
+        var manageStorageStatus = await Permission.manageExternalStorage.status;
+        
+        // Request storage permission if not granted
+        if (!storageStatus.isGranted) {
+          storageStatus = await Permission.storage.request();
+          if (!storageStatus.isGranted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Storage permission is required to save PDF files'),
+                backgroundColor: Colors.red,
+                duration: Duration(seconds: 4),
+              ),
+            );
+            return;
+          }
+        }
+        
+        // For Android 11+, request manage external storage permission
+        if (!manageStorageStatus.isGranted) {
+          manageStorageStatus = await Permission.manageExternalStorage.request();
+          // Continue even if this permission is not granted as we have fallback options
+        }
+        
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Permission error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+    }
+
+    // Reset all states before proceeding
+    if (mounted) {
+      context.read<HomeCubit>().resetAllInvoiceStates();
+      context.read<HomeCubit>().getOrderInvoice(orderIdInt);
+    }
+  }
+
   void _handleReorder() {
     // Add all order items to cart
     final orderItems = widget.order.items ?? [];
@@ -592,5 +767,31 @@ class _OrderDetailsViewState extends State<OrderDetailsView> {
         ),
       ),
     );
+  }
+
+  // Helper method to format file path for display
+  String _getDisplayPath(String filePath) {
+    if (filePath.contains('/storage/emulated/0/Download')) {
+      final fileName = filePath.split('/').last;
+      return 'Downloads/$fileName';
+    } else if (filePath.contains('/storage/emulated/0/Downloads')) {
+      final fileName = filePath.split('/').last;
+      return 'Downloads/$fileName';
+    } else if (filePath.contains('Downloads')) {
+      // If it contains Downloads somewhere in the path
+      final parts = filePath.split('/');
+      final downloadsIndex = parts.indexWhere((part) => part == 'Downloads');
+      if (downloadsIndex >= 0 && downloadsIndex < parts.length - 1) {
+        return 'Downloads/${parts.last}';
+      }
+    }
+    
+    // Fallback: show last two directories and file name
+    final parts = filePath.split('/');
+    if (parts.length >= 2) {
+      return '.../${parts[parts.length - 2]}/${parts.last}';
+    }
+    
+    return filePath;
   }
 }

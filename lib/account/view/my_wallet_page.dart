@@ -7,7 +7,7 @@ class MyWalletPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider.value(
-      value: context.read<AuthCubit>(),
+      value: accountCubit,
       child: const MyWalletView(),
     );
   }
@@ -21,19 +21,15 @@ class MyWalletView extends StatefulWidget {
 }
 
 class _MyWalletViewState extends State<MyWalletView> {
-  double walletBalance = 5000.0;
   final TextEditingController _amountController = TextEditingController();
   Razorpay? _razorpay;
-
-  List<Map<String, dynamic>> transactions = [
-    {'amount': 500, 'type': 'credit', 'description': 'Added to Wallet'},
-    {'amount': 200, 'type': 'debit', 'description': 'Purchase'},
-    {'amount': 300, 'type': 'credit', 'description': 'Refund'},
-  ];
 
   @override
   void initState() {
     super.initState();
+    // Get wallet history on page load
+    context.read<AccountCubit>().getWalletHistory();
+    
     try {
       _razorpay = Razorpay();
       _razorpay?.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
@@ -207,60 +203,66 @@ class _MyWalletViewState extends State<MyWalletView> {
         icon: const Icon(Icons.add),
         label: const Text('Add Cash'),
       ),
-      body: BlocConsumer<AuthCubit, AuthState>(
-        listener: (context, state) {
-          // Handle wallet recharge success
-          if (state.walletRechargeApiState.apiCallState == APICallState.loaded) {
-            final response = state.walletRechargeApiState.model;
-            if (response != null && response['order_id'] != null) {
-              _openCheckout(response);
-            }
-          }
-          
-          // Handle wallet recharge error
-          if (state.walletRechargeApiState.apiCallState == APICallState.failure) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.walletRechargeApiState.errorMessage ?? 'Failed to create order'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-          
-          // Handle wallet verify success
-          if (state.walletVerifyApiState.apiCallState == APICallState.loaded) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Payment verified successfully! Wallet recharged.'),
-                backgroundColor: Colors.green,
-              ),
-            );
-            // Update local balance and transactions
-            setState(() {
-              final amount = double.tryParse(_amountController.text) ?? 0;
-              walletBalance += amount;
-              transactions.insert(0, {
-                'amount': amount.toInt(),
-                'type': 'credit',
-                'description': 'Wallet Recharge via Razorpay',
-              });
-            });
-            _amountController.clear();
-          }
-          
-          // Handle wallet verify error
-          if (state.walletVerifyApiState.apiCallState == APICallState.failure) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.walletVerifyApiState.errorMessage ?? 'Payment verification failed'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        },
-        builder: (context, state) {
-          final isLoading = state.walletRechargeApiState.apiCallState == APICallState.loading ||
-                           state.walletVerifyApiState.apiCallState == APICallState.loading;
+      body: MultiBlocListener(
+        listeners: [
+          BlocListener<AuthCubit, AuthState>(
+            listener: (context, authState) {
+              // Handle wallet recharge success
+              if (authState.walletRechargeApiState.apiCallState == APICallState.loaded) {
+                final response = authState.walletRechargeApiState.model;
+                if (response != null && response['order_id'] != null) {
+                  _openCheckout(response);
+                }
+              }
+              
+              // Handle wallet recharge error
+              if (authState.walletRechargeApiState.apiCallState == APICallState.failure) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(authState.walletRechargeApiState.errorMessage ?? 'Failed to create order'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+              
+              // Handle wallet verify success
+              if (authState.walletVerifyApiState.apiCallState == APICallState.loaded) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Payment verified successfully! Wallet recharged.'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+                // Refresh wallet history after successful payment
+                context.read<AccountCubit>().getWalletHistory();
+                _amountController.clear();
+              }
+              
+              // Handle wallet verify error
+              if (authState.walletVerifyApiState.apiCallState == APICallState.failure) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(authState.walletVerifyApiState.errorMessage ?? 'Payment verification failed'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+          ),
+        ],
+        child: BlocBuilder<AccountCubit, AccountState>(
+          buildWhen: (previous, current) =>
+              previous.walletHistoryApiState != current.walletHistoryApiState,
+          builder: (context, state) {
+            final walletHistory = state.walletHistoryApiState.model?.data ?? [];
+            final currentBalance = walletHistory.isNotEmpty 
+                ? double.tryParse(walletHistory.first.balanceAfter ?? '0') ?? 0.0
+                : 0.0;
+                
+            // Check loading state from AuthCubit for wallet operations
+            final authState = context.watch<AuthCubit>().state;
+            final isLoading = authState.walletRechargeApiState.apiCallState == APICallState.loading ||
+                             authState.walletVerifyApiState.apiCallState == APICallState.loading;
           
           return Stack(
             children: [
@@ -297,7 +299,7 @@ class _MyWalletViewState extends State<MyWalletView> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              "Rs. ${walletBalance.toStringAsFixed(0)}",
+                              "Rs. ${currentBalance.toStringAsFixed(0)}",
                               style: const TextStyle(
                                 fontSize: 28,
                                 fontWeight: FontWeight.bold,
@@ -325,30 +327,7 @@ class _MyWalletViewState extends State<MyWalletView> {
                   
                   // Transaction List
                   Expanded(
-                    child: ListView.separated(
-                      separatorBuilder: (context, index) => const Divider(),
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: transactions.length,
-                      itemBuilder: (context, index) {
-                        final tx = transactions[index];
-                        final isCredit = tx['type'] == 'credit';
-                        return ListTile(
-                          leading: Icon(
-                            isCredit ? Icons.arrow_downward : Icons.arrow_upward,
-                            color: isCredit ? Colors.green : Colors.red,
-                            size: 24,
-                          ),
-                          title: Text(
-                            "${isCredit ? '+' : '-'} Rs. ${tx['amount']}",
-                            style: TextStyle(
-                              color: isCredit ? Colors.green : Colors.red,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          subtitle: Text(tx['description']),
-                        );
-                      },
-                    ),
+                    child: _buildTransactionList(state, walletHistory),
                   ),
                 ],
               ),
@@ -363,8 +342,117 @@ class _MyWalletViewState extends State<MyWalletView> {
                 ),
             ],
           );
-        },
+        }),
       ),
+    );
+  }
+
+  Widget _buildTransactionList(AccountState state, List<WalletHistory> walletHistory) {
+    if (state.walletHistoryApiState.apiCallState == APICallState.loading) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+
+    if (state.walletHistoryApiState.apiCallState == APICallState.failure) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 60,
+              color: Colors.grey[400],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Failed to load transaction history',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: () => context.read<AccountCubit>().getWalletHistory(),
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (walletHistory.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.receipt_long_outlined,
+              size: 60,
+              color: Colors.grey,
+            ),
+            SizedBox(height: 16),
+            Text(
+              'No transactions yet',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.separated(
+      separatorBuilder: (context, index) => const Divider(),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      itemCount: walletHistory.length,
+      itemBuilder: (context, index) {
+        final transaction = walletHistory[index];
+        final isCredit = transaction.transactionType?.toLowerCase() == 'credit';
+        final amount = double.tryParse(transaction.amount ?? '0') ?? 0.0;
+        
+        return ListTile(
+          leading: Icon(
+            isCredit ? Icons.arrow_downward : Icons.arrow_upward,
+            color: isCredit ? Colors.green : Colors.red,
+            size: 24,
+          ),
+          title: Text(
+            "${isCredit ? '+' : '-'} Rs. ${amount.toStringAsFixed(0)}",
+            style: TextStyle(
+              color: isCredit ? Colors.green : Colors.red,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(transaction.remarks ?? transaction.source ?? 'Transaction'),
+              const SizedBox(height: 2),
+              Text(
+                transaction.createdAt != null
+                    ? '${transaction.createdAt!.day}/${transaction.createdAt!.month}/${transaction.createdAt!.year} ${transaction.createdAt!.hour}:${transaction.createdAt!.minute.toString().padLeft(2, '0')}'
+                    : 'Unknown date',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[500],
+                ),
+              ),
+            ],
+          ),
+          trailing: Text(
+            'Bal: Rs. ${double.tryParse(transaction.balanceAfter ?? '0')?.toStringAsFixed(0) ?? '0'}',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        );
+      },
     );
   }
 }

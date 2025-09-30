@@ -32,6 +32,8 @@ class _HomeViewState extends State<HomeView> {
     context.read<HomeCubit>().getCategories();
     context.read<HomeCubit>().getCartItems();
     context.read<HomeCubit>().getOrders();
+    context.read<HomeCubit>().getTrendingProducts();
+    context.read<HomeCubit>().getShippingFee();
   }
 
   @override
@@ -54,6 +56,8 @@ class _HomeViewState extends State<HomeView> {
           context.read<HomeCubit>().getCategories();
           context.read<HomeCubit>().getCartItems();
           context.read<HomeCubit>().getOrders();
+          context.read<HomeCubit>().getTrendingProducts();
+          context.read<HomeCubit>().getShippingFee();
           // Reset banner controller and timer on refresh
           _bannerTimer?.cancel();
           _bannerPageController?.dispose();
@@ -63,23 +67,34 @@ class _HomeViewState extends State<HomeView> {
           _banner2PageController?.dispose();
           _banner2PageController = null;
         },
-        child: CustomScrollView(
-          slivers: [
-            _buildSliverAppBar(context),
-            SliverToBoxAdapter(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 8),
-                  _buildBanner(),
-                  const SizedBox(height: 8),
-                  _buildBestsellersSection(),
-                  _buildCategoriesWithSubcategories(),
-                  _buildBanner2(),
-                  _buildTrendingSection(),
+        child: Column(
+          children: [
+            Expanded(
+              child: CustomScrollView(
+                slivers: [
+                  _buildSliverAppBar(context),
+                  SliverToBoxAdapter(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 8),
+                        _buildBanner(),
+                        const SizedBox(height: 8),
+                        _buildBestsellersSection(),
+                        _buildCategoriesWithSubcategories(),
+                        _buildBanner2(),
+                        _buildTrendingSection(),
+                        const SizedBox(height: 100), // Space for floating cart and progress widget
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
+            // Align(
+            //   alignment: Alignment.bottomCenter,
+            //   child: const FreeShippingProgressWidget(),
+            // ),
           ],
         ),
       ),
@@ -585,164 +600,139 @@ class _HomeViewState extends State<HomeView> {
   }
 
   Widget _buildTrendingSection() {
-    // Dummy data for ProductCard (6 items for 3x2 grid)
-    final List<Map<String, dynamic>> trendingProducts = [
-      {
-        'imageUrl': GroceryImages.grocery1,
-        'title': 'Davidoff Rich Aroma Coffee',
-        'description': 'Premium instant coffee blend',
-        'rating': 4.5,
-        'reviews': 5715,
-        'deliveryTime': '15 mins',
-        'price': '₹618',
-        'mrp': '₹749',
-      },
-      {
-        'imageUrl': GroceryImages.grocery2,
-        'title': 'Fastrack Bags PU Structured',
-        'description': 'Quilted tote bag collection',
-        'rating': 4.0,
-        'reviews': 92,
-        'deliveryTime': '20 mins',
-        'price': '₹1,099',
-        'mrp': '₹1,699',
-      },
-      {
-        'imageUrl': GroceryImages.grocery3,
-        'title': "M&M's Chocolate Candy",
-        'description': 'Delicious milk chocolate treats',
-        'rating': 4.0,
-        'reviews': 1081,
-        'deliveryTime': '10 mins',
-        'price': '₹159',
-        'mrp': '₹179',
-      },
-      {
-        'imageUrl': GroceryImages.grocery4,
-        'title': 'Cuticolor Hair Colour',
-        'description': 'No ammonia dark brown shade',
-        'rating': 4.5,
-        'reviews': 25,
-        'deliveryTime': '25 mins',
-        'price': '₹1,799',
-        'mrp': '₹2,199',
-      },
-      {
-        'imageUrl': GroceryImages.grocery5,
-        'title': 'Philips Induction Cooktop',
-        'description': '1300W home cooking solution',
-        'rating': 4.0,
-        'reviews': 238,
-        'deliveryTime': '30 mins',
-        'price': '₹2,269',
-        'mrp': '₹3,995',
-      },
-      {
-        'imageUrl': GroceryImages.grocery6,
-        'title': 'Outlook English Magazine',
-        'description': 'Current affairs weekly edition',
-        'rating': 4.2,
-        'reviews': 156,
-        'deliveryTime': '45 mins',
-        'price': '₹100',
-        'mrp': '₹120',
-      },
-    ];
-
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.symmetric(vertical: 16),
-      decoration:  BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            // Color(0xFFE0F7FA), // Light cyan/teal background
-            // Color(0xFFB2EBF2), // Slightly darker cyan
-            GroceryColorTheme().gradient1,
-            GroceryColorTheme().gradient2,
-          ],
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 20),
-          // Title and subtitle
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      'Trending Items',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF00695C), // Dark teal color
-                      ),
-                    ),
-
-                    // see more
-                    Spacer(),
-                    Text(
-                      'See All',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF004D40), // Darker teal for "See More"
-                        decoration: TextDecoration.underline,
-                      ),
-                     
-                    ),
-                  ],
-                ),
-                SizedBox(height: 4),
-                Text(
-                  'Discover the top products trending today',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Color(0xFF004D40), // Darker teal for subtitle
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
+    return BlocBuilder<HomeCubit, HomeState>(
+      buildWhen: (previous, current) =>
+          previous.trendingProductsApiState != current.trendingProductsApiState,
+      builder: (context, state) {
+        final apiState = state.trendingProductsApiState;
+        
+        return Container(
+          width: double.infinity,
+          margin: const EdgeInsets.symmetric(vertical: 16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                GroceryColorTheme().gradient1,
+                GroceryColorTheme().gradient2,
               ],
             ),
           ),
-          const SizedBox(height: 16),
-          // Horizontal scrollable product list
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: SizedBox(
-              height: 300, // Fixed height for the horizontal scroll
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: trendingProducts.length,
-                itemBuilder: (context, index) {
-                  final product = trendingProducts[index];
-                  return SizedBox(
-                    width: 200, // Fixed width for each ProductCard
-                    
-                    child: ProductCard(
-                      imageUrl: product['imageUrl'],
-                      title: product['title'],
-                      description: product['description'],
-                      rating: product['rating'],
-                      reviews: product['reviews'],
-                      deliveryTime: product['deliveryTime'],
-                      price: product['price'],
-                      mrp: product['mrp'],
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 20),
+              // Title and subtitle
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          'Trending Items',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF00695C), // Dark teal color
+                          ),
+                        ),
+                        // see more
+                        Spacer(),
+                        Text(
+                          'See All',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF004D40), // Darker teal for "See More"
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ],
                     ),
-                  );
-                },
+                    SizedBox(height: 4),
+                    Text(
+                      'Discover the top products trending today',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Color(0xFF004D40), // Darker teal for subtitle
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
+              const SizedBox(height: 16),
+              // API-based horizontal scrollable product list
+              if (apiState.apiCallState == APICallState.loading)
+                Container(
+                  height: 300,
+                  alignment: Alignment.center,
+                  child: const CircularProgressIndicator(),
+                )
+              else if (apiState.apiCallState == APICallState.failure)
+                Container(
+                  height: 300,
+                  alignment: Alignment.center,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline, size: 48, color: Colors.grey[600]),
+                      const SizedBox(height: 8),
+                      Text(
+                        apiState.errorMessage ?? 'Failed to load trending products',
+                        style: TextStyle(color: Colors.grey[600]),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                )
+              else if (apiState.model?.data == null || apiState.model!.data.isEmpty)
+                Container(
+                  height: 300,
+                  alignment: Alignment.center,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.trending_up, size: 48, color: Colors.grey[600]),
+                      const SizedBox(height: 8),
+                      Text(
+                        'No trending products available',
+                        style: TextStyle(color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: SizedBox(
+                    height: 300, // Fixed height for the horizontal scroll
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: apiState.model!.data.length,
+                      itemBuilder: (context, index) {
+                        final product = apiState.model!.data[index];
+                        return SizedBox(
+                          width: 180, // Fixed width for each ProductCardFromApi
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                            child: ProductCardFromApi(
+                              product: product,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 20),
+            ],
           ),
-          const SizedBox(height: 20),
-        ],
-      ),
+        );
+      },
     );
   }
 
