@@ -240,12 +240,22 @@ class HomeCubit extends Cubit<HomeState> {
     });
   }
   // update cart item Method
-  Future<void> updateCartItem({required int cartItemId, required int quantity}) async {
+  Future<void> updateCartItem({
+    required int cartItemId, 
+    required int quantity,
+    int? attributeId,        // Main attribute ID (e.g., 7 for "Weight")
+    int? attributeValueId,   // Selected attribute value ID (e.g., 96)
+  }) async {
     emit(state.copyWith(updateCartItemApiState: GeneralApiState<void>(
       apiCallState: APICallState.loading,
     )));
 
-    await homeRepository.updateCartItem(cartItemId: cartItemId, quantity: quantity).then((_) {
+    await homeRepository.updateCartItem(
+      cartItemId: cartItemId, 
+      quantity: quantity,
+      attributeId: attributeId,
+      attributeValueId: attributeValueId,
+    ).then((_) {
       // Update cart items quantity in cartItems list for particular cart item
       List<CartItem> updatedCartItems = List.from(state.getCartItemsApiState.model?.data ?? []);
       
@@ -260,9 +270,11 @@ class HomeCubit extends Cubit<HomeState> {
           productId: existingItem.productId,
           quantity: quantity,
           attributes: existingItem.attributes,
+          attributeValueId: existingItem.attributeValueId,
           createdAt: existingItem.createdAt,
           updatedAt: DateTime.now(), // Update the timestamp
           product: existingItem.product,
+          attributesValues: existingItem.attributesValues,
         );
       }
       
@@ -527,6 +539,7 @@ class HomeCubit extends Cubit<HomeState> {
       )));
     });
   }
+  
 
 
   // get handling Method
@@ -643,7 +656,30 @@ class HomeCubit extends Cubit<HomeState> {
       );
       
       if (cartItem.id != null) {
-        await homeRepository.updateCartItem(cartItemId: cartItem.id!, quantity: quantity);
+        // Extract attribute info from the cart item if available
+        int? attributeId;
+        int? finalAttributeValueId = attributeValueId ?? cartItem.attributeValueId;
+        
+        // For products with attributes, we need to determine the attributeId
+        if (finalAttributeValueId != null && product.attributeValues.isNotEmpty) {
+          // Find the attribute that contains this value
+          for (final attributeValue in product.attributeValues) {
+            for (final value in attributeValue.attribute.values) {
+              if (value.id == finalAttributeValueId) {
+                attributeId = attributeValue.attribute.id;
+                break;
+              }
+            }
+            if (attributeId != null) break;
+          }
+        }
+        
+        await homeRepository.updateCartItem(
+          cartItemId: cartItem.id!, 
+          quantity: quantity,
+          attributeId: attributeId,
+          attributeValueId: finalAttributeValueId,
+        );
         
         // API Success
         emit(state.copyWith(updateCartItemApiState: GeneralApiState<void>(
@@ -1542,4 +1578,62 @@ class HomeCubit extends Cubit<HomeState> {
 
   }
 
+
+  // get featured products Method
+  Future<void> getFeaturedProducts() async {
+    emit(state.copyWith(featuredProductsApiState: GeneralApiState<List<FeaturedProductsModel>>(
+      apiCallState: APICallState.loading,
+    )));
+
+    await homeRepository.getFeaturedProducts().then((productModel) {
+      emit(state.copyWith(featuredProductsApiState: GeneralApiState<List<FeaturedProductsModel>>(
+        apiCallState: APICallState.loaded,
+        model: productModel,
+      )));
+    }).catchError((error) {
+      emit(state.copyWith(featuredProductsApiState: GeneralApiState<List<FeaturedProductsModel>>(
+        apiCallState: APICallState.failure,
+        errorMessage: error.toString(),
+      )));
+    });
+  }
+
+
+  // get timeSlot Method
+  Future<void> getTimeSlots() async {
+    emit(state.copyWith(timeSlotsApiState: GeneralApiState<List<TimeSlotsModel>>(
+      apiCallState: APICallState.loading,
+    )));
+
+    await homeRepository.getTimeSlots().then((timeSlotModel) {
+      emit(state.copyWith(timeSlotsApiState: GeneralApiState<List<TimeSlotsModel>>(
+        apiCallState: APICallState.loaded,
+        model: timeSlotModel,
+      )));
+    }).catchError((error) {
+      emit(state.copyWith(timeSlotsApiState: GeneralApiState<List<TimeSlotsModel>>(
+        apiCallState: APICallState.failure,
+        errorMessage: error.toString(),
+      )));
+    });
+  }
+
+  // get wallet balance Method
+  Future<void> getWalletBalance() async {
+    emit(state.copyWith(walletBalanceApiState: GeneralApiState<WalletBalanceModel>(
+      apiCallState: APICallState.loading,
+    )));
+
+    await homeRepository.getWalletBalance().then((walletBalanceModel) {
+      emit(state.copyWith(walletBalanceApiState: GeneralApiState<WalletBalanceModel>(
+        apiCallState: APICallState.loaded,
+        model: walletBalanceModel,
+      )));
+    }).catchError((error) {
+      emit(state.copyWith(walletBalanceApiState: GeneralApiState<WalletBalanceModel>(
+        apiCallState: APICallState.failure,
+        errorMessage: error.toString(),
+      )));
+    });
+  }
 }

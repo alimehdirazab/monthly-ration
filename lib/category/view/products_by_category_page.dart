@@ -86,185 +86,277 @@ class _CategoryViewState extends State<CategoryView> {
           ),
         ],
       ),
-      body: Column(
+      body: Stack(
         children: [
-          Expanded(
-            child: Row(
-              children: [
-          // Left Sidebar for Categories
-          Container(
-            width: 70, // Fixed width for sidebar
-            color: Colors.white,
-            child: ListView.builder(
-              itemCount: widget.subCategory?.length ?? 0,
-              itemBuilder: (context, index) {
-                final subCat = widget.subCategory![index];
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _selectedIndex = index;
-                     // context.read<HomeCubit>().getProductsBySubCategory(subCategoryId: subCat.id);
-                     if (widget.isFromSubCategory) {
-                       context.read<HomeCubit>().getProductsBySubCategory(subSubCategoryId: subCat.id);
- 
-                     } else {
-                       context.read<HomeCubit>().getProductsBySubCategory(subCategoryId: subCat.id);
-                     }
-                    });
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    decoration: BoxDecoration(
-                      color:
-                          // _selectedIndex == index
-                          //     ? const Color(
-                          //       0xFFFEEECF,
-                          //     ) // Light yellow for selected
-                          //     :
-                          Colors.white,
-                      border: Border(
-                        right: BorderSide(
+          Column(
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+              // Left Sidebar for Categories
+              Container(
+                width: 70, // Fixed width for sidebar
+                color: Colors.white,
+                child: ListView.builder(
+                  itemCount: widget.subCategory?.length ?? 0,
+                  itemBuilder: (context, index) {
+                    final subCat = widget.subCategory![index];
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _selectedIndex = index;
+                         // context.read<HomeCubit>().getProductsBySubCategory(subCategoryId: subCat.id);
+                         if (widget.isFromSubCategory) {
+                           context.read<HomeCubit>().getProductsBySubCategory(subSubCategoryId: subCat.id);
+           
+                         } else {
+                           context.read<HomeCubit>().getProductsBySubCategory(subCategoryId: subCat.id);
+                         }
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        decoration: BoxDecoration(
                           color:
-                              _selectedIndex == index
-                                  ? GroceryColorTheme().primary
-                                  : Colors.transparent,
-                          width: 4,
-                        ),
-                      ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          // Show subcategory image if available, otherwise show default icon
-                          subCat.image != null && subCat.image!.isNotEmpty
-                              ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.network(
-                                    subCat.image!,
-                                    width: 40,
-                                    height: 40,
-                                    fit: BoxFit.contain,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Icon(
-                                        Icons.category,
-                                        size: 40,
-                                        color: _selectedIndex == index
-                                            ? GroceryColorTheme().primary
-                                            : Colors.grey,
-                                      );
-                                    },
-                                  ),
-                                )
-                              : Icon(
-                                  Icons.category,
-                                  size: 40,
-                                  color: _selectedIndex == index
-                                      ? GroceryColorTheme().primary
-                                      : Colors.grey,
-                                ),
-                          const SizedBox(height: 5),
-                          Text(
-                            subCat.name,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight:
-                                  _selectedIndex == index
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
+                              // _selectedIndex == index
+                              //     ? const Color(
+                              //       0xFFFEEECF,
+                              //     ) // Light yellow for selected
+                              //     :
+                              Colors.white,
+                          border: Border(
+                            right: BorderSide(
                               color:
                                   _selectedIndex == index
                                       ? GroceryColorTheme().primary
-                                      : Colors.black,
+                                      : Colors.transparent,
+                              width: 4,
                             ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
                           ),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              // Show subcategory image if available, otherwise show default icon
+                              subCat.image != null && subCat.image!.isNotEmpty
+                                  ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Image.network(
+                                        subCat.image!,
+                                        width: 40,
+                                        height: 40,
+                                        fit: BoxFit.contain,
+                                        errorBuilder: (context, error, stackTrace) {
+                                          return Icon(
+                                            Icons.category,
+                                            size: 40,
+                                            color: _selectedIndex == index
+                                                ? GroceryColorTheme().primary
+                                                : Colors.grey,
+                                          );
+                                        },
+                                      ),
+                                    )
+                                  : Icon(
+                                      Icons.category,
+                                      size: 40,
+                                      color: _selectedIndex == index
+                                          ? GroceryColorTheme().primary
+                                          : Colors.grey,
+                                    ),
+                              const SizedBox(height: 5),
+                              Text(
+                                subCat.name,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight:
+                                      _selectedIndex == index
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                  color:
+                                      _selectedIndex == index
+                                          ? GroceryColorTheme().primary
+                                          : Colors.black,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              // Main Content Area (Filters + Product Grid)
+              Expanded(
+                child: Column(
+                  children: [
+                    // Filter and Sort Bar
+                    Container(
+                      height: 50, // Height for the filter bar
+                      color: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        children: [
+                          _buildFilterChip('Filter', Icons.filter_list),
+                          _buildFilterChip('Sort', Icons.sort),
+                          _buildFilterChip('Brand', Icons.keyboard_arrow_down),
+                          _buildFilterChip('Atta', Icons.keyboard_arrow_down),
+                          // Add more filter chips as needed
                         ],
                       ),
                     ),
-                  ),
-                );
-              },
-            ),
-          ),
-          // Main Content Area (Filters + Product Grid)
-          Expanded(
-            child: Column(
-              children: [
-                // Filter and Sort Bar
-                Container(
-                  height: 50, // Height for the filter bar
-                  color: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    children: [
-                      _buildFilterChip('Filter', Icons.filter_list),
-                      _buildFilterChip('Sort', Icons.sort),
-                      _buildFilterChip('Brand', Icons.keyboard_arrow_down),
-                      _buildFilterChip('Atta', Icons.keyboard_arrow_down),
-                      // Add more filter chips as needed
-                    ],
-                  ),
-                ),
-                // Product Grid
-                Expanded(
-                  child: BlocBuilder<HomeCubit, HomeState>(
-                    buildWhen: (previous, current) =>
-                        previous.productsBySubCategoryApiState != current.productsBySubCategoryApiState,
-                    builder: (context, state) {
-                      final apiState = state.productsBySubCategoryApiState;
-                      
-                      if (apiState.apiCallState == APICallState.loading) {
-                        return Center(child: CircularProgressIndicator());
-                      }
-                      
-                      if (apiState.apiCallState == APICallState.failure) {
-                        return Center(
-                          child: Text(
-                            apiState.errorMessage ?? 'Failed to load products',
-                            style: TextStyle(color: Colors.red),
-                          ),
-                        );
-                      }
-                      
-                      final products = apiState.model?.data ?? [];
-                      
-                      if (products.isEmpty) {
-                        return Center(
-                          child: Text('No products available'),
-                        );
-                      }
-                      
-                      return GridView.builder(
-                        padding: const EdgeInsets.all(4.0),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2, // Two columns as per screenshot
-                          crossAxisSpacing: 0.0,
-                          mainAxisSpacing: 0.0,
-                          childAspectRatio: 0.52, // Adjust to fit content well
-                        ),
-                        itemCount: products.length,
-                        itemBuilder: (context, index) {
-                          final product = products[index];
-                          return ProductCardFromApi(
-                            product: product,
+                    // Product Grid
+                    Expanded(
+                      child: BlocBuilder<HomeCubit, HomeState>(
+                        buildWhen: (previous, current) =>
+                            previous.productsBySubCategoryApiState != current.productsBySubCategoryApiState,
+                        builder: (context, state) {
+                          final apiState = state.productsBySubCategoryApiState;
+                          
+                          if (apiState.apiCallState == APICallState.loading) {
+                            return Center(child: CircularProgressIndicator());
+                          }
+                          
+                          if (apiState.apiCallState == APICallState.failure) {
+                            return Center(
+                              child: Text(
+                                apiState.errorMessage ?? 'Failed to load products',
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            );
+                          }
+                          
+                          final products = apiState.model?.data ?? [];
+                          
+                          if (products.isEmpty) {
+                            return Center(
+                              child: Text('No products available'),
+                            );
+                          }
+                          
+                          return GridView.builder(
+                            padding: const EdgeInsets.all(4.0),
+                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2, // Two columns as per screenshot
+                              crossAxisSpacing: 0.0,
+                              mainAxisSpacing: 0.0,
+                              childAspectRatio: 0.52, // Adjust to fit content well
+                            ),
+                            itemCount: products.length,
+                            itemBuilder: (context, index) {
+                              final product = products[index];
+                              return ProductCardFromApi(
+                                product: product,
+                              );
+                            },
                           );
                         },
-                      );
-                    },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+                  ],
+                ),
+              ),
+              
+            ],
+          ),
+           // Dynamic free shipping progress widget
+          BlocBuilder<HomeCubit, HomeState>(
+            buildWhen: (previous, current) =>
+                previous.getCartItemsApiState != current.getCartItemsApiState ||
+                previous.shippingApiState != current.shippingApiState,
+            builder: (context, state) {
+              final cartItems = state.getCartItemsApiState.model?.data ?? [];
+              final shippingData = state.shippingApiState.model?.data;
+              
+              if (cartItems.isEmpty || shippingData == null) {
+                return const SizedBox.shrink();
+              }
+
+              final shippingThreshold = shippingData.shiipingApplicableAmount?.toDouble() ?? 0;
+              
+              // Calculate cart total
+              double cartTotal = 0;
+              for (final item in cartItems) {
+                double price = 0;
+                if (item.product?.salePrice != null) {
+                  if (item.product!.salePrice is num) {
+                    price = (item.product!.salePrice as num).toDouble();
+                  } else if (item.product!.salePrice is String) {
+                    price = double.tryParse(item.product!.salePrice.toString()) ?? 0;
+                  }
+                }
+                final quantity = item.quantity ?? 0;
+                cartTotal += price * quantity;
+              }
+
+              final progress = shippingThreshold > 0 ? (cartTotal / shippingThreshold).clamp(0.0, 1.0) : 0.0;
+
+              return Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: FreeShippingProgressWidget(
+                  progress: progress,
+                ),
+              );
+            },
+          ),
+          // Conditional Lottie Animation on full screen when free shipping is achieved
+        BlocBuilder<HomeCubit, HomeState>(
+          buildWhen: (previous, current) =>
+              previous.getCartItemsApiState != current.getCartItemsApiState ||
+              previous.shippingApiState != current.shippingApiState,
+          builder: (context, state) {
+            final cartItems = state.getCartItemsApiState.model?.data ?? [];
+            final shippingData = state.shippingApiState.model?.data;
+            
+            if (cartItems.isEmpty || shippingData == null) {
+              return const SizedBox.shrink();
+            }
+
+            // Calculate cart total
+            double cartTotal = 0;
+            for (final item in cartItems) {
+              double price = 0;
+              if (item.product?.salePrice != null) {
+                if (item.product!.salePrice is num) {
+                  price = (item.product!.salePrice as num).toDouble();
+                } else if (item.product!.salePrice is String) {
+                  price = double.tryParse(item.product!.salePrice.toString()) ?? 0;
+                }
+              }
+              final quantity = item.quantity ?? 0;
+              cartTotal += price * quantity;
+            }
+
+            final shippingThreshold = shippingData.shiipingApplicableAmount?.toDouble() ?? 0;
+            
+            // Show lottie only if cart total is greater than or equal to shipping threshold
+            if (cartTotal >= shippingThreshold && shippingThreshold > 0) {
+              return IgnorePointer(
+                child: Positioned.fill(
+                  child: Lottie.asset(
+                    GroceryImages.partyLottie,
+                    repeat: false,
+                    fit: BoxFit.cover,
                   ),
                 ),
-              ],
-            ),
-          ),
-              ],
-            ),
-          ),
-         // const FreeShippingProgressWidget(),
+              );
+            }
+            
+            return const SizedBox.shrink();
+          },
+        ),
         ],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
@@ -282,161 +374,164 @@ class _CategoryViewState extends State<CategoryView> {
             final cartItems = state.getCartItemsApiState.model?.data ?? [];
             
             if (cartItems.isNotEmpty) {
-              return FloatingActionButton.extended(
-                onPressed: () {
-                   context.pushPage(CheckoutPage(
-                            homeCubit: context.read<HomeCubit>(),
-                          ));
-                },
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-                label: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.amber, // Yellow background
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Product images stack with separate BlocBuilder
-                      BlocBuilder<HomeCubit, HomeState>(
-                        buildWhen: (previous, current) {
-                          // Only rebuild when cart content changes (products, not just quantities)
-                          final prevCartItems = previous.getCartItemsApiState.model?.data ?? [];
-                          final currCartItems = current.getCartItemsApiState.model?.data ?? [];
-                          
-                          if (prevCartItems.length != currCartItems.length) return true;
-                          
-                          // Check if the actual products in cart changed (for first 3 items)
-                          for (int i = 0; i < prevCartItems.length && i < 3; i++) {
-                            if (i >= currCartItems.length || 
-                                prevCartItems[i].product?.id != currCartItems[i].product?.id) {
-                              return true;
+              return Padding(
+               padding: const EdgeInsets.only(bottom: 48),
+                child: FloatingActionButton.extended(
+                  onPressed: () {
+                     context.pushPage(CheckoutPage(
+                              homeCubit: context.read<HomeCubit>(),
+                            ));
+                  },
+                  backgroundColor: Colors.transparent,
+                  elevation: 0,
+                  label: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.amber, // Yellow background
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Product images stack with separate BlocBuilder
+                        BlocBuilder<HomeCubit, HomeState>(
+                          buildWhen: (previous, current) {
+                            // Only rebuild when cart content changes (products, not just quantities)
+                            final prevCartItems = previous.getCartItemsApiState.model?.data ?? [];
+                            final currCartItems = current.getCartItemsApiState.model?.data ?? [];
+                            
+                            if (prevCartItems.length != currCartItems.length) return true;
+                            
+                            // Check if the actual products in cart changed (for first 3 items)
+                            for (int i = 0; i < prevCartItems.length && i < 3; i++) {
+                              if (i >= currCartItems.length || 
+                                  prevCartItems[i].product?.id != currCartItems[i].product?.id) {
+                                return true;
+                              }
                             }
-                          }
-                          return false;
-                        },
-                        builder: (context, state) {
-                          final cartItems = state.getCartItemsApiState.model?.data ?? [];
-                          
-                          // Get first 3 product images from cart items
-                          final List<String> productImages = [];
-                          for (int i = 0; i < cartItems.length && i < 3; i++) {
-                            final product = cartItems[i].product;
-                            if (product?.imagesUrls != null && product!.imagesUrls.isNotEmpty) {
-                              // Use first image from the URLs list
-                              productImages.add(product.imagesUrls.first);
-                            } else {
-                              // Use default image if no product image
+                            return false;
+                          },
+                          builder: (context, state) {
+                            final cartItems = state.getCartItemsApiState.model?.data ?? [];
+                            
+                            // Get first 3 product images from cart items
+                            final List<String> productImages = [];
+                            for (int i = 0; i < cartItems.length && i < 3; i++) {
+                              final product = cartItems[i].product;
+                              if (product?.imagesUrls != null && product!.imagesUrls.isNotEmpty) {
+                                // Use first image from the URLs list
+                                productImages.add(product.imagesUrls.first);
+                              } else {
+                                // Use default image if no product image
+                                productImages.add(GroceryImages.category2);
+                              }
+                            }
+                            
+                            // Ensure we have at least one image
+                            if (productImages.isEmpty) {
                               productImages.add(GroceryImages.category2);
                             }
-                          }
-                          
-                          // Ensure we have at least one image
-                          if (productImages.isEmpty) {
-                            productImages.add(GroceryImages.category2);
-                          }
-                          
-                          return SizedBox(
-                            width: 40 + (productImages.length > 1 ? (productImages.length - 1) * 15 : 0),
-                            height: 40,
-                            child: Stack(
-                              children: List.generate(productImages.length, (index) {
-                                return Positioned(
-                                  left: index * 15.0,
-                                  child: Container(
-                                    width: 40,
-                                    height: 40,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      border: Border.all(color: Colors.white, width: 2),
-                                    ),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(50),
-                                      child: Image.network(
-                                        productImages[index].startsWith('http') 
-                                            ? productImages[index]
-                                            : '${GroceryApis.baseUrl}/${productImages[index]}',
-                                        height: 40,
-                                        width: 40,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (context, error, stackTrace) {
-                                          return Image.asset(
-                                            GroceryImages.category2,
-                                            height: 40,
-                                            width: 40,
-                                            fit: BoxFit.cover,
-                                          );
-                                        },
+                            
+                            return SizedBox(
+                              width: 40 + (productImages.length > 1 ? (productImages.length - 1) * 15 : 0),
+                              height: 40,
+                              child: Stack(
+                                children: List.generate(productImages.length, (index) {
+                                  return Positioned(
+                                    left: index * 15.0,
+                                    child: Container(
+                                      width: 40,
+                                      height: 40,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: Colors.white, width: 2),
+                                      ),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(50),
+                                        child: Image.network(
+                                          productImages[index].startsWith('http') 
+                                              ? productImages[index]
+                                              : '${GroceryApis.baseUrl}/${productImages[index]}',
+                                          height: 40,
+                                          width: 40,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (context, error, stackTrace) {
+                                            return Image.asset(
+                                              GroceryImages.category2,
+                                              height: 40,
+                                              width: 40,
+                                              fit: BoxFit.cover,
+                                            );
+                                          },
+                                        ),
                                       ),
                                     ),
+                                  );
+                                }),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(width: 10),
+                        // Text section with separate BlocBuilder for count
+                        BlocBuilder<HomeCubit, HomeState>(
+                          buildWhen: (previous, current) {
+                            // Only rebuild when cart items count changes
+                            final prevCartItems = previous.getCartItemsApiState.model?.data ?? [];
+                            final currCartItems = current.getCartItemsApiState.model?.data ?? [];
+                            
+                            return prevCartItems.length != currCartItems.length;
+                          },
+                          builder: (context, state) {
+                            final cartItems = state.getCartItemsApiState.model?.data ?? [];
+                            
+                            return Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'View cart',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black,
                                   ),
-                                );
-                              }),
+                                ),
+                                Text(
+                                  '${cartItems.length} item${cartItems.length > 1 ? 's' : ''}',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                        const SizedBox(width: 10),
+                        // Arrow Icon (static, no BlocBuilder needed)
+                        InkWell(
+                          onTap: () {
+                            context.pushPage(CheckoutPage(
+                              homeCubit: context.read<HomeCubit>(),
+                            ));
+                          },
+                          child: Container(
+                            height: 40,
+                            width: 40,
+                            padding: EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: GroceryColorTheme().white,
+                              borderRadius: BorderRadius.circular(50),
                             ),
-                          );
-                        },
-                      ),
-                      const SizedBox(width: 10),
-                      // Text section with separate BlocBuilder for count
-                      BlocBuilder<HomeCubit, HomeState>(
-                        buildWhen: (previous, current) {
-                          // Only rebuild when cart items count changes
-                          final prevCartItems = previous.getCartItemsApiState.model?.data ?? [];
-                          final currCartItems = current.getCartItemsApiState.model?.data ?? [];
-                          
-                          return prevCartItems.length != currCartItems.length;
-                        },
-                        builder: (context, state) {
-                          final cartItems = state.getCartItemsApiState.model?.data ?? [];
-                          
-                          return Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'View cart',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black,
-                                ),
-                              ),
-                              Text(
-                                '${cartItems.length} item${cartItems.length > 1 ? 's' : ''}',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.black87,
-                                ),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                      const SizedBox(width: 10),
-                      // Arrow Icon (static, no BlocBuilder needed)
-                      InkWell(
-                        onTap: () {
-                          context.pushPage(CheckoutPage(
-                            homeCubit: context.read<HomeCubit>(),
-                          ));
-                        },
-                        child: Container(
-                          height: 40,
-                          width: 40,
-                          padding: EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: GroceryColorTheme().white,
-                            borderRadius: BorderRadius.circular(50),
-                          ),
-                          child: const Icon(
-                            Icons.arrow_forward_ios,
-                            size: 16,
-                            color: Colors.black,
+                            child: const Icon(
+                              Icons.arrow_forward_ios,
+                              size: 16,
+                              color: Colors.black,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               );

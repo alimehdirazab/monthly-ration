@@ -92,6 +92,12 @@ class GroceryApis {
   static const String orderInvoice = "orders/invoice";
   // trending products
   static const String trendingProducts = "tranding-products";
+  // featured products
+  static const String featuredProducts = "featured-products-group";
+  // time slots
+  static const String timeSlots = "timeslots";
+  // wallet balance
+  static const String walletBalance = "available-wallet-balance";
   
 
   initBaseUrlAndAuthEndpoints() {

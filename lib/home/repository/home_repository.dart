@@ -89,10 +89,22 @@ class HomeRepository {
   }
 
   // update cart item
-  Future<void> updateCartItem({required int cartItemId, required int quantity}) async {
-    final body = {
+  Future<void> updateCartItem({
+    required int cartItemId, 
+    required int quantity,
+    int? attributeId,        // Main attribute ID (e.g., 7 for "Weight")
+    int? attributeValueId,   // Selected attribute value ID (e.g., 96)
+  }) async {
+    final Map<String, dynamic> body = {
       'quantity': quantity,
     };
+    
+    // Add attributes if both attributeId and attributeValueId are provided
+    if (attributeId != null && attributeValueId != null) {
+      body['attributes'] = {
+        attributeId.toString(): attributeValueId.toString(),
+      };
+    }
 
    await generalRepository.put(
       handle: '${GroceryApis.updateCartItem}?id=$cartItemId',
@@ -260,5 +272,30 @@ class HomeRepository {
     );
     return ProductModel.fromJson(response);
   }
-  
+
+
+  // get featured products
+  Future<List<FeaturedProductsModel>> getFeaturedProducts() async {
+    final response = await generalRepository.get(
+      handle: GroceryApis.featuredProducts,
+    );
+    return List<FeaturedProductsModel>.from(response.map((x) => FeaturedProductsModel.fromJson(x)));
+  }
+
+  // get time slots
+  Future<List<TimeSlotsModel>> getTimeSlots() async {
+    final response = await generalRepository.get(
+      handle: GroceryApis.timeSlots,
+    );
+    return List<TimeSlotsModel>.from(response.map((x) => TimeSlotsModel.fromJson(x)));
+  }
+
+  // get wallet balance
+  Future<WalletBalanceModel> getWalletBalance() async {
+    final response = await generalRepository.get(
+      handle: "available-wallet-balance",
+    );
+    return WalletBalanceModel.fromJson(response);
+  }
+
   }

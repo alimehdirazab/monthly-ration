@@ -55,6 +55,12 @@ class HomeState extends Equatable {
     this.pdfGenerationApiState = const GeneralApiState<String>(),
     // trending products api State
     this.trendingProductsApiState = const GeneralApiState<ProductModel>(),
+    // featured products api State
+    this.featuredProductsApiState = const GeneralApiState<List<FeaturedProductsModel>>(),
+    // time slots api State
+    this.timeSlotsApiState = const GeneralApiState<List<TimeSlotsModel>>(),
+    // wallet balance api State
+    this.walletBalanceApiState = const GeneralApiState<WalletBalanceModel>(),
   });
    final List<String> cartItems;
    // banners api State
@@ -110,6 +116,13 @@ class HomeState extends Equatable {
     final GeneralApiState<String> pdfGenerationApiState;
     // trending products api State
     final GeneralApiState<ProductModel> trendingProductsApiState;
+    // featured products api State
+    final GeneralApiState<List<FeaturedProductsModel>> featuredProductsApiState;
+    // time slots api State
+    final GeneralApiState<List<TimeSlotsModel>> timeSlotsApiState;
+    // wallet balance api State
+    final GeneralApiState<WalletBalanceModel> walletBalanceApiState;
+
     
 
      // CopyWith
@@ -142,6 +155,9 @@ class HomeState extends Equatable {
     GeneralApiState<OrderInvoiceModel>? orderInvoiceApiState,
     GeneralApiState<String>? pdfGenerationApiState,
     GeneralApiState<ProductModel>? trendingProductsApiState,
+    GeneralApiState<List<FeaturedProductsModel>>? featuredProductsApiState,
+    GeneralApiState<List<TimeSlotsModel>>? timeSlotsApiState,
+    GeneralApiState<WalletBalanceModel>? walletBalanceApiState,
   }) {
     return HomeState(
       cartItems: cartItems ?? this.cartItems,
@@ -171,7 +187,10 @@ class HomeState extends Equatable {
       searchProductsApiState: searchProductsApiState ?? this.searchProductsApiState,
       orderInvoiceApiState: orderInvoiceApiState ?? this.orderInvoiceApiState,
       pdfGenerationApiState: pdfGenerationApiState ?? this.pdfGenerationApiState,
-      trendingProductsApiState: trendingProductsApiState ?? this.trendingProductsApiState
+      trendingProductsApiState: trendingProductsApiState ?? this.trendingProductsApiState,
+      featuredProductsApiState: featuredProductsApiState ?? this.featuredProductsApiState,
+      timeSlotsApiState: timeSlotsApiState ?? this.timeSlotsApiState,
+      walletBalanceApiState: walletBalanceApiState ?? this.walletBalanceApiState,
     );
   }
   
@@ -204,6 +223,9 @@ class HomeState extends Equatable {
     searchProductsApiState,
     orderInvoiceApiState,
     pdfGenerationApiState,
-    trendingProductsApiState
+    trendingProductsApiState,
+    featuredProductsApiState,
+    timeSlotsApiState,
+    walletBalanceApiState
     ];
 }

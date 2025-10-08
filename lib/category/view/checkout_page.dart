@@ -423,6 +423,7 @@ class _CheckoutViewState extends State<CheckoutView> {
     // Get shipping and handling fees
     context.read<HomeCubit>().getShippingFee();
     context.read<HomeCubit>().getHandlingFee();
+    context.read<HomeCubit>().getTimeSlots();
     
     // Initialize Razorpay
     try {
@@ -1314,29 +1315,13 @@ class _CheckoutViewState extends State<CheckoutView> {
   }
 
   Widget _buildTimeSlotSection() {
-    final List<String> timeSlots = [
-      '8 AM',
-      '9 AM',
-      '10 AM',
-      '11 AM',
-      '12 PM',
-      '1 PM',
-      '2 PM',
-      '3 PM',
-      '4 PM',
-      '5 PM',
-      '6 PM',
-      '7 PM',
-      '8 PM',
-      '9 PM',
-      '10 PM',
-      '11 PM',
-    ];
-
     return BlocBuilder<HomeCubit, HomeState>(
       buildWhen: (previous, current) =>
-          previous.selectedTimeSlotIndex != current.selectedTimeSlotIndex,
+          previous.selectedTimeSlotIndex != current.selectedTimeSlotIndex ||
+          previous.timeSlotsApiState != current.timeSlotsApiState,
       builder: (context, state) {
+        final timeSlotsApiState = state.timeSlotsApiState;
+        final timeSlots = timeSlotsApiState.model ?? [];
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1345,50 +1330,108 @@ class _CheckoutViewState extends State<CheckoutView> {
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
             ),
             const SizedBox(height: 12),
-            SizedBox(
-              height: 50,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: timeSlots.length,
-                itemBuilder: (context, index) {
-                  final timeSlot = timeSlots[index];
-                  final isSelected = state.selectedTimeSlotIndex == index;
-                  return GestureDetector(
-                    onTap: () {
-                      context.read<HomeCubit>().setSelectedTimeSlotIndex(index);
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      margin: const EdgeInsets.only(right: 12),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: isSelected ? Colors.green.shade50 : Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: isSelected ? Colors.green : Colors.grey.shade300,
-                          width: 1.5,
-                        ),
+            if (timeSlotsApiState.apiCallState == APICallState.loading)
+              Container(
+                height: 50,
+                child: Center(
+                  child: CircularProgressIndicator(
+                    color: GroceryColorTheme().primary,
+                  ),
+                ),
+              )
+            else if (timeSlotsApiState.apiCallState == APICallState.failure)
+              Container(
+                height: 50,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.red.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.error_outline, color: Colors.red, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Failed to load time slots: ${timeSlotsApiState.errorMessage ?? 'Unknown error'}',
+                        style: TextStyle(color: Colors.red.shade700, fontSize: 12),
                       ),
-                      child: Center(
-                        child: Text(
-                          timeSlot,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight:
-                                isSelected ? FontWeight.bold : FontWeight.normal,
-                            color:
-                                isSelected
-                                    ? Colors.green.shade800
-                                    : Colors.grey.shade600,
+                    ),
+                    TextButton(
+                      onPressed: () => context.read<HomeCubit>().getTimeSlots(),
+                      child: Text('Retry', style: TextStyle(color: Colors.red.shade700)),
+                    ),
+                  ],
+                ),
+              )
+            else if (timeSlots.isEmpty)
+              Container(
+                height: 50,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.access_time, color: Colors.grey.shade600, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'No time slots available',
+                      style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                    ),
+                  ],
+                ),
+              )
+            else
+              SizedBox(
+                height: 50,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: timeSlots.length,
+                  itemBuilder: (context, index) {
+                    final timeSlot = timeSlots[index];
+                    final isSelected = state.selectedTimeSlotIndex == index;
+                    String displayText = '';
+                    if (timeSlot.slot != null && timeSlot.slot!.isNotEmpty) {
+                      displayText = timeSlot.slot!;
+                    } else {
+                      displayText = 'Time Slot ${index + 1}';
+                    }
+                    return GestureDetector(
+                      onTap: () {
+                        context.read<HomeCubit>().setSelectedTimeSlotIndex(index);
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        margin: const EdgeInsets.only(right: 12),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: isSelected ? Colors.green.shade50 : Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isSelected ? Colors.green : Colors.grey.shade300,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Center(
+                          child: Text(
+                            displayText,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              color: isSelected ? Colors.green.shade800 : Colors.grey.shade600,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
-            ),
-          ],
+        ]
         );
       },
     );

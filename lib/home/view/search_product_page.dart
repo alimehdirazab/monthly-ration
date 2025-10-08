@@ -156,10 +156,9 @@ class _SearchProductViewState extends State<_SearchProductView> {
           ),
         ),
       ),
-      body: Column(
+      body: Stack(
         children: [
-          Expanded(
-            child: BlocBuilder<HomeCubit, HomeState>(
+          BlocBuilder<HomeCubit, HomeState>(
               buildWhen: (previous, current) =>
                   previous.searchProductsApiState != current.searchProductsApiState,
               builder: (context, state) {
@@ -291,8 +290,94 @@ class _SearchProductViewState extends State<_SearchProductView> {
                 );
               },
             ),
+          // Dynamic free shipping progress widget
+          BlocBuilder<HomeCubit, HomeState>(
+            buildWhen: (previous, current) =>
+                previous.getCartItemsApiState != current.getCartItemsApiState ||
+                previous.shippingApiState != current.shippingApiState,
+            builder: (context, state) {
+              final cartItems = state.getCartItemsApiState.model?.data ?? [];
+              final shippingData = state.shippingApiState.model?.data;
+              
+              if (cartItems.isEmpty || shippingData == null) {
+                return const SizedBox.shrink();
+              }
+
+              final shippingThreshold = shippingData.shiipingApplicableAmount?.toDouble() ?? 0;
+              
+              // Calculate cart total
+              double cartTotal = 0;
+              for (final item in cartItems) {
+                double price = 0;
+                if (item.product?.salePrice != null) {
+                  if (item.product!.salePrice is num) {
+                    price = (item.product!.salePrice as num).toDouble();
+                  } else if (item.product!.salePrice is String) {
+                    price = double.tryParse(item.product!.salePrice.toString()) ?? 0;
+                  }
+                }
+                final quantity = item.quantity ?? 0;
+                cartTotal += price * quantity;
+              }
+
+              final progress = shippingThreshold > 0 ? (cartTotal / shippingThreshold).clamp(0.0, 1.0) : 0.0;
+
+              return Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: FreeShippingProgressWidget(
+                  progress: progress,
+                ),
+              );
+            },
           ),
-          //const FreeShippingProgressWidget(),
+          // Conditional Lottie Animation on full screen when free shipping is achieved
+        BlocBuilder<HomeCubit, HomeState>(
+          buildWhen: (previous, current) =>
+              previous.getCartItemsApiState != current.getCartItemsApiState ||
+              previous.shippingApiState != current.shippingApiState,
+          builder: (context, state) {
+            final cartItems = state.getCartItemsApiState.model?.data ?? [];
+            final shippingData = state.shippingApiState.model?.data;
+            
+            if (cartItems.isEmpty || shippingData == null) {
+              return const SizedBox.shrink();
+            }
+
+            // Calculate cart total
+            double cartTotal = 0;
+            for (final item in cartItems) {
+              double price = 0;
+              if (item.product?.salePrice != null) {
+                if (item.product!.salePrice is num) {
+                  price = (item.product!.salePrice as num).toDouble();
+                } else if (item.product!.salePrice is String) {
+                  price = double.tryParse(item.product!.salePrice.toString()) ?? 0;
+                }
+              }
+              final quantity = item.quantity ?? 0;
+              cartTotal += price * quantity;
+            }
+
+            final shippingThreshold = shippingData.shiipingApplicableAmount?.toDouble() ?? 0;
+            
+            // Show lottie only if cart total is greater than or equal to shipping threshold
+            if (cartTotal >= shippingThreshold && shippingThreshold > 0) {
+              return IgnorePointer(
+                child: Positioned.fill(
+                  child: Lottie.asset(
+                    GroceryImages.partyLottie,
+                    repeat: false,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              );
+            }
+            
+            return const SizedBox.shrink();
+          },
+        ),
         ],
       ),
        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
@@ -305,9 +390,9 @@ class _SearchProductViewState extends State<_SearchProductView> {
             final List<String> productImages = [];
             for (int i = 0; i < cartItems.length && i < 3; i++) {
               final product = cartItems[i].product;
-              if (product?.imagesUrls != null && product!.imagesUrls!.isNotEmpty) {
+              if (product?.imagesUrls != null && product!.imagesUrls.isNotEmpty) {
                 // Use first image from the URLs list
-                productImages.add(product.imagesUrls!.first);
+                productImages.add(product.imagesUrls.first);
               } else {
                 // Use default image if no product image
                 productImages.add(GroceryImages.category2);
@@ -319,109 +404,112 @@ class _SearchProductViewState extends State<_SearchProductView> {
               productImages.add(GroceryImages.category2);
             }
             
-            return FloatingActionButton.extended(
-              onPressed: () {
-                 context.pushPage(CheckoutPage(
-                          homeCubit: context.read<HomeCubit>(),
-                        ));
-              },
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              label: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.amber, // Yellow background
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Product images stack (max 3)
-                    SizedBox(
-                      width: 40 + (productImages.length > 1 ? (productImages.length - 1) * 15 : 0),
-                      height: 40,
-                      child: Stack(
-                        children: List.generate(productImages.length, (index) {
-                          return Positioned(
-                            left: index * 15.0,
-                            child: Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 2),
+            return Padding(
+               padding: const EdgeInsets.only(bottom: 48),
+              child: FloatingActionButton.extended(
+                onPressed: () {
+                   context.pushPage(CheckoutPage(
+                            homeCubit: context.read<HomeCubit>(),
+                          ));
+                },
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                label: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.amber, // Yellow background
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Product images stack (max 3)
+                      SizedBox(
+                        width: 40 + (productImages.length > 1 ? (productImages.length - 1) * 15 : 0),
+                        height: 40,
+                        child: Stack(
+                          children: List.generate(productImages.length, (index) {
+                            return Positioned(
+                              left: index * 15.0,
+                              child: Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 2),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(50),
+                                  child:Image.network(
+                                          productImages[index].startsWith('http') 
+                                              ? productImages[index]
+                                              : '${GroceryApis.baseUrl}/${productImages[index]}',
+                                          height: 40,
+                                          width: 40,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (context, error, stackTrace) {
+                                            return Image.asset(
+                                              GroceryImages.category2,
+                                              height: 40,
+                                              width: 40,
+                                              fit: BoxFit.cover,
+                                            );
+                                          },
+                                        )
+                                      
+                                ),
                               ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(50),
-                                child:Image.network(
-                                        productImages[index].startsWith('http') 
-                                            ? productImages[index]
-                                            : '${GroceryApis.baseUrl}/${productImages[index]}',
-                                        height: 40,
-                                        width: 40,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (context, error, stackTrace) {
-                                          return Image.asset(
-                                            GroceryImages.category2,
-                                            height: 40,
-                                            width: 40,
-                                            fit: BoxFit.cover,
-                                          );
-                                        },
-                                      )
-                                    
-                              ),
-                            ),
-                          );
-                        }),
+                            );
+                          }),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    // Text
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'View cart',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
+                      const SizedBox(width: 10),
+                      // Text
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'View cart',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
+                          Text(
+                            '${cartItems.length} item${cartItems.length > 1 ? 's' : ''}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 10),
+                      // Arrow Icon
+                      InkWell(
+                        onTap: () {
+                          context.pushPage(CheckoutPage(
+                            homeCubit: context.read<HomeCubit>(),
+                          ));
+                        },
+                        child: Container(
+                          height: 40,
+                          width: 40,
+                          padding: EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: GroceryColorTheme().white,
+                            borderRadius: BorderRadius.circular(50),
+                          ),
+                          child: const Icon(
+                            Icons.arrow_forward_ios,
+                            size: 16,
                             color: Colors.black,
                           ),
                         ),
-                        Text(
-                          '${cartItems.length} item${cartItems.length > 1 ? 's' : ''}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.black87,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(width: 10),
-                    // Arrow Icon
-                    InkWell(
-                      onTap: () {
-                        context.pushPage(CheckoutPage(
-                          homeCubit: context.read<HomeCubit>(),
-                        ));
-                      },
-                      child: Container(
-                        height: 40,
-                        width: 40,
-                        padding: EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: GroceryColorTheme().white,
-                          borderRadius: BorderRadius.circular(50),
-                        ),
-                        child: const Icon(
-                          Icons.arrow_forward_ios,
-                          size: 16,
-                          color: Colors.black,
-                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             );

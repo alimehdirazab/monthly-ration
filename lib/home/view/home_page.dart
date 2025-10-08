@@ -34,6 +34,8 @@ class _HomeViewState extends State<HomeView> {
     context.read<HomeCubit>().getOrders();
     context.read<HomeCubit>().getTrendingProducts();
     context.read<HomeCubit>().getShippingFee();
+    context.read<HomeCubit>().getFeaturedProducts();
+    context.read<HomeCubit>().getWalletBalance();
   }
 
   @override
@@ -48,198 +50,294 @@ class _HomeViewState extends State<HomeView> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: RefreshIndicator(
-        onRefresh: () async {
-          context.read<HomeCubit>().getBanners();
-          context.read<HomeCubit>().getDefaultCategories();
-          context.read<HomeCubit>().getCategories();
-          context.read<HomeCubit>().getCartItems();
-          context.read<HomeCubit>().getOrders();
-          context.read<HomeCubit>().getTrendingProducts();
-          context.read<HomeCubit>().getShippingFee();
-          // Reset banner controller and timer on refresh
-          _bannerTimer?.cancel();
-          _bannerPageController?.dispose();
-          _bannerPageController = null;
-          // banner 2
-          _banner2Timer?.cancel();
-          _banner2PageController?.dispose();
-          _banner2PageController = null;
-        },
-        child: Column(
-          children: [
-            Expanded(
-              child: CustomScrollView(
-                slivers: [
-                  _buildSliverAppBar(context),
-                  SliverToBoxAdapter(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 8),
-                        _buildBanner(),
-                        const SizedBox(height: 8),
-                        _buildBestsellersSection(),
-                        _buildCategoriesWithSubcategories(),
-                        _buildBanner2(),
-                        _buildTrendingSection(),
-                        const SizedBox(height: 100), // Space for floating cart and progress widget
-                      ],
-                    ),
+    return Stack(
+      children: [
+        Scaffold(
+          body: RefreshIndicator(
+            onRefresh: () async {
+              context.read<HomeCubit>().getBanners();
+              context.read<HomeCubit>().getDefaultCategories();
+              context.read<HomeCubit>().getCategories();
+              context.read<HomeCubit>().getCartItems();
+              context.read<HomeCubit>().getOrders();
+              context.read<HomeCubit>().getTrendingProducts();
+              context.read<HomeCubit>().getShippingFee();
+              context.read<HomeCubit>().getFeaturedProducts();
+              context.read<HomeCubit>().getWalletBalance();
+              // Reset banner controller and timer on refresh
+              _bannerTimer?.cancel();
+              _bannerPageController?.dispose();
+              _bannerPageController = null;
+              // banner 2
+              _banner2Timer?.cancel();
+              _banner2PageController?.dispose();
+              _banner2PageController = null;
+            },
+            child: Column(
+              children: [
+                Expanded(
+                  child: CustomScrollView(
+                    slivers: [
+                      _buildSliverAppBar(context),
+                      SliverToBoxAdapter(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 8),
+                            _buildBanner(),
+                            const SizedBox(height: 8),
+                            _buildBestsellersSection(),
+                            _buildCategoriesWithSubcategories(),
+                            _buildBanner2(),
+                            _buildTrendingSection(),
+                            const SizedBox(height: 100), // Space for floating cart and progress widget
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-            // Align(
-            //   alignment: Alignment.bottomCenter,
-            //   child: const FreeShippingProgressWidget(),
-            // ),
-          ],
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: BlocBuilder<HomeCubit, HomeState>(
-        builder: (context, state) {
-          final cartItems = state.getCartItemsApiState.model?.data ?? [];
-          
-          if (cartItems.isNotEmpty) {
-            // Get first 3 product images from cart items
-            final List<String> productImages = [];
-            for (int i = 0; i < cartItems.length && i < 3; i++) {
-              final product = cartItems[i].product;
-              if (product?.imagesUrls != null && product!.imagesUrls!.isNotEmpty) {
-                // Use first image from the URLs list
-                productImages.add(product.imagesUrls!.first);
-              } else {
-                // Use default image if no product image
-                productImages.add(GroceryImages.category2);
-              }
-            }
-            
-            // Ensure we have at least one image
-            if (productImages.isEmpty) {
-              productImages.add(GroceryImages.category2);
-            }
-            
-            return FloatingActionButton.extended(
-              onPressed: () {
-                 context.pushPage(CheckoutPage(
-                          homeCubit: context.read<HomeCubit>(),
-                        ));
-              },
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              label: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.amber, // Yellow background
-                  borderRadius: BorderRadius.circular(30),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Product images stack (max 3)
-                    SizedBox(
-                      width: 40 + (productImages.length > 1 ? (productImages.length - 1) * 15 : 0),
-                      height: 40,
-                      child: Stack(
-                        children: List.generate(productImages.length, (index) {
-                          return Positioned(
-                            left: index * 15.0,
-                            child: Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 2),
+                // Align(
+                //   alignment: Alignment.bottomCenter,
+                //   child: const FreeShippingProgressWidget(),
+                // ),
+              ],
+            ),
+          ),
+          floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+          floatingActionButton: BlocBuilder<HomeCubit, HomeState>(
+            builder: (context, state) {
+              final cartItems = state.getCartItemsApiState.model?.data ?? [];
+              
+              if (cartItems.isNotEmpty) {
+                // Get first 3 product images from cart items
+                final List<String> productImages = [];
+                for (int i = 0; i < cartItems.length && i < 3; i++) {
+                  final product = cartItems[i].product;
+                  if (product?.imagesUrls != null && product!.imagesUrls.isNotEmpty) {
+                    // Use first image from the URLs list
+                    productImages.add(product.imagesUrls.first);
+                  } else {
+                    // Use default image if no product image
+                    productImages.add(GroceryImages.category2);
+                  }
+                }
+                
+                // Ensure we have at least one image
+                if (productImages.isEmpty) {
+                  productImages.add(GroceryImages.category2);
+                }
+                
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 48),
+                  child: FloatingActionButton.extended(
+                    onPressed: () {
+                       context.pushPage(CheckoutPage(
+                                homeCubit: context.read<HomeCubit>(),
+                              ));
+                    },
+                    backgroundColor: Colors.transparent,
+                    elevation: 0,
+                    label: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.amber, // Yellow background
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Product images stack (max 3)
+                          SizedBox(
+                            width: 40 + (productImages.length > 1 ? (productImages.length - 1) * 15 : 0),
+                            height: 40,
+                            child: Stack(
+                              children: List.generate(productImages.length, (index) {
+                                return Positioned(
+                                  left: index * 15.0,
+                                  child: Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: Colors.white, width: 2),
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(50),
+                                      child:Image.network(
+                                              productImages[index].startsWith('http') 
+                                                  ? productImages[index]
+                                                  : '${GroceryApis.baseUrl}/${productImages[index]}',
+                                              height: 40,
+                                              width: 40,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (context, error, stackTrace) {
+                                                return Image.asset(
+                                                  GroceryImages.category2,
+                                                  height: 40,
+                                                  width: 40,
+                                                  fit: BoxFit.cover,
+                                                );
+                                              },
+                                            )
+                                          
+                                    ),
+                                  ),
+                                );
+                              }),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          // Text
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'View cart',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
                               ),
-                              child: ClipRRect(
+                              Text(
+                                '${cartItems.length} item${cartItems.length > 1 ? 's' : ''}',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(width: 10),
+                          // Arrow Icon
+                          InkWell(
+                            onTap: () {
+                              context.pushPage(CheckoutPage(
+                                homeCubit: context.read<HomeCubit>(),
+                              ));
+                            },
+                            child: Container(
+                              height: 40,
+                              width: 40,
+                              padding: EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: GroceryColorTheme().white,
                                 borderRadius: BorderRadius.circular(50),
-                                child:Image.network(
-                                        productImages[index].startsWith('http') 
-                                            ? productImages[index]
-                                            : '${GroceryApis.baseUrl}/${productImages[index]}',
-                                        height: 40,
-                                        width: 40,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (context, error, stackTrace) {
-                                          return Image.asset(
-                                            GroceryImages.category2,
-                                            height: 40,
-                                            width: 40,
-                                            fit: BoxFit.cover,
-                                          );
-                                        },
-                                      )
-                                    
+                              ),
+                              child: const Icon(
+                                Icons.arrow_forward_ios,
+                                size: 16,
+                                color: Colors.black,
                               ),
                             ),
-                          );
-                        }),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    // Text
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'View cart',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
-                          ),
-                        ),
-                        Text(
-                          '${cartItems.length} item${cartItems.length > 1 ? 's' : ''}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.black87,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(width: 10),
-                    // Arrow Icon
-                    InkWell(
-                      onTap: () {
-                        context.pushPage(CheckoutPage(
-                          homeCubit: context.read<HomeCubit>(),
-                        ));
-                      },
-                      child: Container(
-                        height: 40,
-                        width: 40,
-                        padding: EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: GroceryColorTheme().white,
-                          borderRadius: BorderRadius.circular(50),
-                        ),
-                        child: const Icon(
-                          Icons.arrow_forward_ios,
-                          size: 16,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                );
+        
+                //  FloatingActionButton.extended(
+                //   onPressed: () {
+                //     // Navigate to cart screen or show cart details
+                //   },
+                //   label: Text('View Cart (${state.cartItems.length})'),
+                //   icon: const Icon(Icons.shopping_cart),
+                // );
+              }
+              return const SizedBox();
+            },
+          ),
+        ),
+        // Free shipping progress widget at bottom with dynamic progress
+        BlocBuilder<HomeCubit, HomeState>(
+          buildWhen: (previous, current) =>
+              previous.getCartItemsApiState != current.getCartItemsApiState ||
+              previous.shippingApiState != current.shippingApiState,
+          builder: (context, state) {
+            final cartItems = state.getCartItemsApiState.model?.data ?? [];
+            final shippingData = state.shippingApiState.model?.data;
+            
+            if (cartItems.isEmpty || shippingData == null) {
+              return const SizedBox.shrink();
+            }
+
+            // Calculate cart total
+            double cartTotal = 0;
+            for (final item in cartItems) {
+              double price = 0;
+              if (item.product?.salePrice != null) {
+                if (item.product!.salePrice is num) {
+                  price = (item.product!.salePrice as num).toDouble();
+                } else if (item.product!.salePrice is String) {
+                  price = double.tryParse(item.product!.salePrice.toString()) ?? 0;
+                }
+              }
+              final quantity = item.quantity ?? 0;
+              cartTotal += price * quantity;
+            }
+
+            final shippingThreshold = shippingData.shiipingApplicableAmount?.toDouble() ?? 0;
+            final progress = shippingThreshold > 0 ? (cartTotal / shippingThreshold).clamp(0.0, 1.0) : 0.0;
+
+            return Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: FreeShippingProgressWidget(
+                progress: progress,
               ),
             );
+          },
+        ),
+        // Conditional Lottie Animation on full screen when free shipping is achieved
+        BlocBuilder<HomeCubit, HomeState>(
+          buildWhen: (previous, current) =>
+              previous.getCartItemsApiState != current.getCartItemsApiState ||
+              previous.shippingApiState != current.shippingApiState,
+          builder: (context, state) {
+            final cartItems = state.getCartItemsApiState.model?.data ?? [];
+            final shippingData = state.shippingApiState.model?.data;
+            
+            if (cartItems.isEmpty || shippingData == null) {
+              return const SizedBox.shrink();
+            }
 
-            //  FloatingActionButton.extended(
-            //   onPressed: () {
-            //     // Navigate to cart screen or show cart details
-            //   },
-            //   label: Text('View Cart (${state.cartItems.length})'),
-            //   icon: const Icon(Icons.shopping_cart),
-            // );
-          }
-          return const SizedBox();
-        },
-      ),
+            // Calculate cart total
+            double cartTotal = 0;
+            for (final item in cartItems) {
+              double price = 0;
+              if (item.product?.salePrice != null) {
+                if (item.product!.salePrice is num) {
+                  price = (item.product!.salePrice as num).toDouble();
+                } else if (item.product!.salePrice is String) {
+                  price = double.tryParse(item.product!.salePrice.toString()) ?? 0;
+                }
+              }
+              final quantity = item.quantity ?? 0;
+              cartTotal += price * quantity;
+            }
+
+            final shippingThreshold = shippingData.shiipingApplicableAmount?.toDouble() ?? 0;
+            
+            // Show lottie only if cart total is greater than or equal to shipping threshold
+            if (cartTotal >= shippingThreshold && shippingThreshold > 0) {
+              return IgnorePointer(
+                child: Positioned.fill(
+                  child: Lottie.asset(
+                    GroceryImages.partyLottie,
+                    repeat: false,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              );
+            }
+            
+            return const SizedBox.shrink();
+          },
+        ),
+      ],
     );
   }
 
@@ -279,7 +377,7 @@ class _HomeViewState extends State<HomeView> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '15 minutes',
+                        'Monthly Ration',
                         style: GroceryTextTheme().bodyText.copyWith(fontSize: 20),
                       ),
                       const SizedBox(height: 4),
@@ -290,22 +388,62 @@ class _HomeViewState extends State<HomeView> {
                     ],
                   ),
                   const Spacer(),
-                  GestureDetector(
-                    onTap: () {
-                     context.pushPage(MyWalletPage(accountCubit: context.read<AccountCubit>()));
+                  BlocBuilder<HomeCubit, HomeState>(
+                    buildWhen: (previous, current) => 
+                        previous.walletBalanceApiState != current.walletBalanceApiState,
+                    builder: (context, state) {
+                      final walletBalance = state.walletBalanceApiState.model?.currentWalletBalance ?? '0';
+                      
+                      return GestureDetector(
+                        onTap: () {
+                          context.pushPage(MyWalletPage(accountCubit: context.read<AccountCubit>()));
+                        },
+                        child: Stack(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: GroceryColorTheme().white,
+                              ),
+                              child: Icon(
+                                Icons.account_balance_wallet_outlined,
+                                color: GroceryColorTheme().black,
+                                size: 20,
+                              ),
+                            ),
+                            // Wallet balance badge
+                            // if (state.walletBalanceApiState.apiCallState == APICallState.loaded && 
+                            //     walletBalance != '0' && walletBalance.isNotEmpty)  
+                              Positioned(
+                                right: 16,
+                                top: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: Colors.white, width: 1),
+                                  ),
+                                  constraints: const BoxConstraints(
+                                    minWidth: 16,
+                                    minHeight: 16,
+                                  ),
+                                  child: Text(
+                                    '₹$walletBalance',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 8,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      );
                     },
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: GroceryColorTheme().white,
-                      ),
-                      child: Icon(
-                        Icons.account_balance_wallet_outlined,
-                        color: GroceryColorTheme().black,
-                        size: 20,
-                      ),
-                    ),
                   ),
                   const SizedBox(width: 6),
                   GestureDetector(
@@ -858,90 +996,133 @@ class _HomeViewState extends State<HomeView> {
 
 
   Widget _buildBestsellersSection() {
-    // Category data matching the reference image design
-    // Static bestseller categories generated from provided API response
-    final List<Map<String, dynamic>> bestsellerCategories = [
-      {
-      'title': 'Gcocery & Kitchen',
-      'moreCount': '+7 more',
-      'images': [
-        // Take 4 images from sub_categories, repeat last if missing
-        'https://monthlyration.in/uploads/categories/images/1756711680_aata-removebg-preview.png',
-        'https://monthlyration.in/uploads/categories/images/1756711117_cooking_oils-removebg-preview.png',
-        'https://monthlyration.in/uploads/categories/images/1756711211_biscuits__bakery-removebg-preview.png',
-        'https://monthlyration.in/uploads/categories/images/1756711286_dry-removebg-preview.png',
-      ],
-      },
-      {
-      'title': 'Drinks & Snacks',
-      'moreCount': '+5 more',
-      'images': [
-        'https://monthlyration.in/uploads/categories/images/1756713226_0xvfhoAqcQ.png',
-        'https://monthlyration.in/uploads/categories/images/1756713317_eaCzSsCPMF.png',
-        'https://monthlyration.in/uploads/categories/images/1756713499_cWhBuHsRGW.png',
-        'https://monthlyration.in/uploads/categories/images/1756713716_gPQhk15Rf5.png',
-      ],
-      },
-      {
-      'title': 'Beauty & Personal Care',
-      'moreCount': '+3 more',
-      'images': [
-        'https://monthlyration.in/uploads/categories/images/1756714399_3ZnbkxFKZc.png',
-        'https://monthlyration.in/uploads/categories/images/1756714536_5tsAL8lOMi.png',
-        'https://monthlyration.in/uploads/categories/images/1756714613_rUrFEIsvXa.png',
-        'https://monthlyration.in/uploads/categories/images/1756714720_Egj0VJHZoh.png',
-      ],
-      },
-      {
-      'title': 'Household Needs',
-      'moreCount': '+12 more',
-      'images': [
-        // No images in sub_categories, so repeat main category image
-        'https://monthlyration.in/uploads/categories/images/1756713499_cWhBuHsRGW.png',
-        'https://monthlyration.in/uploads/categories/images/1756711211_biscuits__bakery-removebg-preview.png',
-        'https://monthlyration.in/uploads/categories/images/1756711286_dry-removebg-preview.png',
-        'https://monthlyration.in/uploads/categories/images/1756714536_5tsAL8lOMi.png',
-        ],
-      },
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: Text(
-            'Bestsellers',
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
+    return BlocBuilder<HomeCubit, HomeState>(
+      buildWhen: (previous, current) =>
+          previous.featuredProductsApiState != current.featuredProductsApiState,
+      builder: (context, state) {
+        final apiState = state.featuredProductsApiState;
+        
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Text(
+                'Bestsellers',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
             ),
-          ),
-        ),
-          // const SizedBox(height: 8),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-          child: GridView.builder(
-           // padding: const EdgeInsets.symmetric(vertical: 0),
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: bestsellerCategories.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2, // 2 items per row as requested
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-              childAspectRatio: 0.84, // Increased to fix overflow
-            ),
-            itemBuilder: (context, index) {
-              final category = bestsellerCategories[index];
-              return BestsellerCategoryCard(category: category);
-            },
-          ),
-        ),
-        const SizedBox(height: 16),
-      ],
+            
+            // API-based content
+            if (apiState.apiCallState == APICallState.loading)
+              Container(
+                height: 200,
+                alignment: Alignment.center,
+                child: const CircularProgressIndicator(),
+              )
+            else if (apiState.apiCallState == APICallState.failure)
+              Container(
+                height: 200,
+                alignment: Alignment.center,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.error_outline, size: 48, color: Colors.grey[600]),
+                    const SizedBox(height: 8),
+                    Text(
+                      apiState.errorMessage ?? 'Failed to load featured products',
+                      style: TextStyle(color: Colors.grey[600]),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              )
+            else if (apiState.model == null || apiState.model!.isEmpty)
+              Container(
+                height: 200,
+                alignment: Alignment.center,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.category, size: 48, color: Colors.grey[600]),
+                    const SizedBox(height: 8),
+                    Text(
+                      'No featured products available',
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              )
+            else
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: apiState.model!.length,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2, // 2 items per row as requested
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                    childAspectRatio: 0.84, // Increased to fix overflow
+                  ),
+                  itemBuilder: (context, index) {
+                    final featuredCategory = apiState.model![index];
+                    
+                    // Convert API data to the format expected by BestsellerCategoryCard
+                    final categoryData = {
+                      'title': featuredCategory.categoryName ?? 'Unknown Category',
+                      'moreCount': '+${(featuredCategory.products?.length ?? 0)} more',
+                      'images': featuredCategory.products?.take(4).map((product) => 
+                        product.thumbnailImg ?? '').where((img) => img.isNotEmpty).toList() ?? [],
+                      'categoryId': featuredCategory.categoryId, // Add categoryId for navigation
+                    };
+                    
+                    return BestsellerCategoryCard(
+                      category: categoryData,
+                      onTap: () {
+                        // Navigate to ProductsByCategoryPage when tapped
+                        // You'll need to get the category details first
+                      //  _navigateToFeaturedCategory(context, featuredCategory);
+                      },
+                    );
+                  },
+                ),
+              ),
+            const SizedBox(height: 16),
+          ],
+        );
+      },
     );
+  }
+
+  // Helper method to navigate to featured category
+  void _navigateToFeaturedCategory(BuildContext context, FeaturedProductsModel featuredCategory) {
+    if (featuredCategory.categoryId != null && featuredCategory.categoryName != null) {
+      // For now, we'll navigate with the category name and id
+      // You might need to fetch subcategories for this category if required
+      context.pushPage(
+        ProductsByCategoryPage(
+          homeCubit: context.read<HomeCubit>(),
+          categoryName: featuredCategory.categoryName!,
+          subCategory: [], // You might need to fetch subcategories based on categoryId
+          selectedSubCategoryIndex: 0,
+          isFromSubCategory: false,
+        ),
+      );
+    } else {
+      // Show a message if category data is insufficient
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to navigate to this category'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
 
@@ -1067,32 +1248,36 @@ class _HomeViewState extends State<HomeView> {
 
 class BestsellerCategoryCard extends StatelessWidget {
   final Map<String, dynamic> category;
+  final VoidCallback? onTap;
 
   const BestsellerCategoryCard({
     super.key,
     required this.category,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final List<String> images = category['images'] ?? [];
     
-    return Stack(
-      children: [
-        Container(
-         
-          decoration: BoxDecoration(
-            color: GroceryColorTheme().weatherBlueColor,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withValues(alpha: 0.15),
-                spreadRadius: 1,
-                blurRadius: 6,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
+    return GestureDetector(
+      onTap: onTap,
+      child: Stack(
+        children: [
+          Container(
+           
+            decoration: BoxDecoration(
+              color: GroceryColorTheme().weatherBlueColor,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withValues(alpha: 0.15),
+                  spreadRadius: 1,
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -1181,7 +1366,8 @@ class BestsellerCategoryCard extends StatelessWidget {
                   ),
                                   ),
                 )
-      ],
+        ],
+      ),
     );
   }
 }

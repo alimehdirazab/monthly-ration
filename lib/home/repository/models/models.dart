@@ -13,3 +13,6 @@ part 'handling_model.dart';
 part 'apply_coupon_model.dart';
 part 'search_model.dart';
 part 'order_invoice_model.dart';
+part 'featured_product_model.dart';
+part 'time_slots_model.dart';
+part 'wallet_balance_model.dart';
