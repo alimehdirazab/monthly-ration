@@ -584,10 +584,31 @@ Widget _buildDialogContent(BuildContext context) {
           child: Lottie.asset(
             GroceryImages.partyLottie,
             repeat: false,
+            animate: true,
+            reverse: false,
+            delegates: LottieDelegates(
+              values: [
+                // Add error handling for release builds
+              ],
+            ),
             onLoaded: (composition) {
               Future.delayed(composition.duration, () {
                 // animation ends — do nothing or hide it if needed
               });
+            },
+            errorBuilder: (context, error, stackTrace) {
+              print('Lottie error: $error');
+              // Return a fallback widget instead of blank screen
+              return Container(
+                color: Colors.transparent,
+                child: Center(
+                  child: Icon(
+                    Icons.celebration,
+                    size: 100,
+                    color: Colors.amber.withOpacity(0.8),
+                  ),
+                ),
+              );
             },
           ),
         ),

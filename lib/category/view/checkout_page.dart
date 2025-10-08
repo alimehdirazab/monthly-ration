@@ -372,14 +372,28 @@ class _CheckoutViewState extends State<CheckoutView> {
 
         // 🎉 Lottie animation on top, but doesn't block taps
         IgnorePointer(
-          child: Center(
+          child: Container(
+            color: Colors.transparent,
             child: Lottie.asset(
               GroceryImages.partyLottie,
               repeat: false,
-              onLoaded: (composition) {
-                Future.delayed(composition.duration, () {
-                  // animation ends — do nothing or hide it if needed
-                });
+              animate: true,
+              reverse: false,
+              fit: BoxFit.cover,
+              width: double.infinity,
+              height: double.infinity,
+              errorBuilder: (context, error, stackTrace) {
+                print('Lottie error: $error');
+                return Container(
+                  color: Colors.black.withOpacity(0.3),
+                  child: const Center(
+                    child: Icon(
+                      Icons.celebration,
+                      size: 120,
+                      color: Colors.amber,
+                    ),
+                  ),
+                );
               },
             ),
           ),

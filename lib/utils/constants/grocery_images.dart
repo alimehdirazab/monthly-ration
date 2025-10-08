@@ -34,5 +34,5 @@ class GroceryImages {
   static const String dialog = 'assets/images/dialog.png';
   static const String product = 'assets/images/product.jpg';
   static const String profile = 'assets/images/profile.jpg';
-  static const String partyLottie = 'assets/images/confetti on transparent background.json';
+  static const String partyLottie = 'assets/images/party_poper.json';
 }

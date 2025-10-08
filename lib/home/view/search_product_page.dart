@@ -364,12 +364,32 @@ class _SearchProductViewState extends State<_SearchProductView> {
             
             // Show lottie only if cart total is greater than or equal to shipping threshold
             if (cartTotal >= shippingThreshold && shippingThreshold > 0) {
-              return IgnorePointer(
-                child: Positioned.fill(
-                  child: Lottie.asset(
-                    GroceryImages.partyLottie,
-                    repeat: false,
-                    fit: BoxFit.cover,
+              return Positioned.fill(
+                child: IgnorePointer(
+                  child: Container(
+                    color: Colors.transparent, // Semi-transparent background
+                    child: Lottie.asset(
+                      GroceryImages.partyLottie,
+                      repeat: false,
+                      animate: true,
+                      reverse: false,
+                      fit: BoxFit.cover, // Full screen coverage
+                      width: double.infinity,
+                      height: double.infinity,
+                      errorBuilder: (context, error, stackTrace) {
+                        print('Lottie error: $error');
+                        return Container(
+                          color: Colors.black.withOpacity(0.3),
+                          child: const Center(
+                            child: Icon(
+                              Icons.celebration,
+                              size: 120,
+                              color: Colors.amber,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ),
               );

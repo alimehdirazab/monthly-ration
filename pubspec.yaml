@@ -63,6 +63,7 @@ flutter:
   assets:
     - assets/images/
     - assets/l10n/
+    - assets/images/party_poper.json
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
