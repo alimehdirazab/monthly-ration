@@ -655,13 +655,17 @@ class _OrderDetailsViewState extends State<OrderDetailsView> {
         if (!storageStatus.isGranted) {
           storageStatus = await Permission.storage.request();
           if (!storageStatus.isGranted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Storage permission is required to save PDF files'),
-                backgroundColor: Colors.red,
-                duration: Duration(seconds: 4),
-              ),
-            );
+            // open app settings if permission is permanently denied
+            if (storageStatus.isPermanentlyDenied) {
+              await openAppSettings();
+            }
+            // ScaffoldMessenger.of(context).showSnackBar(
+            //   const SnackBar(
+            //     content: Text('Storage permission is required to save PDF files'),
+            //     backgroundColor: Colors.red,
+            //     duration: Duration(seconds: 4),
+            //   ),
+            // );
             return;
           }
         }

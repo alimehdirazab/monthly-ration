@@ -596,20 +596,26 @@ class HomeCubit extends Cubit<HomeState> {
     int? attributeValueId,
     bool isIncrement = false,  // New parameter to indicate if this is an increment operation
   }) async {
+    // Store temporary ID for replacement
+    final temporaryId = DateTime.now().millisecondsSinceEpoch;
+    
     // 1. Add/Update item in cart items list first
-    _updateCartItemsOptimistically(productId, quantity, product, attributeValueId, isIncrement: isIncrement);
+    _updateCartItemsOptimistically(productId, quantity, product, attributeValueId, isIncrement: isIncrement, temporaryId: temporaryId);
     
     // 2. Update product's cartQuantity in the products list (calculated from cart total)
     _updateProductCartQuantity(productId, null);
     
     // 3. Call the actual API
     try {
-      await homeRepository.addToCart(
+      final response = await homeRepository.addToCart(
         productId: productId, 
         quantity: quantity, 
         attributeId: attributeId, 
         attributeValueId: attributeValueId
       );
+      
+      // 4. Replace temporary ID with real database ID from response
+      _replaceTemporaryCartItemId(temporaryId, response, productId, attributeValueId);
       
       // API Success - emit success state
       emit(state.copyWith(addToCartApiState: GeneralApiState<void>(
@@ -806,7 +812,7 @@ class HomeCubit extends Cubit<HomeState> {
 
 
 
-  void _updateCartItemsOptimistically(int productId, int quantity, Product product, int? attributeValueId, {bool isIncrement = false}) {
+  void _updateCartItemsOptimistically(int productId, int quantity, Product product, int? attributeValueId, {bool isIncrement = false, int? temporaryId}) {
     final cartItems = List<CartItem>.from(state.getCartItemsApiState.model?.data ?? []);
     final existingItemIndex = cartItems.indexWhere(
       (item) => item.productId == productId && 
@@ -834,8 +840,9 @@ class HomeCubit extends Cubit<HomeState> {
       );
     } else {
       // Add new item
+      final tempId = temporaryId ?? DateTime.now().millisecondsSinceEpoch;
       cartItems.add(CartItem(
-        id: DateTime.now().millisecondsSinceEpoch, // Temporary ID
+        id: tempId, // Use provided temporary ID or generate new one
         customerId: null,
         productId: productId,
         quantity: quantity,
@@ -881,6 +888,52 @@ class HomeCubit extends Cubit<HomeState> {
       apiCallState: APICallState.loaded,
       model: updatedCartModel,
     )));
+  }
+
+  // Helper method to replace temporary cart item ID with real database ID
+  void _replaceTemporaryCartItemId(int temporaryId, Map<String, dynamic> apiResponse, int productId, int? attributeValueId) {
+    final cartItems = List<CartItem>.from(state.getCartItemsApiState.model?.data ?? []);
+    
+    // Find the item with temporary ID
+    final itemIndex = cartItems.indexWhere((item) => item.id == temporaryId);
+    
+    if (itemIndex != -1) {
+      final existingItem = cartItems[itemIndex];
+      
+      // Extract real database ID from API response
+      // Adjust this based on your API response structure
+      int? realId;
+      if (apiResponse['data'] != null && apiResponse['data']['id'] != null) {
+        realId = apiResponse['data']['id'];
+      } else if (apiResponse['id'] != null) {
+        realId = apiResponse['id'];
+      } else if (apiResponse['cart_item_id'] != null) {
+        realId = apiResponse['cart_item_id'];
+      }
+      
+      if (realId != null) {
+        // Replace the item with the real database ID
+        cartItems[itemIndex] = CartItem(
+          id: realId, // Real database ID
+          customerId: existingItem.customerId,
+          productId: existingItem.productId,
+          quantity: existingItem.quantity,
+          attributes: existingItem.attributes,
+          attributeValueId: existingItem.attributeValueId,
+          createdAt: existingItem.createdAt,
+          updatedAt: DateTime.now(), // Update timestamp
+          product: existingItem.product,
+          attributesValues: existingItem.attributesValues,
+        );
+        
+        // Update the state with the corrected cart items
+        final updatedCartModel = CartListModel(success: true, data: cartItems);
+        emit(state.copyWith(getCartItemsApiState: GeneralApiState<CartListModel>(
+          apiCallState: APICallState.loaded,
+          model: updatedCartModel,
+        )));
+      }
+    }
   }
 
   void _removeCartItemOptimistically(int productId, int? attributeValueId) {

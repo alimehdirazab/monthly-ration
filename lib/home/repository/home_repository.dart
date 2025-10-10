@@ -55,7 +55,7 @@ class HomeRepository {
   }
 
   // add to cart
-  Future<void> addToCart({
+  Future<Map<String, dynamic>> addToCart({
     required int productId, 
     required int quantity,
     int? attributeId,        // Main attribute ID (e.g., 7 for "Weight")
@@ -73,11 +73,12 @@ class HomeRepository {
         '{attributeidnext}': attributeValueId.toString(),
       };
     }
-    
-     await generalRepository.post(
+
+    final response = await generalRepository.post(
       handle: GroceryApis.addToCart,
       body:  jsonEncode(body),
     );
+    return response;
   }
 
   // get cart items
@@ -89,29 +90,32 @@ class HomeRepository {
   }
 
   // update cart item
-  Future<void> updateCartItem({
-    required int cartItemId, 
-    required int quantity,
-    int? attributeId,        // Main attribute ID (e.g., 7 for "Weight")
-    int? attributeValueId,   // Selected attribute value ID (e.g., 96)
-  }) async {
-    final Map<String, dynamic> body = {
-      'quantity': quantity,
-    };
-    
-    // Add attributes if both attributeId and attributeValueId are provided
-    if (attributeId != null && attributeValueId != null) {
-      body['attributes'] = {
-        attributeId.toString(): attributeValueId.toString(),
-      };
-    }
-
-   await generalRepository.put(
-      handle: '${GroceryApis.updateCartItem}?id=$cartItemId',
-      body:  jsonEncode(body),
-    );
+  // update cart item
+Future<void> updateCartItem({
+  required int cartItemId, 
+  required int quantity,
+  int? attributeId,        // Main attribute ID (e.g., 7 for "Weight")
+  int? attributeValueId,   // Selected attribute value ID (e.g., 96)
+}) async {
+  final Map<String, dynamic> body = {
+    'product_id': cartItemId,  // 🔧 Use product_id instead of cart_item_id
+    'quantity': quantity,
+  };
   
+  // Add attributes if both attributeId and attributeValueId are provided
+  if (attributeId != null && attributeValueId != null) {
+    body['attributes'] = {  // 🔧 Use attributes (with typo) to match API
+      attributeId.toString(): attributeValueId,
+    };
+    log("body after attributes: $body");
   }
+  
+
+  await generalRepository.put(  // Keep PUT since it works in Postman
+    handle: GroceryApis.updateCartItem,
+    body: jsonEncode(body),
+  );
+}
 
   // delete cart item
   Future<void> deleteCartItem({required int cartItemId}) async {
