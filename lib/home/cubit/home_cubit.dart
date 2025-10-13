@@ -134,9 +134,12 @@ class HomeCubit extends Cubit<HomeState> {
     )));
 
     await homeRepository.getProducts(subCategoryId: subCategoryId, subSubCategoryId: subSubCategoryId).then((productsModel) {
+      // Update individual variant quantities from current cart state
+      final updatedProductsModel = _mergeProductsWithCartQuantities(productsModel);
+      
       emit(state.copyWith(productsBySubCategoryApiState: GeneralApiState<ProductModel>(
         apiCallState: APICallState.loaded,
-        model: productsModel,
+        model: updatedProductsModel,
       )));
     }).catchError((error) {
       emit(state.copyWith(productsBySubCategoryApiState: GeneralApiState<ProductModel>(
@@ -232,6 +235,9 @@ class HomeCubit extends Cubit<HomeState> {
         apiCallState: APICallState.loaded,
         model: cartListModel,
       )));
+      
+      // After loading cart items, update existing product data with correct quantities
+      _updateAllProductQuantitiesFromCart();
     }).catchError((error) {
       emit(state.copyWith(getCartItemsApiState: GeneralApiState<CartListModel>(
         apiCallState: APICallState.failure,
@@ -398,18 +404,54 @@ class HomeCubit extends Cubit<HomeState> {
       couponDiscountAmount = state.applyCouponApiState.model!.discount?.toDouble();
     }
 
-    // Get shipping and handling charges
+    // Calculate cart total to determine if shipping/handling charges apply
+    double cartTotal = 0;
+    for (var cartItem in cart) {
+      // Find the product in current cart items to get price
+      final currentCartItems = state.getCartItemsApiState.model?.data ?? [];
+      final matchingCartItem = currentCartItems.firstWhere(
+        (item) => item.productId == cartItem.productId,
+        orElse: () => CartItem(),
+      );
+      
+      if (matchingCartItem.product != null) {
+        final salePrice = double.tryParse(matchingCartItem.product!.salePrice?.toString() ?? '0') ?? 0;
+        cartTotal += salePrice * cartItem.quantity;
+      }
+    }
+
+    // Get shipping and handling charges with conditional logic
     double? shippingCharge;
     double? handlingCharge;
+    
+    // Apply shipping charge only if cart total is below threshold
     if (state.shippingApiState.apiCallState == APICallState.loaded && 
         state.shippingApiState.model != null &&
         state.shippingApiState.model!.data != null) {
-      shippingCharge = state.shippingApiState.model!.data!.shippingAmount?.toDouble();
+      final shippingModel = state.shippingApiState.model!.data!;
+      final shippingApplicableAmount = shippingModel.shiipingApplicableAmount ?? 0;
+      final shippingAmount = shippingModel.shippingAmount ?? 0;
+      
+      if (cartTotal < shippingApplicableAmount) {
+        shippingCharge = shippingAmount.toDouble();
+      } else {
+        shippingCharge = 0.0; // Free shipping
+      }
     }
+    
+    // Apply handling charge only if cart total is below threshold
     if (state.handlingApiState.apiCallState == APICallState.loaded && 
         state.handlingApiState.model != null &&
         state.handlingApiState.model!.data != null) {
-      handlingCharge = state.handlingApiState.model!.data!.handlingAmount?.toDouble();
+      final handlingModel = state.handlingApiState.model!.data!;
+      final handlingApplicableAmount = handlingModel.handlingApplicableAmount ?? 0;
+      final handlingAmount = handlingModel.handlingAmount ?? 0;
+      
+      if (cartTotal < handlingApplicableAmount) {
+        handlingCharge = handlingAmount.toDouble();
+      } else {
+        handlingCharge = 0.0; // Free handling
+      }
     }
 
     await homeRepository.checkout(
@@ -581,6 +623,25 @@ class HomeCubit extends Cubit<HomeState> {
       )));
     }).catchError((error) {
       emit(state.copyWith(submitReviewApiState: GeneralApiState<void>(
+        apiCallState: APICallState.failure,
+        errorMessage: error.toString(),
+      )));
+    });
+  }
+
+  // get order review Method
+  Future<void> getOrderReview({required int orderId}) async {
+    emit(state.copyWith(getOrderReviewApiState: GeneralApiState<Map<String, dynamic>>(
+      apiCallState: APICallState.loading,
+    )));
+
+    await homeRepository.getOrderReview(orderId: orderId).then((response) {
+      emit(state.copyWith(getOrderReviewApiState: GeneralApiState<Map<String, dynamic>>(
+        apiCallState: APICallState.loaded,
+        model: response,
+      )));
+    }).catchError((error) {
+      emit(state.copyWith(getOrderReviewApiState: GeneralApiState<Map<String, dynamic>>(
         apiCallState: APICallState.failure,
         errorMessage: error.toString(),
       )));
@@ -765,23 +826,66 @@ class HomeCubit extends Cubit<HomeState> {
 
   // Helper methods for optimistic updates
   void _updateProductCartQuantity(int productId, int? quantity) {
-    // For variant products, calculate total quantity from cart items
-    // For single variant products, use the provided quantity
+    // Update both main product cartQuantity and individual variant cartQuantity fields
     if (state.productsBySubCategoryApiState.model != null) {
       final products = List<Product>.from(state.productsBySubCategoryApiState.model!.data);
       final productIndex = products.indexWhere((p) => p.id == productId);
       
       if (productIndex != -1) {
         final product = products[productIndex];
-        int totalCartQuantity;
-        
-        // For both variant and single variant products, calculate total from all cart items
-        // This ensures we always have the most up-to-date quantity after cart operations
         final cartItems = state.getCartItemsApiState.model?.data ?? [];
-        totalCartQuantity = cartItems
+        
+        // Calculate total cart quantity for the main product
+        int totalCartQuantity = cartItems
             .where((item) => item.productId == productId)
             .fold(0, (sum, item) => sum + (item.quantity ?? 0));
         
+        // Update individual variant cartQuantity fields from cart items
+        List<ProductAttributeValue> updatedAttributeValues = [];
+        for (final attributeValue in product.attributeValues) {
+          List<ProductAttributeValueDetail> updatedValues = [];
+          
+          for (final value in attributeValue.attribute.values) {
+            // Find the cart quantity for this specific variant
+            int variantCartQuantity = 0;
+            if (value.id != null) {
+              final cartItem = cartItems.firstWhere(
+                (item) => item.productId == productId && item.attributeValueId == value.id,
+                orElse: () => CartItem(),
+              );
+              variantCartQuantity = cartItem.quantity ?? 0;
+            }
+            
+            // Create updated ProductAttributeValueDetail with correct cartQuantity
+            final updatedValue = ProductAttributeValueDetail(
+              id: value.id,
+              value: value.value,
+              mrpPrice: value.mrpPrice,
+              discount: value.discount,
+              sellPrice: value.sellPrice,
+              stock: value.stock,
+              cartQuantity: variantCartQuantity, // Update individual variant cart quantity
+            );
+            
+            updatedValues.add(updatedValue);
+          }
+          
+          // Create updated ProductAttribute with updated values
+          final updatedAttribute = ProductAttribute(
+            id: attributeValue.attribute.id,
+            name: attributeValue.attribute.name,
+            values: updatedValues,
+          );
+          
+          // Create updated ProductAttributeValue
+          final updatedAttributeValue = ProductAttributeValue(
+            attribute: updatedAttribute,
+          );
+          
+          updatedAttributeValues.add(updatedAttributeValue);
+        }
+        
+        // Create updated product with both main cartQuantity and updated variant quantities
         final updatedProduct = Product(
           id: product.id,
           name: product.name,
@@ -795,8 +899,8 @@ class HomeCubit extends Cubit<HomeState> {
           weight: product.weight,
           imagesUrls: product.imagesUrls,
           tax: product.tax,
-          cartQuantity: totalCartQuantity, // Update cart quantity
-          attributeValues: product.attributeValues,
+          cartQuantity: totalCartQuantity, // Update main product cart quantity
+          attributeValues: updatedAttributeValues, // Update with individual variant quantities
         );
         
         products[productIndex] = updatedProduct;
@@ -807,6 +911,100 @@ class HomeCubit extends Cubit<HomeState> {
           model: updatedModel,
         )));
       }
+    }
+  }
+
+  // Helper method to merge fresh API product data with current cart quantities
+  ProductModel _mergeProductsWithCartQuantities(ProductModel productsModel) {
+    final cartItems = state.getCartItemsApiState.model?.data ?? [];
+    
+    // If no cart items, return original model
+    if (cartItems.isEmpty) {
+      return productsModel;
+    }
+    
+    final updatedProducts = productsModel.data.map((product) {
+      // Calculate total cart quantity for this product
+      int totalCartQuantity = cartItems
+          .where((item) => item.productId == product.id)
+          .fold(0, (sum, item) => sum + (item.quantity ?? 0));
+      
+      // Update individual variant cartQuantity fields from cart items
+      List<ProductAttributeValue> updatedAttributeValues = [];
+      for (final attributeValue in product.attributeValues) {
+        List<ProductAttributeValueDetail> updatedValues = [];
+        
+        for (final value in attributeValue.attribute.values) {
+          // Find the cart quantity for this specific variant
+          int variantCartQuantity = 0;
+          if (value.id != null) {
+            final cartItem = cartItems.firstWhere(
+              (item) => item.productId == product.id && item.attributeValueId == value.id,
+              orElse: () => CartItem(),
+            );
+            variantCartQuantity = cartItem.quantity ?? 0;
+          }
+          
+          // Create updated ProductAttributeValueDetail with correct cartQuantity
+          final updatedValue = ProductAttributeValueDetail(
+            id: value.id,
+            value: value.value,
+            mrpPrice: value.mrpPrice,
+            discount: value.discount,
+            sellPrice: value.sellPrice,
+            stock: value.stock,
+            cartQuantity: variantCartQuantity, // Update individual variant cart quantity
+          );
+          
+          updatedValues.add(updatedValue);
+        }
+        
+        // Create updated ProductAttribute with updated values
+        final updatedAttribute = ProductAttribute(
+          id: attributeValue.attribute.id,
+          name: attributeValue.attribute.name,
+          values: updatedValues,
+        );
+        
+        // Create updated ProductAttributeValue
+        final updatedAttributeValue = ProductAttributeValue(
+          attribute: updatedAttribute,
+        );
+        
+        updatedAttributeValues.add(updatedAttributeValue);
+      }
+      
+      // Create updated product with both main cartQuantity and updated variant quantities
+      return Product(
+        id: product.id,
+        name: product.name,
+        description: product.description,
+        category: product.category,
+        subcategory: product.subcategory,
+        brand: product.brand,
+        mrpPrice: product.mrpPrice,
+        discount: product.discount,
+        salePrice: product.salePrice,
+        weight: product.weight,
+        imagesUrls: product.imagesUrls,
+        tax: product.tax,
+        cartQuantity: totalCartQuantity, // Use calculated total quantity
+        attributeValues: updatedAttributeValues, // Update with individual variant quantities
+      );
+    }).toList();
+    
+    return ProductModel(data: updatedProducts);
+  }
+
+  // Helper method to update all existing product data with cart quantities
+  void _updateAllProductQuantitiesFromCart() {
+    // Update products in productsBySubCategoryApiState if it exists
+    if (state.productsBySubCategoryApiState.model != null) {
+      final updatedModel = _mergeProductsWithCartQuantities(state.productsBySubCategoryApiState.model!);
+      emit(state.copyWith(productsBySubCategoryApiState: GeneralApiState<ProductModel>(
+        apiCallState: APICallState.loaded,
+        model: updatedModel,
+      )));
     }
   }
 

@@ -250,6 +250,14 @@ Future<void> updateCartItem({
     return response;
   }
 
+  // get order review
+  Future<Map<String, dynamic>> getOrderReview({required int orderId}) async {
+    final response = await generalRepository.get(
+      handle: 'orders/reviews?order_id=$orderId',
+    );
+    return response;
+  }
+
 
   // search products
   Future<SearchModel> searchProducts({required String query}) async {

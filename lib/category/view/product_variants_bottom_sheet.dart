@@ -48,16 +48,20 @@ class _ProductVariantsBottomSheetState extends State<ProductVariantsBottomSheet>
   }
 
   void _initializeQuantitiesFromCart() {
-    // Initialize quantities for each variant from cart
-    for (final attributeValue in widget.product.attributeValues) {
+    // Get the latest product data from productsBySubCategoryApiState
+    final homeCubit = BlocProvider.of<HomeCubit>(context);
+    final products = homeCubit.state.productsBySubCategoryApiState.model?.data ?? [];
+    final currentProduct = products.firstWhere(
+      (p) => p.id == widget.product.id,
+      orElse: () => widget.product,
+    );
+    
+    // Initialize quantities for each variant from the updated product model's cartQuantity field
+    for (final attributeValue in currentProduct.attributeValues) {
       for (final value in attributeValue.attribute.values) {
         if (value.id != null) {
-          final cartItem = widget.cartItems.firstWhere(
-            (item) => item.productId == widget.product.id && item.attributeValueId == value.id,
-            orElse: () => home_models.CartItem(),
-          );
-          
-          _quantities[value.id!] = cartItem.quantity ?? 0;
+          // Use cartQuantity from ProductAttributeValueDetail instead of cart items
+          _quantities[value.id!] = value.cartQuantity ?? 0;
         }
       }
     }
@@ -99,37 +103,44 @@ class _ProductVariantsBottomSheetState extends State<ProductVariantsBottomSheet>
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<HomeCubit, HomeState>(
-      listenWhen: (previous, current) => 
-          previous.addToCartApiState != current.addToCartApiState ||
-          previous.updateCartItemApiState != current.updateCartItemApiState ||
-          previous.deleteCartItemApiState != current.deleteCartItemApiState,
-      listener: (context, state) {
-        // Sync quantities when cart state changes (from optimistic updates)
-        if (state.getCartItemsApiState.apiCallState == APICallState.loaded) {
-          final cartItems = state.getCartItemsApiState.model?.data ?? [];
-          
-          // Update quantities from current cart state
-          for (final attributeValue in widget.product.attributeValues) {
-            for (final value in attributeValue.attribute.values) {
-              if (value.id != null) {
-                final cartItem = cartItems.firstWhere(
-                  (item) => item.productId == widget.product.id && item.attributeValueId == value.id,
-                  orElse: () => home_models.CartItem(),
-                );
-                
-                final newQuantity = cartItem.quantity ?? 0;
-                if (_quantities[value.id!] != newQuantity) {
-                  setState(() {
-                    _quantities[value.id!] = newQuantity;
-                  });
-                }
+    return BlocBuilder<HomeCubit, HomeState>(
+      buildWhen: (previous, current) => 
+          previous.productsBySubCategoryApiState != current.productsBySubCategoryApiState,
+      builder: (context, state) {
+        // Get the latest product data with updated cartQuantity values
+        final products = state.productsBySubCategoryApiState.model?.data ?? [];
+        final currentProduct = products.firstWhere(
+          (p) => p.id == widget.product.id,
+          orElse: () => widget.product,
+        );
+        
+        // Update local quantities from the latest product data
+        for (final attributeValue in currentProduct.attributeValues) {
+          for (final value in attributeValue.attribute.values) {
+            if (value.id != null) {
+              final newQuantity = value.cartQuantity ?? 0;
+              if (_quantities[value.id!] != newQuantity) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) {
+                    setState(() {
+                      _quantities[value.id!] = newQuantity;
+                    });
+                  }
+                });
               }
             }
           }
         }
-      },
-      child: Container(
+        
+        return BlocListener<HomeCubit, HomeState>(
+          listenWhen: (previous, current) => 
+              previous.addToCartApiState != current.addToCartApiState ||
+              previous.updateCartItemApiState != current.updateCartItemApiState ||
+              previous.deleteCartItemApiState != current.deleteCartItemApiState,
+          listener: (context, state) {
+            // Additional listener for cart operations if needed
+          },
+          child: Container(
       decoration:  BoxDecoration(
         color: const Color.fromARGB(255, 238, 240, 248),
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -162,7 +173,7 @@ class _ProductVariantsBottomSheetState extends State<ProductVariantsBottomSheet>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        widget.product.name,
+                        currentProduct.name,
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -185,9 +196,9 @@ class _ProductVariantsBottomSheetState extends State<ProductVariantsBottomSheet>
             child: ListView.builder(
               shrinkWrap: true,
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: widget.product.attributeValues.length,
+              itemCount: currentProduct.attributeValues.length,
               itemBuilder: (context, index) {
-                final attributeValue = widget.product.attributeValues[index];
+                final attributeValue = currentProduct.attributeValues[index];
                 
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -228,9 +239,9 @@ class _ProductVariantsBottomSheetState extends State<ProductVariantsBottomSheet>
                               children: [
                                 ClipRRect(
                                   borderRadius: BorderRadius.circular(8),
-                                  child: widget.product.imagesUrls.isNotEmpty
+                                  child: currentProduct.imagesUrls.isNotEmpty
                                       ? Image.network(
-                                          widget.product.imagesUrls.first,
+                                          currentProduct.imagesUrls.first,
                                           height: 50,
                                           width: 50,
                                           fit: BoxFit.cover,
@@ -429,7 +440,9 @@ class _ProductVariantsBottomSheetState extends State<ProductVariantsBottomSheet>
           const SizedBox(height: 16),
         ],
       ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

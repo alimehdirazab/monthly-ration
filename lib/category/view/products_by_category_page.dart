@@ -617,45 +617,33 @@ class _ProductCardFromApiState extends State<ProductCardFromApi> {
   }
 
   void _initializeQuantityFromProduct() {
-    // For products with variants, calculate total quantity from all variants in cart
+    // Use cart_quantity from product API response for both single and multi-variant products
+    final productCartQuantity = widget.product.cartQuantity ?? 0;
+    
+    if (_quantity != productCartQuantity) {
+      setState(() {
+        _quantity = productCartQuantity;
+      });
+    }
+    
+    // For products with variants, also initialize the previous quantities tracker
     if (widget.product.attributeValues.isNotEmpty) {
-      _calculateTotalVariantQuantity();
-    } else {
-      // Use cart_quantity from product API response for single variant products
-      final productCartQuantity = widget.product.cartQuantity ?? 0;
-      
-      if (_quantity != productCartQuantity) {
-        setState(() {
-          _quantity = productCartQuantity;
-        });
+      _initializePreviousQuantitiesTracker();
+    }
+  }
+
+  void _initializePreviousQuantitiesTracker() {
+    // Initialize previous quantities tracker for variants
+    for (final attributeValue in widget.product.attributeValues) {
+      for (final value in attributeValue.attribute.values) {
+        if (value.id != null) {
+          _previousVariantQuantities[value.id!] = value.cartQuantity ?? 0;
+        }
       }
     }
   }
 
-  void _calculateTotalVariantQuantity() {
-    final cartItems = context.read<HomeCubit>().state.getCartItemsApiState.model?.data ?? [];
-    int totalQuantity = 0;
-    
-    // Sum up quantities of all variants of this product in the cart
-    // Also update previous quantities tracker
-    for (final cartItem in cartItems) {
-      if (cartItem.productId == widget.product.id) {
-        totalQuantity += cartItem.quantity ?? 0;
-        
-        // Update previous quantities tracker
-        if (cartItem.attributeValueId != null) {
-          _previousVariantQuantities[cartItem.attributeValueId!] = cartItem.quantity ?? 0;
-        }
-      }
-    }
-    
-    // Only update quantity if not in loading state to preserve optimistic updates
-    if (!_isLoading && _quantity != totalQuantity) {
-      setState(() {
-        _quantity = totalQuantity;
-      });
-    }
-  }
+
 
   void _incrementQuantity() {
     if (_isLoading) return; // Prevent multiple calls
@@ -839,8 +827,7 @@ class _ProductCardFromApiState extends State<ProductCardFromApi> {
         product: widget.product,
         attributeValueId: attributeValueId,
       ).then((_) {
-        // API Success - recalculate total quantity to sync with actual cart state
-        _calculateTotalVariantQuantity();
+        // API Success - state will be updated via BlocListener
         setState(() {
           _isLoading = false;
         });
@@ -875,8 +862,7 @@ class _ProductCardFromApiState extends State<ProductCardFromApi> {
         attributeValueId: attributeValueId,
         isIncrement: true, // Mark as increment operation
       ).then((_) {
-        // API Success - recalculate total quantity to sync with actual cart state
-        _calculateTotalVariantQuantity();
+        // API Success - state will be updated via BlocListener
         setState(() {
           _isLoading = false;
         });
@@ -909,8 +895,7 @@ class _ProductCardFromApiState extends State<ProductCardFromApi> {
         product: widget.product,
         attributeValueId: attributeValueId,
       ).then((_) {
-        // API Success - recalculate total quantity to sync with actual cart state
-        _calculateTotalVariantQuantity();
+        // API Success - state will be updated via BlocListener
         setState(() {
           _isLoading = false;
         });
@@ -944,8 +929,7 @@ class _ProductCardFromApiState extends State<ProductCardFromApi> {
         attributeId: attributeId,
         attributeValueId: attributeValueId,
       ).then((_) {
-        // API Success - recalculate total quantity to sync with actual cart state
-        _calculateTotalVariantQuantity();
+        // API Success - state will be updated via BlocListener
         setState(() {
           _isLoading = false;
         });
@@ -980,29 +964,36 @@ class _ProductCardFromApiState extends State<ProductCardFromApi> {
           previous.addToCartApiState != current.addToCartApiState ||
           previous.updateCartItemApiState != current.updateCartItemApiState ||
           previous.deleteCartItemApiState != current.deleteCartItemApiState ||
-          previous.getCartItemsApiState != current.getCartItemsApiState,
+          previous.getCartItemsApiState != current.getCartItemsApiState ||
+          previous.productsBySubCategoryApiState != current.productsBySubCategoryApiState,
       listener: (context, state) {
         // Only update quantity when NOT in loading state to preserve optimistic updates
         if (!_isLoading && (state.productsBySubCategoryApiState.apiCallState == APICallState.loaded ||
             state.getCartItemsApiState.apiCallState == APICallState.loaded)) {
           
+          // For both single and multi-variant products, use the main product's cartQuantity
+          final products = state.productsBySubCategoryApiState.model?.data ?? [];
+          final updatedProduct = products.firstWhere(
+            (p) => p.id == widget.product.id,
+            orElse: () => widget.product,
+          );
+          
+          // Update quantity from the updated product model's main cartQuantity
+          final productCartQuantity = updatedProduct.cartQuantity ?? 0;
+          if (_quantity != productCartQuantity) {
+            setState(() {
+              _quantity = productCartQuantity;
+            });
+          }
+          
+          // For variant products, also update the previous quantities tracker
           if (widget.product.attributeValues.isNotEmpty) {
-            // For variant products, recalculate total from cart items
-            _calculateTotalVariantQuantity();
-          } else {
-            // For single variant products, use product model
-            final products = state.productsBySubCategoryApiState.model?.data ?? [];
-            final updatedProduct = products.firstWhere(
-              (p) => p.id == widget.product.id,
-              orElse: () => widget.product,
-            );
-            
-            // Update quantity from the updated product model
-            final productCartQuantity = updatedProduct.cartQuantity ?? 0;
-            if (_quantity != productCartQuantity) {
-              setState(() {
-                _quantity = productCartQuantity;
-              });
+            for (final attributeValue in updatedProduct.attributeValues) {
+              for (final value in attributeValue.attribute.values) {
+                if (value.id != null) {
+                  _previousVariantQuantities[value.id!] = value.cartQuantity ?? 0;
+                }
+              }
             }
           }
         }

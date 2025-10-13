@@ -47,6 +47,8 @@ class HomeState extends Equatable {
     this.handlingApiState = const GeneralApiState<HandlingModel>(),
     // submit review api State
     this.submitReviewApiState = const GeneralApiState<void>(),
+    // get order review api State
+    this.getOrderReviewApiState = const GeneralApiState<Map<String, dynamic>>(),
     // search products api State
     this.searchProductsApiState = const GeneralApiState<SearchModel>(),
     // order invoice api State
@@ -107,7 +109,9 @@ class HomeState extends Equatable {
     // handling api State
     final GeneralApiState<HandlingModel> handlingApiState;
     // submit review api State
-    final GeneralApiState<void> submitReviewApiState; 
+    final GeneralApiState<void> submitReviewApiState;
+    // get order review api State
+    final GeneralApiState<Map<String, dynamic>> getOrderReviewApiState;
     // search products api State
     final GeneralApiState<SearchModel> searchProductsApiState;
     // order invoice api State
@@ -151,6 +155,7 @@ class HomeState extends Equatable {
     GeneralApiState<ShippingModel>? shippingApiState,
     GeneralApiState<HandlingModel>? handlingApiState,
     GeneralApiState<void>? submitReviewApiState,
+    GeneralApiState<Map<String, dynamic>>? getOrderReviewApiState,
     GeneralApiState<SearchModel>? searchProductsApiState,
     GeneralApiState<OrderInvoiceModel>? orderInvoiceApiState,
     GeneralApiState<String>? pdfGenerationApiState,
@@ -184,6 +189,7 @@ class HomeState extends Equatable {
       shippingApiState: shippingApiState ?? this.shippingApiState,
       handlingApiState: handlingApiState ?? this.handlingApiState,
       submitReviewApiState: submitReviewApiState ?? this.submitReviewApiState,
+      getOrderReviewApiState: getOrderReviewApiState ?? this.getOrderReviewApiState,
       searchProductsApiState: searchProductsApiState ?? this.searchProductsApiState,
       orderInvoiceApiState: orderInvoiceApiState ?? this.orderInvoiceApiState,
       pdfGenerationApiState: pdfGenerationApiState ?? this.pdfGenerationApiState,
@@ -220,6 +226,7 @@ class HomeState extends Equatable {
     shippingApiState,
     handlingApiState,
     submitReviewApiState,
+    getOrderReviewApiState,
     searchProductsApiState,
     orderInvoiceApiState,
     pdfGenerationApiState,

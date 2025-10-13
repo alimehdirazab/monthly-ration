@@ -97,7 +97,7 @@ class GroceryApis {
   // time slots
   static const String timeSlots = "timeslots";
   // wallet balance
-  static const String walletBalance = "available-wallet-balance";
+  static const String walletBalance = "available_wallet_balance";
   
 
   initBaseUrlAndAuthEndpoints() {
